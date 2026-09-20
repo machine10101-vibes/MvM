@@ -621,7 +621,7 @@ export function makeTitanHullMap() {
     const stagger = (Math.floor(y / ph) % 2) * (pw / 2);
     for (let x = -pw; x < size + pw; x += pw) {
       const px = x + stagger;
-      const shade = 118 + ((x / pw + y / ph) % 3) * 28;
+      const shade = 72 + ((x / pw + y / ph) % 3) * 18;
       ctx.fillStyle = `rgb(${shade + 10},${shade + 6},${shade})`;
       ctx.fillRect(px + 6, y + 6, pw - 12, ph - 12);
       ctx.strokeStyle = "#050608";

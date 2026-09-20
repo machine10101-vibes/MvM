@@ -179,7 +179,7 @@ export class Engine {
       // Stay inside the hangar bay (walls at ~13.4). Titan starts on a 3/4
       // front orbit so the hex crown, cyclops, and tube pods all read.
       const dist = hulking ? 11.2 : 12.2;
-      const a = hulking ? t * 0.045 + 0.48 : t * 0.2;
+      const a = hulking ? 0.42 : t * 0.2;
       this.camera.position.set(Math.sin(a) * dist, hulking ? 3.75 : 3.55, Math.cos(a) * dist);
       this.camera.lookAt(p.x, hulking ? 2.4 : 1.55, p.z);
       p.x = 0;

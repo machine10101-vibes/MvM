@@ -70,12 +70,12 @@ function mats(wrecked: boolean) {
       emissiveIntensity: emitI,
     });
   return {
-    armor: lam(wrecked ? 0x3a3a3e : 0xa8b0b8, hullMap.map, wrecked ? 0x101012 : 0x2a3036, wrecked ? 0.04 : 0.18),
-    armorB: lam(wrecked ? 0x242428 : 0x4a525a, hullMap.map, 0x121418, 0.1),
-    armorC: lam(wrecked ? 0x323236 : 0xc4ccd4, armorT.map, 0x2c3238, 0.14),
-    plate: lam(0x3a4048, metal.map, 0x101214, 0.08),
-    dark: lam(0x16181c, metal.map, 0x08090c, 0.05),
-    trim: lam(0x8a929a, metal.map, 0x1a1c20, 0.08),
+    armor: lam(wrecked ? 0x3a3a3e : 0x6e767e, hullMap.map, wrecked ? 0x101012 : 0x1a1e22, wrecked ? 0.04 : 0.12),
+    armorB: lam(wrecked ? 0x242428 : 0x3a4248, hullMap.map, 0x101214, 0.08),
+    armorC: lam(wrecked ? 0x323236 : 0x5c646c, armorT.map, 0x16181c, 0.08),
+    plate: lam(0x2c3238, metal.map, 0x0c0e10, 0.06),
+    dark: lam(0x1a1c20, metal.map, 0x08090c, 0.04),
+    trim: lam(0x6a727a, metal.map, 0x141618, 0.06),
     emit: new THREE.MeshStandardMaterial({
       color: glow,
       emissive: glow,
@@ -349,11 +349,11 @@ function wrapPi(a: number) {
 
 function buildTorso(torso: THREE.Group, m: TitanMats, detail: boolean) {
   // Dark under-hull so plate gaps read as recessed seams.
-  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2, 1), m.dark);
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.22, 1), m.plate);
   core.position.set(HULL.x, HULL.y, HULL.z);
   core.castShadow = true;
   torso.add(core);
-  const hull = new THREE.Mesh(makePaneledHull(1.32, 28, 20, 10, 7), m.dark);
+  const hull = new THREE.Mesh(makePaneledHull(1.34, 28, 20, 10, 7), m.armorB);
   hull.position.set(HULL.x, HULL.y, HULL.z);
   hull.castShadow = true;
   hull.receiveShadow = true;
@@ -363,15 +363,15 @@ function buildTorso(torso: THREE.Group, m: TitanMats, detail: boolean) {
   const skins = [m.armor, m.armorB, m.armorC];
   const bands = detail
     ? [
-        { pitch: 1.08, n: 7, w: 0.48, h: 0.3, r: 1.26 },
-        { pitch: 0.8, n: 10, w: 0.5, h: 0.34, r: 1.36 },
-        { pitch: 0.54, n: 12, w: 0.48, h: 0.36, r: 1.41 },
-        { pitch: 0.28, n: 13, w: 0.46, h: 0.36, r: 1.44 },
-        { pitch: 0.02, n: 14, w: 0.46, h: 0.36, r: 1.45 },
-        { pitch: -0.24, n: 13, w: 0.46, h: 0.34, r: 1.43 },
-        { pitch: -0.5, n: 11, w: 0.48, h: 0.32, r: 1.38 },
-        { pitch: -0.76, n: 9, w: 0.46, h: 0.3, r: 1.28 },
-        { pitch: -1.0, n: 7, w: 0.42, h: 0.26, r: 1.16 },
+        { pitch: 1.08, n: 8, w: 0.58, h: 0.36, r: 1.28 },
+        { pitch: 0.8, n: 11, w: 0.58, h: 0.4, r: 1.38 },
+        { pitch: 0.54, n: 13, w: 0.56, h: 0.4, r: 1.42 },
+        { pitch: 0.28, n: 14, w: 0.54, h: 0.4, r: 1.44 },
+        { pitch: 0.02, n: 15, w: 0.54, h: 0.4, r: 1.45 },
+        { pitch: -0.24, n: 14, w: 0.54, h: 0.38, r: 1.43 },
+        { pitch: -0.5, n: 12, w: 0.56, h: 0.36, r: 1.38 },
+        { pitch: -0.76, n: 10, w: 0.54, h: 0.34, r: 1.3 },
+        { pitch: -1.0, n: 8, w: 0.5, h: 0.3, r: 1.18 },
       ]
     : [
         { pitch: 0.7, n: 8, w: 0.5, h: 0.36, r: 1.36 },
@@ -385,9 +385,9 @@ function buildTorso(torso: THREE.Group, m: TitanMats, detail: boolean) {
       const yaw = wrapPi((i / band.n) * Math.PI * 2 - Math.PI + stagger);
       if (Math.abs(yaw) < 0.5 && Math.abs(band.pitch) < 0.4) continue;
       const mat = skins[(i + Math.round(Math.abs(band.pitch) * 10)) % skins.length];
-      shellPlate(torso, geo.soft, mat, band.r, yaw, band.pitch, band.w, band.h, 0.2);
+      shellPlate(torso, geo.soft, mat, band.r, yaw, band.pitch, band.w, band.h, 0.09);
       if (detail && i % 3 === 0) {
-        shellPlate(torso, geo.hard, m.dark, band.r + 0.02, yaw + 0.03, band.pitch, band.w * 0.88, 0.04, 0.07);
+        shellPlate(torso, geo.hard, m.dark, band.r + 0.01, yaw + 0.03, band.pitch, band.w * 0.9, 0.03, 0.04);
       }
     }
   }
