@@ -325,15 +325,15 @@ function buildTorso(torso: THREE.Group, m: TitanMats, detail: boolean) {
     add(torso, geo.hard, m.dark, 0.55, 0.08, 0.04, 1.22, 1.55, 0.55);
   }
 
-  // Cyclops — concentric rings + plasma core.
-  add(torso, geo.torusFat, m.dark, 1.05, 1.05, 1.05, 0, 1.32, 1.05);
-  add(torso, geo.torus, m.emit, 0.88, 0.88, 0.88, 0, 1.32, 1.1);
-  add(torso, geo.torusFat, m.dark, 0.7, 0.7, 0.7, 0, 1.32, 1.14);
-  add(torso, geo.torus, m.emit, 0.52, 0.52, 0.52, 0, 1.32, 1.18);
-  add(torso, geo.cyl, m.dark, 0.72, 0.12, 0.72, 0, 1.32, 1.12, Math.PI / 2, 0, 0);
-  add(torso, geo.sphere, m.lens, 0.58, 0.58, 0.22, 0, 1.32, 1.2);
-  add(torso, geo.sphere, m.emit, 0.2, 0.2, 0.18, 0, 1.32, 1.3);
-  add(torso, geo.cyl, m.emit, 0.08, 0.08, 0.06, 0, 1.32, 1.36, Math.PI / 2, 0, 0);
+  // Cyclops — large protruding rings + plasma core (the face).
+  add(torso, geo.torusFat, m.dark, 1.22, 1.22, 1.22, 0, 1.32, 1.12);
+  add(torso, geo.torus, m.emit, 1.02, 1.02, 1.02, 0, 1.32, 1.18);
+  add(torso, geo.torusFat, m.dark, 0.82, 0.82, 0.82, 0, 1.32, 1.22);
+  add(torso, geo.torus, m.emit, 0.62, 0.62, 0.62, 0, 1.32, 1.26);
+  add(torso, geo.cyl, m.dark, 0.82, 0.16, 0.82, 0, 1.32, 1.18, Math.PI / 2, 0, 0);
+  add(torso, geo.sphere, m.lens, 0.7, 0.7, 0.28, 0, 1.32, 1.3);
+  add(torso, geo.sphere, m.emit, 0.28, 0.28, 0.24, 0, 1.32, 1.42);
+  add(torso, geo.cyl, m.emit, 0.1, 0.1, 0.08, 0, 1.32, 1.5, Math.PI / 2, 0, 0);
 
   // Hex crown — honeycomb must sit on the TOP face (cylinder UVs wrap the side).
   add(torso, geo.hex, m.plate, 2.05, 0.2, 2.05, 0, 2.4, -0.02);
