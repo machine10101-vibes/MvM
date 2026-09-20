@@ -574,3 +574,42 @@ export function makeHexCellMap() {
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
   return t;
 }
+
+/** High-contrast plate grid so Titan armor reads even without IBL. */
+export function makeTitanHullMap() {
+  const size = 512;
+  const { c, ctx } = canvas(size);
+  ctx.fillStyle = "#3a4048";
+  ctx.fillRect(0, 0, size, size);
+  const pw = 64;
+  const ph = 48;
+  for (let y = 0; y < size; y += ph) {
+    for (let x = 0; x < size; x += pw) {
+      const shade = 52 + ((x / pw + y / ph) % 3) * 10;
+      ctx.fillStyle = `rgb(${shade + 8},${shade + 4},${shade})`;
+      ctx.fillRect(x + 3, y + 3, pw - 6, ph - 6);
+      ctx.strokeStyle = "rgba(8,8,10,0.95)";
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x + 1.5, y + 1.5, pw - 3, ph - 3);
+      ctx.strokeStyle = "rgba(255,40,32,0.22)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x + 4, y + 4, pw - 8, ph - 8);
+      ctx.fillStyle = "#9aa2aa";
+      ctx.beginPath();
+      ctx.arc(x + 10, y + 10, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x + pw - 10, y + 10, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  const height = new Float32Array(size * size);
+  const img = ctx.getImageData(0, 0, size, size);
+  for (let i = 0; i < size * size; i++) {
+    height[i] = img.data[i * 4] / 255;
+  }
+  return {
+    map: tex(c, { repeat: 3, color: true, aniso: 8 }),
+    normalMap: tex(heightToNormal(height, size, 14), { repeat: 3 }),
+  };
+}
