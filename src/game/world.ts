@@ -541,12 +541,17 @@ export class World {
       this.hangar.add(area);
     }
 
-    const key = new THREE.SpotLight(0xffe6c8, 9, 28, 0.52, 0.42, 1.35);
+    const key = new THREE.SpotLight(0xffe6c8, 12, 28, 0.58, 0.38, 1.2);
     key.position.set(-6, 11, 8);
     key.target.position.set(0, 2.4, 0);
     this.hangar.add(key);
     this.hangar.add(key.target);
-    const rim = new THREE.SpotLight(0xa8c4e0, 5.5, 24, 0.65, 0.48, 1.15);
+    const fill = new THREE.SpotLight(0xffc8b0, 4.2, 22, 0.7, 0.5, 1.2);
+    fill.position.set(2, 8, 10);
+    fill.target.position.set(0, 2.2, 0);
+    this.hangar.add(fill);
+    this.hangar.add(fill.target);
+    const rim = new THREE.SpotLight(0xa8c4e0, 6.5, 24, 0.65, 0.48, 1.15);
     rim.position.set(8, 9, -6);
     rim.target.position.set(0, 3, 0);
     this.hangar.add(rim);
@@ -578,14 +583,14 @@ export class World {
 
   setHangarMode(on: boolean) {
     this.hangar.visible = true;
-    this.group.visible = true;
-    this.sky.visible = true;
+    this.group.visible = !on;
+    this.sky.visible = !on;
     if (on) {
-      this.scene.fog = new THREE.FogExp2(0x1c1816, 0.01);
-      this.sun.intensity = 0.7;
-      this.hemi.intensity = 0.28;
-      this.fill.intensity = 0.1;
-      this.scene.environmentIntensity = 0.55;
+      this.scene.fog = new THREE.FogExp2(0x14161a, 0.004);
+      this.sun.intensity = 1.15;
+      this.hemi.intensity = 0.55;
+      this.fill.intensity = 0.28;
+      this.scene.environmentIntensity = 1.05;
     } else {
       this.scene.fog = new THREE.FogExp2(0x2a221c, 0.0062);
       this.sun.intensity = this.sun.castShadow ? 1.55 : 1.2;

@@ -55,7 +55,7 @@ export function buildTitanMech(
   weapons: { primary: WeaponId; secondary: WeaponId },
 ): MechRig {
   const detail = !wrecked && !lowDetail;
-  const paint = wrecked ? 0x2a2a2c : 0x1b1d22;
+  const paint = wrecked ? 0x2a2a2c : 0x2a3038;
   const accent = wrecked ? 0x3a2020 : 0x5a181c;
   const glow = wrecked ? 0x331010 : 0xff2a22;
 
@@ -65,8 +65,8 @@ export function buildTitanMech(
     normalMap: armorT.normalMap,
     roughnessMap: armorT.roughnessMap,
     metalnessMap: armorT.metalnessMap,
-    metalness: wrecked ? 0.55 : 0.78,
-    roughness: wrecked ? 0.62 : 0.32,
+    metalness: wrecked ? 0.42 : 0.48,
+    roughness: wrecked ? 0.62 : 0.46,
     clearcoat: wrecked ? 0.04 : 0.22,
     clearcoatRoughness: 0.45,
     envMapIntensity: wrecked ? 0.35 : 1.15,
@@ -76,8 +76,8 @@ export function buildTitanMech(
     color: 0x14161a,
     map: metal.map,
     normalMap: metal.normalMap,
-    metalness: 0.88,
-    roughness: 0.28,
+    metalness: 0.62,
+    roughness: 0.38,
     envMapIntensity: 1.2,
   });
   const dark = new THREE.MeshStandardMaterial({

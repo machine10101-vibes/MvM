@@ -176,9 +176,10 @@ export class Engine {
     if (this.view === "hangar") {
       const t = time / 1000;
       const hulking = p.chassis === "titan";
-      const dist = hulking ? 14.4 : 12.2;
-      this.camera.position.set(Math.sin(t * 0.2) * dist, hulking ? 4.05 : 3.55, Math.cos(t * 0.2) * dist);
-      this.camera.lookAt(p.x, hulking ? 1.85 : 1.55, p.z);
+      // Stay inside the hangar bay (walls at ~13.4) so the orbit never clips.
+      const dist = hulking ? 11.6 : 12.2;
+      this.camera.position.set(Math.sin(t * 0.2) * dist, hulking ? 4.35 : 3.55, Math.cos(t * 0.2) * dist);
+      this.camera.lookAt(p.x, hulking ? 1.9 : 1.55, p.z);
       p.x = 0;
       p.z = 0;
       p.yaw += dt * 0.18;
