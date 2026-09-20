@@ -1,0 +1,69 @@
+{
+  "name": "MVM",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$path": "src/ReplicatedStorage/Shared"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "$path": "src/ServerScriptService"
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage"
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "$properties": {
+        "CameraMaxZoomDistance": 64,
+        "CameraMinZoomDistance": 8,
+        "EnableMouseLockOption": true
+      },
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "$path": "src/StarterPlayer/StarterPlayerScripts"
+      },
+      "StarterCharacterScripts": {
+        "$className": "StarterCharacterScripts"
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "$properties": {
+        "ResetPlayerGuiOnSpawn": true
+      }
+    },
+    "SoundService": {
+      "$className": "SoundService",
+      "$properties": {
+        "RespectFilteringEnabled": true
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Ambient": [0.22, 0.24, 0.30],
+        "Brightness": 2.2,
+        "ClockTime": 16.4,
+        "FogColor": [0.45, 0.50, 0.58],
+        "FogEnd": 1200,
+        "FogStart": 180,
+        "GeographicLatitude": 35,
+        "GlobalShadows": true,
+        "OutdoorAmbient": [0.40, 0.42, 0.48],
+        "ShadowSoftness": 0.2,
+        "Technology": "ShadowMap"
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": {
+        "Gravity": 196.2,
+        "SignalBehavior": "Deferred"
+      }
+    }
+  }
+}

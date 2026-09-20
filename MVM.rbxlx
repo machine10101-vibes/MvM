@@ -1,0 +1,4799 @@
+<?xml version="1.0" encoding="utf-8"?>
+<roblox xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.roblox.com/roblox.xsd" version="4">
+  <External>null</External>
+  <External>nil</External>
+  <Item class="Workspace" referent="RBX23">
+    <Properties>
+      <string name="Name">Workspace</string>
+    </Properties>
+  <Item class="SpawnLocation" referent="RBX22">
+    <Properties>
+      <string name="Name">HangarSpawn</string>
+      <bool name="Anchored">true</bool>
+      <float name="Duration">0</float>
+      <bool name="Neutral">true</bool>
+      <Vector3 name="Size">16 1 16</Vector3>
+      <CoordinateFrame name="CFrame">0 3.6 -70 1 0 0 0 1 0 0 0 1</CoordinateFrame>
+    </Properties>
+  </Item>
+  </Item>
+  <Item class="Lighting" referent="RBX24">
+    <Properties>
+      <string name="Name">Lighting</string>
+      <float name="Brightness">2.2</float>
+      <float name="ClockTime">16.4</float>
+      <float name="FogEnd">1200</float>
+      <float name="FogStart">180</float>
+    </Properties>
+  </Item>
+  <Item class="ReplicatedStorage" referent="RBX26">
+    <Properties>
+      <string name="Name">ReplicatedStorage</string>
+    </Properties>
+  <Item class="Folder" referent="RBX25">
+    <Properties>
+      <string name="Name">Shared</string>
+    </Properties>
+  <Item class="ModuleScript" referent="RBX1">
+    <Properties>
+      <string name="Name">Constants</string>
+      <ProtectedString name="Source"><![CDATA[local Constants = {
+	GameName = "MVM",
+	GameFullName = "Mech vs Mech",
+	BrandLine = "MVM  /  MECH VS MECH",
+
+	RemotesFolderName = "MVMRemotes",
+
+	-- World
+	HangarSpawn = Vector3.new(0, 8, -70),
+	DeliveryPad = Vector3.new(0, 3, 12),
+	HeliStart = Vector3.new(-320, 160, -80),
+	HeliHover = Vector3.new(0, 80, 12),
+	HeliExit = Vector3.new(240, 170, 420),
+	ArenaCenter = Vector3.new(0, 3, 300),
+
+	-- Tags / attributes
+	MechTag = "MVMMech",
+	OwnerAttr = "OwnerUserId",
+	MechIdAttr = "MechId",
+	HealthAttr = "Health",
+	MaxHealthAttr = "MaxHealth",
+
+	-- Combat
+	MaxFireRate = 20, -- server sanity: requests per second per slot
+	FriendlyFire = true, -- FFA
+	RespawnDelay = 2.4,
+	PilotWalkSpeed = 16,
+
+	-- Camera
+	ChaseOffset = Vector3.new(0, 14, 28),
+	CockpitEyeHeight = 2.2,
+}
+
+return Constants
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX2">
+    <Properties>
+      <string name="Name">MechConfig</string>
+      <ProtectedString name="Source"><![CDATA[-- Catalog of every selectable MVM mech. Combat code reads these tables; do not stub kits.
+local Util = require(script.Parent.Util)
+
+local C = Util.color
+
+local function gun(def)
+	return def
+end
+
+local MechConfig = {}
+
+MechConfig.Order = {
+	"assault",
+	"titan",
+	"scout",
+	"sniper",
+	"flame",
+	"rocket",
+	"guardian",
+	"shadow",
+	"howitzer",
+	"berserker",
+}
+
+MechConfig.ById = {
+	assault = {
+		id = "assault",
+		name = "Assault Striker",
+		role = "Frontline hybrid",
+		blurb = "Balanced rifle fire and shoulder missiles. The default warfighter.",
+		armor = 6,
+		speed = 6,
+		maxHealth = 1250,
+		walkSpeed = 30,
+		turnRate = 2.6,
+		scale = 1,
+		color = C(72, 92, 58),
+		accent = C(232, 140, 42),
+		cockpit = C(30, 40, 36),
+		weapons = {
+			primary = gun({
+				id = "mg",
+				name = "20mm Vulcan",
+				slot = "primary",
+				kind = "hitscan",
+				button = "LMB",
+				damage = 16,
+				rpm = 620,
+				range = 320,
+				spread = 1.1,
+				ammo = 90,
+				reload = 2.1,
+				tracer = "tracer",
+			}),
+			secondary = gun({
+				id = "missile",
+				name = "SRM-6",
+				slot = "secondary",
+				kind = "projectile",
+				button = "RMB",
+				damage = 90,
+				radius = 14,
+				speed = 180,
+				lifetime = 3.2,
+				cooldown = 2.0,
+				ammo = 6,
+				reload = 5.5,
+				gravity = 0,
+			}),
+			specialQ = gun({
+				id = "overclock",
+				name = "Overclock",
+				slot = "specialQ",
+				kind = "buff",
+				button = "Q",
+				cooldown = 18,
+				duration = 6,
+				fireRateMul = 1.35,
+				speedMul = 1.12,
+			}),
+			specialE = gun({
+				id = "chaff",
+				name = "Chaff Burst",
+				slot = "specialE",
+				kind = "buff",
+				button = "E",
+				cooldown = 14,
+				duration = 4,
+				damageTakenMul = 0.75,
+			}),
+		},
+	},
+
+	titan = {
+		id = "titan",
+		name = "Heavy Titan",
+		role = "Siege armor",
+		blurb = "Slow walking fortress. Charge a railgun, then stomp the pad flat.",
+		armor = 10,
+		speed = 3,
+		maxHealth = 2100,
+		walkSpeed = 18,
+		turnRate = 1.5,
+		scale = 1.22,
+		color = C(48, 50, 56),
+		accent = C(212, 176, 72),
+		cockpit = C(20, 20, 24),
+		weapons = {
+			primary = gun({
+				id = "rail",
+				name = "120mm Rail",
+				slot = "primary",
+				kind = "hitscan",
+				button = "LMB",
+				damage = 175,
+				rpm = 38,
+				range = 520,
+				spread = 0.15,
+				ammo = 8,
+				reload = 3.4,
+				pierce = true,
+				tracer = "rail",
+			}),
+			secondary = gun({
+				id = "howl",
+				name = "Shoulder Howl",
+				slot = "secondary",
+				kind = "projectile",
+				button = "RMB",
+				damage = 80,
+				radius = 16,
+				speed = 140,
+				lifetime = 4,
+				cooldown = 2.6,
+				ammo = 4,
+				reload = 6,
+			}),
+			specialQ = gun({
+				id = "fortress",
+				name = "Fortress Stance",
+				slot = "specialQ",
+				kind = "buff",
+				button = "Q",
+				cooldown = 20,
+				duration = 8,
+				damageTakenMul = 0.5,
+				speedMul = 0.4,
+			}),
+			specialE = gun({
+				id = "stomp",
+				name = "Seismic Stomp",
+				slot = "specialE",
+				kind = "aoe",
+				button = "E",
+				damage = 130,
+				radius = 30,
+				cooldown = 8,
+			}),
+		},
+	},
+
+	scout = {
+		id = "scout",
+		name = "Scout Runner",
+		role = "Harasser",
+		blurb = "Light frame, dual SMGs, and a dash that rewrites the engagement range.",
+		armor = 3,
+		speed = 10,
+		maxHealth = 780,
+		walkSpeed = 46,
+		turnRate = 3.6,
+		scale = 0.88,
+		color = C(210, 176, 36),
+		accent = C(20, 20, 20),
+		cockpit = C(28, 24, 12),
+		weapons = {
+			primary = gun({
+				id = "smg",
+				name = "Twin Kestrel",
+				slot = "primary",
+				kind = "hitscan",
+				button = "LMB",
+				damage = 8,
+				rpm = 920,
+				range = 180,
+				spread = 2.4,
+				ammo = 56,
+				reload = 1.6,
+				tracer = "tracer",
+			}),
+			secondary = gun({
+				id = "burst",
+				name = "Scatter Burst",
+				slot = "secondary",
+				kind = "hitscan",
+				button = "RMB",
+				damage = 10,
+				pellets = 6,
+				rpm = 90,
+				range = 90,
+				spread = 6,
+				ammo = 8,
+				reload = 2.4,
+			}),
+			specialQ = gun({
+				id = "dash",
+				name = "Vector Dash",
+				slot = "specialQ",
+				kind = "dash",
+				button = "Q",
+				cooldown = 4.5,
+				distance = 55,
+			}),
+			specialE = gun({
+				id = "afterburner",
+				name = "Afterburner",
+				slot = "specialE",
+				kind = "buff",
+				button = "E",
+				cooldown = 12,
+				duration = 4,
+				speedMul = 1.85,
+			}),
+		},
+	},
+
+	sniper = {
+		id = "sniper",
+		name = "Sniper Longshot",
+		role = "Overwatch",
+		blurb = "Glass cannon. One rail through a cockpit ends the argument.",
+		armor = 2,
+		speed = 5,
+		maxHealth = 620,
+		walkSpeed = 26,
+		turnRate = 2.1,
+		scale = 0.96,
+		color = C(36, 58, 92),
+		accent = C(120, 210, 255),
+		cockpit = C(12, 18, 28),
+		weapons = {
+			primary = gun({
+				id = "longrail",
+				name = "Longrail IX",
+				slot = "primary",
+				kind = "hitscan",
+				button = "LMB",
+				damage = 210,
+				rpm = 28,
+				range = 740,
+				spread = 0.05,
+				ammo = 5,
+				reload = 3.8,
+				tracer = "rail",
+			}),
+			secondary = gun({
+				id = "spotter",
+				name = "Spotter Pulse",
+				slot = "secondary",
+				kind = "hitscan",
+				button = "RMB",
+				damage = 35,
+				rpm = 70,
+				range = 740,
+				spread = 0,
+				ammo = 12,
+				reload = 2.2,
+				mark = true,
+			}),
+			specialQ = gun({
+				id = "stabilize",
+				name = "Stabilize",
+				slot = "specialQ",
+				kind = "buff",
+				button = "Q",
+				cooldown = 16,
+				duration = 5,
+				damageMul = 1.25,
+				speedMul = 0.55,
+			}),
+			specialE = gun({
+				id = "ghost",
+				name = "Ghost Shroud",
+				slot = "specialE",
+				kind = "cloak",
+				button = "E",
+				cooldown = 18,
+				duration = 2.4,
+			}),
+		},
+	},
+
+	flame = {
+		id = "flame",
+		name = "Flame Siege",
+		role = "Area denial",
+		blurb = "Walks the lane shut. Cone fire and napalm that outlives the trigger pull.",
+		armor = 7,
+		speed = 4,
+		maxHealth = 1500,
+		walkSpeed = 22,
+		turnRate = 1.8,
+		scale = 1.08,
+		color = C(92, 28, 22),
+		accent = C(255, 120, 32),
+		cockpit = C(30, 12, 10),
+		weapons = {
+			primary = gun({
+				id = "flamer",
+				name = "Napalm Throat",
+				slot = "primary",
+				kind = "cone",
+				button = "LMB",
+				damage = 14,
+				rpm = 400,
+				range = 46,
+				angle = 28,
+				ammo = 120,
+				reload = 2.8,
+			}),
+			secondary = gun({
+				id = "napalm",
+				name = "Gel Canister",
+				slot = "secondary",
+				kind = "projectile",
+				button = "RMB",
+				damage = 40,
+				radius = 18,
+				speed = 90,
+				lifetime = 3,
+				cooldown = 3.2,
+				ammo = 4,
+				reload = 5,
+				linger = 5,
+				lingerDps = 18,
+			}),
+			specialQ = gun({
+				id = "inferno",
+				name = "Inferno Surge",
+				slot = "specialQ",
+				kind = "cone",
+				button = "Q",
+				damage = 28,
+				rpm = 60,
+				range = 58,
+				angle = 42,
+				cooldown = 10,
+				ammo = 1,
+				reload = 10,
+			}),
+			specialE = gun({
+				id = "firewall",
+				name = "Firewall",
+				slot = "specialE",
+				kind = "aoe",
+				button = "E",
+				damage = 55,
+				radius = 22,
+				cooldown = 12,
+				linger = 6,
+				lingerDps = 12,
+			}),
+		},
+	},
+
+	rocket = {
+		id = "rocket",
+		name = "Rocket Barrage",
+		role = "Saturation",
+		blurb = "Paints up to four locks, then empties the racks. Reload is the tax.",
+		armor = 5,
+		speed = 5,
+		maxHealth = 1100,
+		walkSpeed = 27,
+		turnRate = 2.2,
+		scale = 1.04,
+		color = C(78, 86, 52),
+		accent = C(190, 210, 80),
+		cockpit = C(24, 28, 16),
+		weapons = {
+			primary = gun({
+				id = "lockrockets",
+				name = "MLRS Pods",
+				slot = "primary",
+				kind = "lockon",
+				button = "LMB",
+				damage = 48,
+				radius = 10,
+				speed = 160,
+				lifetime = 4,
+				maxLocks = 4,
+				lockRange = 360,
+				ammo = 16,
+				reload = 4.5,
+				cooldown = 1.6,
+			}),
+			secondary = gun({
+				id = "dumbfire",
+				name = "Dumbfire Salvo",
+				slot = "secondary",
+				kind = "projectile",
+				button = "RMB",
+				damage = 36,
+				radius = 9,
+				speed = 150,
+				lifetime = 2.6,
+				count = 5,
+				spread = 8,
+				cooldown = 3.5,
+				ammo = 10,
+				reload = 5,
+			}),
+			specialQ = gun({
+				id = "paint",
+				name = "Target Paint",
+				slot = "specialQ",
+				kind = "buff",
+				button = "Q",
+				cooldown = 14,
+				duration = 6,
+				lockBonus = 2,
+			}),
+			specialE = gun({
+				id = "hotswap",
+				name = "Hot-Swap Racks",
+				slot = "specialE",
+				kind = "reload",
+				button = "E",
+				cooldown = 16,
+			}),
+		},
+	},
+
+	guardian = {
+		id = "guardian",
+		name = "Shield Guardian",
+		role = "Anchor",
+		blurb = "Energy shield up front, pulse cannon behind it. Holds a pad.",
+		armor = 8,
+		speed = 4,
+		maxHealth = 1600,
+		walkSpeed = 23,
+		turnRate = 1.9,
+		scale = 1.12,
+		color = C(228, 232, 240),
+		accent = C(64, 196, 230),
+		cockpit = C(20, 32, 40),
+		weapons = {
+			primary = gun({
+				id = "pulse",
+				name = "Pulse Cannon",
+				slot = "primary",
+				kind = "hitscan",
+				button = "LMB",
+				damage = 38,
+				rpm = 210,
+				range = 280,
+				spread = 0.6,
+				ammo = 24,
+				reload = 2.0,
+				tracer = "pulse",
+			}),
+			secondary = gun({
+				id = "shield",
+				name = "Aegis Face",
+				slot = "secondary",
+				kind = "shield",
+				button = "RMB",
+				cooldown = 11,
+				duration = 5,
+				damageTakenMul = 0.25,
+				frontal = true,
+			}),
+			specialQ = gun({
+				id = "dome",
+				name = "Barrier Dome",
+				slot = "specialQ",
+				kind = "buff",
+				button = "Q",
+				cooldown = 18,
+				duration = 6,
+				damageTakenMul = 0.55,
+			}),
+			specialE = gun({
+				id = "nova",
+				name = "Pulse Nova",
+				slot = "specialE",
+				kind = "aoe",
+				button = "E",
+				damage = 70,
+				radius = 26,
+				cooldown = 10,
+				knockback = 70,
+			}),
+		},
+	},
+
+	shadow = {
+		id = "shadow",
+		name = "Stealth Shadow",
+		role = "Assassin",
+		blurb = "Cloak in, burst shotgun or dagger, cloak out. Loses the argument at range.",
+		armor = 3,
+		speed = 8,
+		maxHealth = 820,
+		walkSpeed = 38,
+		turnRate = 3.2,
+		scale = 0.9,
+		color = C(18, 16, 28),
+		accent = C(164, 72, 220),
+		cockpit = C(10, 8, 16),
+		weapons = {
+			primary = gun({
+				id = "shotgun",
+				name = "Burst Shroud",
+				slot = "primary",
+				kind = "hitscan",
+				button = "LMB",
+				damage = 14,
+				pellets = 8,
+				rpm = 75,
+				range = 48,
+				spread = 7,
+				ammo = 6,
+				reload = 2.3,
+				decloak = true,
+			}),
+			secondary = gun({
+				id = "dagger",
+				name = "Plasma Dagger",
+				slot = "secondary",
+				kind = "melee",
+				button = "RMB",
+				damage = 95,
+				range = 16,
+				cooldown = 1.5,
+				lunge = 22,
+			}),
+			specialQ = gun({
+				id = "cloak",
+				name = "Optical Cloak",
+				slot = "specialQ",
+				kind = "cloak",
+				button = "Q",
+				cooldown = 12,
+				duration = 6,
+			}),
+			specialE = gun({
+				id = "blink",
+				name = "Blink",
+				slot = "specialE",
+				kind = "dash",
+				button = "E",
+				cooldown = 7,
+				distance = 42,
+			}),
+		},
+	},
+
+	howitzer = {
+		id = "howitzer",
+		name = "Artillery Howitzer",
+		role = "Indirect fire",
+		blurb = "Arcing mortar that owns open ground. Bracing the gun almost stops the legs.",
+		armor = 6,
+		speed = 3,
+		maxHealth = 1180,
+		walkSpeed = 20,
+		turnRate = 1.4,
+		scale = 1.14,
+		color = C(96, 68, 40),
+		accent = C(230, 120, 40),
+		cockpit = C(28, 20, 12),
+		weapons = {
+			primary = gun({
+				id = "mortar",
+				name = "210mm Mortar",
+				slot = "primary",
+				kind = "mortar",
+				button = "LMB",
+				damage = 150,
+				radius = 20,
+				speed = 110,
+				arc = 0.55,
+				lifetime = 5,
+				ammo = 6,
+				reload = 3.6,
+				firingSlow = 0.2,
+				slowHold = 0.7,
+			}),
+			secondary = gun({
+				id = "cluster",
+				name = "Cluster Shell",
+				slot = "secondary",
+				kind = "mortar",
+				button = "RMB",
+				damage = 42,
+				radius = 12,
+				speed = 105,
+				arc = 0.5,
+				count = 4,
+				spread = 14,
+				lifetime = 5,
+				ammo = 4,
+				reload = 5.2,
+				firingSlow = 0.2,
+				cooldown = 3.0,
+			}),
+			specialQ = gun({
+				id = "brace",
+				name = "Deploy Braces",
+				slot = "specialQ",
+				kind = "buff",
+				button = "Q",
+				cooldown = 16,
+				duration = 8,
+				speedMul = 0.08,
+				damageMul = 1.3,
+			}),
+			specialE = gun({
+				id = "smoke",
+				name = "Smoke Screen",
+				slot = "specialE",
+				kind = "aoe",
+				button = "E",
+				damage = 0,
+				radius = 28,
+				cooldown = 14,
+				linger = 7,
+				obscure = true,
+			}),
+		},
+	},
+
+	berserker = {
+		id = "berserker",
+		name = "Berserker Claw",
+		role = "Brawler",
+		blurb = "No polite range. Claws, axe, and a bloodlust sprint into the cockpit.",
+		armor = 5,
+		speed = 7,
+		maxHealth = 1350,
+		walkSpeed = 34,
+		turnRate = 3.0,
+		scale = 1.02,
+		color = C(140, 24, 28),
+		accent = C(255, 196, 64),
+		cockpit = C(32, 8, 10),
+		weapons = {
+			primary = gun({
+				id = "claws",
+				name = "Twin Rippers",
+				slot = "primary",
+				kind = "melee",
+				button = "LMB",
+				damage = 48,
+				range = 18,
+				rpm = 160,
+				ammo = 30,
+				reload = 1.4,
+			}),
+			secondary = gun({
+				id = "axe",
+				name = "Sever Axe",
+				slot = "secondary",
+				kind = "aoe",
+				button = "RMB",
+				damage = 110,
+				radius = 20,
+				cooldown = 2.8,
+				ammo = 4,
+				reload = 4,
+			}),
+			specialQ = gun({
+				id = "bloodlust",
+				name = "Bloodlust",
+				slot = "specialQ",
+				kind = "buff",
+				button = "Q",
+				cooldown = 16,
+				duration = 7,
+				speedMul = 1.35,
+				lifesteal = 0.35,
+				damageMul = 1.15,
+			}),
+			specialE = gun({
+				id = "rush",
+				name = "Charge Rush",
+				slot = "specialE",
+				kind = "dash",
+				button = "E",
+				cooldown = 8,
+				distance = 48,
+				damage = 60,
+				radius = 12,
+			}),
+		},
+	},
+}
+
+function MechConfig.get(id)
+	return MechConfig.ById[id]
+end
+
+function MechConfig.list()
+	local rows = {}
+	for _, id in ipairs(MechConfig.Order) do
+		table.insert(rows, MechConfig.ById[id])
+	end
+	return rows
+end
+
+function MechConfig.weapon(mechId, slot)
+	local mech = MechConfig.ById[mechId]
+	if not mech then
+		return nil
+	end
+	return mech.weapons[slot]
+end
+
+return MechConfig
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX3">
+    <Properties>
+      <string name="Name">Remotes</string>
+      <ProtectedString name="Source"><![CDATA[local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Constants = require(script.Parent.Constants)
+
+local NAMES = {
+	"OpenSelection",
+	"SelectMech",
+	"SelectionResult",
+	"DeliveryStatus",
+	"EnterMech",
+	"ExitMech",
+	"PilotState",
+	"FireWeapon",
+	"ReloadWeapon",
+	"MechState",
+	"KillFeed",
+	"Notify",
+	"VfxEvent",
+}
+
+local Remotes = {}
+
+local function folder()
+	local existing = ReplicatedStorage:FindFirstChild(Constants.RemotesFolderName)
+	if existing then
+		return existing
+	end
+	if RunService:IsServer() then
+		local f = Instance.new("Folder")
+		f.Name = Constants.RemotesFolderName
+		f.Parent = ReplicatedStorage
+		return f
+	end
+	return ReplicatedStorage:WaitForChild(Constants.RemotesFolderName, 16)
+end
+
+function Remotes.init()
+	local f = folder()
+	if RunService:IsServer() then
+		for _, name in ipairs(NAMES) do
+			if not f:FindFirstChild(name) then
+				local ev = Instance.new("RemoteEvent")
+				ev.Name = name
+				ev.Parent = f
+			end
+		end
+	end
+	return Remotes
+end
+
+function Remotes.get(name)
+	local f = folder()
+	local ev = f:FindFirstChild(name) or f:WaitForChild(name, 16)
+	assert(ev, "Missing remote " .. tostring(name))
+	return ev
+end
+
+function Remotes.on(name, fn)
+	return Remotes.get(name).OnServerEvent:Connect(fn)
+end
+
+function Remotes.client(name, fn)
+	return Remotes.get(name).OnClientEvent:Connect(fn)
+end
+
+function Remotes.fireAll(name, ...)
+	Remotes.get(name):FireAllClients(...)
+end
+
+local function isPlayer(player)
+	return typeof(player) == "Instance" and player:IsA("Player")
+end
+
+function Remotes.fire(name, player, ...)
+	if not isPlayer(player) then
+		return
+	end
+	Remotes.get(name):FireClient(player, ...)
+end
+
+function Remotes.fireServer(name, ...)
+	Remotes.get(name):FireServer(...)
+end
+
+return Remotes
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX4">
+    <Properties>
+      <string name="Name">Util</string>
+      <ProtectedString name="Source"><![CDATA[local TweenService = game:GetService("TweenService")
+
+local Util = {}
+
+function Util.color(r, g, b)
+	return Color3.fromRGB(r, g, b)
+end
+
+function Util.part(props)
+	local p = Instance.new("Part")
+	p.Anchored = props.Anchored ~= false
+	p.CanCollide = props.CanCollide ~= false
+	p.CastShadow = props.CastShadow ~= false
+	p.Material = props.Material or Enum.Material.SmoothPlastic
+	p.Color = props.Color or Color3.fromRGB(80, 80, 80)
+	p.Size = props.Size or Vector3.new(1, 1, 1)
+	p.CFrame = props.CFrame or CFrame.new()
+	p.Name = props.Name or "Part"
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Transparency = props.Transparency or 0
+	if props.Shape then
+		p.Shape = props.Shape
+	end
+	if props.Parent then
+		p.Parent = props.Parent
+	end
+	return p
+end
+
+function Util.weld(a, b, c0, c1)
+	local w = Instance.new("Weld")
+	w.Name = "MVMWeld"
+	w.Part0 = a
+	w.Part1 = b
+	w.C0 = c0 or a.CFrame:ToObjectSpace(b.CFrame)
+	w.C1 = c1 or CFrame.new()
+	w.Parent = a
+	return w
+end
+
+function Util.weldModel(model, root)
+	root = root or model.PrimaryPart
+	assert(root, "weldModel requires a PrimaryPart")
+	for _, inst in ipairs(model:GetDescendants()) do
+		if inst:IsA("BasePart") and inst ~= root then
+			inst.Anchored = false
+			inst.Massless = inst.Massless or false
+			Util.weld(root, inst)
+		end
+	end
+	root.Anchored = false
+end
+
+function Util.anchorModel(model, anchored)
+	for _, inst in ipairs(model:GetDescendants()) do
+		if inst:IsA("BasePart") then
+			inst.Anchored = anchored
+		end
+	end
+end
+
+function Util.tween(inst, info, props)
+	local tw = TweenService:Create(inst, info, props)
+	tw:Play()
+	return tw
+end
+
+function Util.waitTween(inst, info, props)
+	local tw = Util.tween(inst, info, props)
+	tw.Completed:Wait()
+	return tw
+end
+
+function Util.billboard(adornee, text, size, offset)
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "MVMBillboard"
+	bb.Adornee = adornee
+	bb.AlwaysOnTop = true
+	bb.Size = size or UDim2.fromOffset(280, 60)
+	bb.StudsOffset = offset or Vector3.new(0, 6, 0)
+	bb.MaxDistance = 220
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBold
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(235, 242, 255)
+	label.TextStrokeTransparency = 0.4
+	label.Text = text
+	label.Parent = bb
+	bb.Parent = adornee
+	return bb
+end
+
+function Util.sound(parent, soundId, props)
+	local s = Instance.new("Sound")
+	s.Name = props and props.Name or "MVMSound"
+	s.SoundId = soundId
+	s.Volume = props and props.Volume or 0.6
+	s.PlaybackSpeed = props and props.PlaybackSpeed or 1
+	s.RollOffMaxDistance = props and props.MaxDistance or 260
+	s.RollOffMinDistance = 12
+	s.Looped = props and props.Looped or false
+	s.Parent = parent
+	return s
+end
+
+function Util.play(parent, soundId, props)
+	local s = Util.sound(parent, soundId, props)
+	s.Ended:Connect(function()
+		s:Destroy()
+	end)
+	s:Play()
+	return s
+end
+
+function Util.rayParams(ignore)
+	local p = RaycastParams.new()
+	p.FilterType = Enum.RaycastFilterType.Exclude
+	p.FilterDescendantsInstances = ignore or {}
+	p.IgnoreWater = true
+	return p
+end
+
+function Util.unit(v)
+	if v.Magnitude < 1e-4 then
+		return Vector3.zero
+	end
+	return v.Unit
+end
+
+function Util.flat(v)
+	return Vector3.new(v.X, 0, v.Z)
+end
+
+function Util.clampMag(v, maxM)
+	if v.Magnitude <= maxM then
+		return v
+	end
+	return v.Unit * maxM
+end
+
+function Util.now()
+	return os.clock()
+end
+
+function Util.deepCopy(t)
+	if typeof(t) ~= "table" then
+		return t
+	end
+	local n = {}
+	for k, v in pairs(t) do
+		n[k] = Util.deepCopy(v)
+	end
+	return n
+end
+
+function Util.findMechFromPart(part)
+	local model = part:FindFirstAncestorOfClass("Model")
+	while model do
+		if model:GetAttribute("MechId") and model:GetAttribute("OwnerUserId") then
+			return model
+		end
+		model = model.Parent and model.Parent:FindFirstAncestorOfClass("Model")
+	end
+	return nil
+end
+
+return Util
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  </Item>
+  </Item>
+  <Item class="ServerScriptService" referent="RBX27">
+    <Properties>
+      <string name="Name">ServerScriptService</string>
+    </Properties>
+  <Item class="Script" referent="RBX5">
+    <Properties>
+      <string name="Name">MVM</string>
+      <ProtectedString name="Source"><![CDATA[--[[
+	MVM (Mech vs Mech) — server bootstrap.
+	Play Solo / local Play safe. Builds the hangar, wires remotes, starts services.
+]]
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Remotes = require(Shared:WaitForChild("Remotes"))
+Remotes.init()
+
+local Services = script.Parent:WaitForChild("Services")
+local WorldBuilder = require(Services:WaitForChild("WorldBuilder"))
+local CombatService = require(Services:WaitForChild("CombatService"))
+local DeliveryService = require(Services:WaitForChild("DeliveryService"))
+local SelectionService = require(Services:WaitForChild("SelectionService"))
+local PilotService = require(Services:WaitForChild("PilotService"))
+local DummyService = require(Services:WaitForChild("DummyService"))
+
+assert(DeliveryService.deliver)
+
+WorldBuilder.build()
+CombatService.start()
+PilotService.start()
+DummyService.start()
+DummyService.hookDestroyed()
+SelectionService.start()
+
+print("[MVM] Mech vs Mech server online. Hangar live. 10 chassis in catalog.")
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="Folder" referent="RBX14">
+    <Properties>
+      <string name="Name">Services</string>
+    </Properties>
+  <Item class="ModuleScript" referent="RBX6">
+    <Properties>
+      <string name="Name">CityKit</string>
+      <ProtectedString name="Source"><![CDATA[--[[
+	MVM city kitbasher. Builds Workspace.MVMWorld.WarTornCity from a seeded
+	recipe: streets, ruined building types, debris, and district pockets.
+	All units are mech-scale (streets ~56–72 studs, shells 36–96 tall).
+]]
+
+local Util = require(game.ReplicatedStorage.Shared.Util)
+
+local CityKit = {}
+
+local rng = Random.new(20260920)
+
+local PAL = {
+	asphalt = Color3.fromRGB(44, 46, 48),
+	lane = Color3.fromRGB(196, 176, 70),
+	concrete = Color3.fromRGB(96, 92, 86),
+	concreteDark = Color3.fromRGB(60, 58, 54),
+	burned = Color3.fromRGB(38, 32, 30),
+	soot = Color3.fromRGB(24, 22, 22),
+	brick = Color3.fromRGB(118, 68, 54),
+	brickDark = Color3.fromRGB(78, 44, 36),
+	plaster = Color3.fromRGB(140, 132, 118),
+	glass = Color3.fromRGB(72, 96, 108),
+	glassDead = Color3.fromRGB(36, 42, 46),
+	rebar = Color3.fromRGB(86, 74, 66),
+	rust = Color3.fromRGB(128, 64, 36),
+	dirt = Color3.fromRGB(82, 66, 48),
+	rubble = Color3.fromRGB(88, 80, 70),
+	water = Color3.fromRGB(28, 52, 56),
+	metal = Color3.fromRGB(52, 56, 60),
+	shopA = Color3.fromRGB(148, 52, 44),
+	shopB = Color3.fromRGB(44, 78, 118),
+	shopC = Color3.fromRGB(48, 96, 72),
+	sandbag = Color3.fromRGB(118, 104, 70),
+}
+
+local function box(parent, name, size, cf, color, material)
+	return Util.part({
+		Name = name,
+		Size = size,
+		CFrame = cf,
+		Color = color or PAL.concrete,
+		Material = material or Enum.Material.Concrete,
+		Parent = parent,
+	})
+end
+
+local function pick(list)
+	return list[rng:NextInteger(1, #list)]
+end
+
+local function jitter(n)
+	return (rng:NextNumber() - 0.5) * n
+end
+
+local function facadeColor(kind, burned)
+	if burned then
+		return PAL.burned
+	end
+	if kind == "apartment" then
+		return pick({ PAL.brick, PAL.brickDark, PAL.plaster, PAL.concrete })
+	elseif kind == "office" then
+		return pick({ PAL.concrete, PAL.concreteDark, PAL.glassDead })
+	elseif kind == "shop" then
+		return pick({ PAL.shopA, PAL.shopB, PAL.shopC, PAL.plaster })
+	elseif kind == "parking" then
+		return PAL.concreteDark
+	elseif kind == "warehouse" then
+		return pick({ PAL.metal, PAL.concreteDark, PAL.rust })
+	end
+	return PAL.concrete
+end
+
+function CityKit.rubble(parent, pos, radius, count)
+	count = count or rng:NextInteger(4, 8)
+	for i = 1, count do
+		local s = rng:NextNumber(3.5, math.max(6, radius * 0.7))
+		local cf = CFrame.new(pos + Vector3.new(jitter(radius), s * 0.35, jitter(radius)))
+			* CFrame.Angles(jitter(0.8), jitter(3), jitter(0.8))
+		box(parent, "Rubble", Vector3.new(s, s * rng:NextNumber(0.4, 0.9), s * rng:NextNumber(0.6, 1.1)), cf, PAL.rubble, Enum.Material.Slate)
+	end
+end
+
+function CityKit.rebar(parent, pos, height)
+	height = height or rng:NextNumber(8, 16)
+	for i = 1, rng:NextInteger(2, 4) do
+		box(
+			parent,
+			"Rebar",
+			Vector3.new(0.45, height, 0.45),
+			CFrame.new(pos + Vector3.new(jitter(3), height * 0.5, jitter(3))) * CFrame.Angles(jitter(0.25), 0, jitter(0.25)),
+			PAL.rebar,
+			Enum.Material.CorrodedMetal
+		)
+	end
+end
+
+function CityKit.crater(parent, pos, radius)
+	box(parent, "CraterBowl", Vector3.new(radius * 2, 1.2, radius * 2), CFrame.new(pos + Vector3.new(0, 2.2, 0)), PAL.soot, Enum.Material.Asphalt)
+	box(parent, "CraterRing", Vector3.new(radius * 2.4, 1.6, radius * 2.4), CFrame.new(pos + Vector3.new(0, 2.6, 0)), PAL.dirt, Enum.Material.Ground)
+	CityKit.rubble(parent, pos + Vector3.new(0, 3, 0), radius * 0.7, 5)
+end
+
+function CityKit.wreck(parent, pos, kind)
+	if kind == "truck" then
+		box(parent, "WreckCab", Vector3.new(10, 10, 12), CFrame.new(pos + Vector3.new(0, 6, -8)) * CFrame.Angles(0, jitter(0.4), jitter(0.15)), PAL.rust, Enum.Material.Metal)
+		box(parent, "WreckBed", Vector3.new(10, 6, 20), CFrame.new(pos + Vector3.new(0, 4, 8)) * CFrame.Angles(jitter(0.1), jitter(0.2), 0), PAL.metal, Enum.Material.Metal)
+	elseif kind == "bus" then
+		box(parent, "WreckBus", Vector3.new(12, 12, 30), CFrame.new(pos + Vector3.new(0, 6, 0)) * CFrame.Angles(0, jitter(0.5), jitter(0.12)), PAL.shopB, Enum.Material.Metal)
+	else
+		box(parent, "WreckCar", Vector3.new(8, 5, 16), CFrame.new(pos + Vector3.new(0, 3, 0)) * CFrame.Angles(jitter(0.4), jitter(2), jitter(0.3)), pick({ PAL.shopA, PAL.metal, PAL.burned }), Enum.Material.Metal)
+	end
+end
+
+local function windows(parent, origin, width, height, stories, alongX)
+	for s = 0, stories - 1 do
+		if rng:NextNumber() > 0.18 then
+			local broken = rng:NextNumber() < 0.45
+			local strip = alongX and Vector3.new(width * 0.82, 4.2, 0.6) or Vector3.new(0.6, 4.2, width * 0.82)
+			local off = Vector3.new(0, 8 + s * (height / stories), alongX and -0.2 or 0)
+			if not alongX then
+				off = Vector3.new(-0.2, 8 + s * (height / stories), 0)
+			end
+			box(
+				parent,
+				broken and "WindowDead" or "Window",
+				strip,
+				origin * CFrame.new(off),
+				broken and PAL.glassDead or PAL.glass,
+				broken and Enum.Material.Concrete or Enum.Material.Glass
+			)
+		end
+	end
+end
+
+local function floors(parent, cf, sx, sz, height, stories, missing)
+	local storyH = height / stories
+	for s = 1, stories - 1 do
+		if missing and s == missing then
+			-- collapsed floor: leftover slab + hanging chunk
+			box(parent, "FloorRemnant", Vector3.new(sx * 0.45, 1.4, sz * 0.55), cf * CFrame.new(-sx * 0.2, s * storyH, sz * 0.1) * CFrame.Angles(0, 0, 0.18), PAL.concreteDark)
+			CityKit.rebar(parent, (cf * CFrame.new(0, s * storyH, 0)).Position, 10)
+		else
+			box(parent, "Floor", Vector3.new(sx - 3, 1.5, sz - 3), cf * CFrame.new(0, s * storyH, 0), PAL.concreteDark, Enum.Material.Concrete)
+		end
+	end
+end
+
+function CityKit.building(parent, spec)
+	local kind = spec.kind
+	local pos = spec.pos
+	local sx, sz = spec.sx, spec.sz
+	local height = spec.height
+	local yaw = spec.yaw or 0
+	local burned = spec.burned
+	local lean = spec.lean or 0
+	local stories = spec.stories or math.max(2, math.floor(height / 12))
+	local missing = spec.collapsedStory
+	local color = facadeColor(kind, burned)
+
+	local model = Instance.new("Model")
+	model.Name = (spec.name or kind) .. "_Ruin"
+	model.Parent = parent
+
+	local cf = CFrame.new(pos) * CFrame.Angles(0, yaw, lean)
+	local wallT = 3.2
+
+	-- three standing walls; open or blown face for readability
+	local faces = {
+		{ Vector3.new(sx, height, wallT), CFrame.new(0, height * 0.5, -sz * 0.5) },
+		{ Vector3.new(wallT, height, sz), CFrame.new(-sx * 0.5, height * 0.5, 0) },
+		{ Vector3.new(wallT, height, sz), CFrame.new(sx * 0.5, height * 0.5, 0) },
+	}
+	if not spec.openSouth then
+		table.insert(faces, { Vector3.new(sx, height * rng:NextNumber(0.45, 1), wallT), CFrame.new(0, height * 0.28, sz * 0.5) })
+	end
+	for i, f in ipairs(faces) do
+		local h = f[1]
+		if spec.blown == i then
+			h = Vector3.new(f[1].X, f[1].Y * 0.4, f[1].Z)
+			box(model, "BlownWall", h, cf * f[2] * CFrame.new(0, -f[1].Y * 0.3, 0), color)
+			CityKit.rebar(model, (cf * f[2]).Position + Vector3.new(0, 4, 0), 14)
+		else
+			box(model, "Wall", f[1], cf * f[2], color, burned and Enum.Material.Slate or Enum.Material.Concrete)
+		end
+	end
+
+	-- interior slab / collapsed decks
+	floors(model, cf, sx, sz, height, stories, missing)
+
+	-- roof: intact, caved, or gone
+	local roofRoll = spec.roof or pick({ "gone", "caved", "flat", "flat" })
+	if roofRoll == "flat" then
+		box(model, "Roof", Vector3.new(sx + 2, 2, sz + 2), cf * CFrame.new(0, height + 1, 0), PAL.concreteDark, Enum.Material.Concrete)
+	elseif roofRoll == "caved" then
+		box(model, "RoofSlab", Vector3.new(sx * 0.6, 2, sz * 0.7), cf * CFrame.new(sx * 0.12, height - 2, 0) * CFrame.Angles(0.2, 0, 0.08), PAL.concreteDark)
+		CityKit.rubble(model, (cf * CFrame.new(0, 4, 0)).Position, math.min(sx, sz) * 0.25, 4)
+	end
+
+	-- soot streak
+	if burned then
+		box(model, "Soot", Vector3.new(sx * 0.4, height * 0.7, 1.2), cf * CFrame.new(jitter(sx * 0.2), height * 0.35, -sz * 0.5 - 0.4), PAL.soot, Enum.Material.SmoothPlastic)
+	end
+
+	windows(model, cf * CFrame.new(0, 0, -sz * 0.5 - 0.4), sx, height, stories, true)
+	windows(model, cf * CFrame.new(-sx * 0.5 - 0.4, 0, 0), sz, height, stories, false)
+
+	if kind == "shop" then
+		box(model, "Awning", Vector3.new(sx * 0.7, 1.2, 8), cf * CFrame.new(0, 14, -sz * 0.5 - 5) * CFrame.Angles(-0.15, 0, 0), color, Enum.Material.Metal)
+		box(model, "Signband", Vector3.new(sx * 0.8, 6, 1.4), cf * CFrame.new(0, 18, -sz * 0.5 - 1.2), pick({ PAL.shopA, PAL.shopB, PAL.lane }), Enum.Material.SmoothPlastic)
+	elseif kind == "parking" then
+		for d = 1, math.min(stories, 4) do
+			box(model, "Deck", Vector3.new(sx - 4, 1.6, sz - 4), cf * CFrame.new(0, d * 12, 0), PAL.concrete, Enum.Material.Concrete)
+		end
+		box(model, "Ramp", Vector3.new(14, 1.8, sz * 0.8), cf * CFrame.new(sx * 0.15, 8, 0) * CFrame.Angles(-0.28, 0, 0), PAL.concrete)
+		for i = -1, 1 do
+			box(model, "Column", Vector3.new(3, height, 3), cf * CFrame.new(i * (sx * 0.28), height * 0.5, 0), PAL.concreteDark)
+		end
+	elseif kind == "apartment" then
+		for i = 0, 2 do
+			box(model, "Balcony", Vector3.new(10, 1.2, 5), cf * CFrame.new(-sx * 0.35 + i * 8, 16 + i * 12, -sz * 0.5 - 3), PAL.concreteDark)
+		end
+	elseif kind == "warehouse" then
+		box(model, "BayDoor", Vector3.new(sx * 0.4, height * 0.45, 1.2), cf * CFrame.new(0, height * 0.22, -sz * 0.5 - 0.4), PAL.metal, Enum.Material.Metal)
+		box(model, "Tank", Vector3.new(10, 16, 10), cf * CFrame.new(sx * 0.4, 10, sz * 0.3), PAL.rust, Enum.Material.Metal)
+	end
+
+	CityKit.rubble(model, (cf * CFrame.new(jitter(sx * 0.3), 2, sz * 0.45)).Position, 10, 5)
+	return model
+end
+
+function CityKit.leaningWall(parent, pos, size, yaw)
+	box(
+		parent,
+		"LeaningWall",
+		size,
+		CFrame.new(pos) * CFrame.Angles(0, yaw or 0, rng:NextNumber(0.18, 0.42)),
+		PAL.concreteDark,
+		Enum.Material.Concrete
+	)
+	CityKit.rebar(parent, pos + Vector3.new(0, size.Y * 0.3, 0), size.Y * 0.35)
+end
+
+local function streetSlab(parent, pos, sx, sz)
+	box(parent, "Street", Vector3.new(sx, 2.2, sz), CFrame.new(pos + Vector3.new(0, 2.05, 0)), PAL.asphalt, Enum.Material.Asphalt)
+end
+
+local function laneMarks(parent, pos, length, alongZ)
+	if alongZ then
+		box(parent, "Lane", Vector3.new(1.4, 0.3, length), CFrame.new(pos + Vector3.new(0, 3.05, 0)), PAL.lane, Enum.Material.Neon)
+	else
+		box(parent, "Lane", Vector3.new(length, 0.3, 1.4), CFrame.new(pos + Vector3.new(0, 3.05, 0)), PAL.lane, Enum.Material.Neon)
+	end
+end
+
+local function labelDistrict(parent, pos, text)
+	local p = box(parent, "DistrictSign", Vector3.new(36, 10, 1.4), CFrame.new(pos), Color3.fromRGB(16, 16, 18), Enum.Material.SmoothPlastic)
+	local sg = Instance.new("SurfaceGui")
+	sg.Face = Enum.NormalId.Front
+	sg.Parent = p
+	local t = Instance.new("TextLabel")
+	t.BackgroundTransparency = 1
+	t.Size = UDim2.fromScale(1, 1)
+	t.Font = Enum.Font.GothamBlack
+	t.TextScaled = true
+	t.TextColor3 = Color3.fromRGB(230, 210, 150)
+	t.Text = text
+	t.Parent = sg
+end
+
+local function buildGround(city)
+	local ground = Instance.new("Folder")
+	ground.Name = "Ground"
+	ground.Parent = city
+
+	-- South city plate (hangar edge → canal lip at z≈468)
+	box(ground, "SouthPlate", Vector3.new(920, 3, 448), CFrame.new(0, 1.5, 244), PAL.asphalt, Enum.Material.Asphalt)
+	-- North city plate (beyond canal lip at z≈532)
+	box(ground, "NorthPlate", Vector3.new(920, 3, 400), CFrame.new(0, 1.5, 732), PAL.asphalt, Enum.Material.Asphalt)
+	-- East / west berms so the map does not drop into void at the sides
+	box(ground, "WestBerm", Vector3.new(40, 18, 920), CFrame.new(-470, 9, 460), PAL.dirt, Enum.Material.Slate)
+	box(ground, "EastBerm", Vector3.new(40, 18, 920), CFrame.new(470, 9, 460), PAL.dirt, Enum.Material.Slate)
+	box(ground, "NorthBerm", Vector3.new(960, 22, 28), CFrame.new(0, 11, 940), PAL.dirt, Enum.Material.Slate)
+end
+
+local function buildStreets(city)
+	local streets = Instance.new("Folder")
+	streets.Name = "Streets"
+	streets.Parent = city
+
+	-- North–south boulevards (mech-wide)
+	for _, x in ipairs({ -210, 0, 210 }) do
+		streetSlab(streets, Vector3.new(x, 0, 270), 64, 500)
+		laneMarks(streets, Vector3.new(x, 0, 260), 420, true)
+	end
+	streetSlab(streets, Vector3.new(0, 0, 740), 64, 360)
+	laneMarks(streets, Vector3.new(0, 0, 740), 300, true)
+
+	-- East–west arteries
+	for _, z in ipairs({ 140, 260, 380 }) do
+		streetSlab(streets, Vector3.new(0, 0, z), 820, 60)
+		laneMarks(streets, Vector3.new(0, 0, z), 700, false)
+	end
+	streetSlab(streets, Vector3.new(0, 0, 660), 820, 56)
+	streetSlab(streets, Vector3.new(0, 0, 820), 700, 56)
+
+	-- cratered intersections
+	CityKit.crater(streets, Vector3.new(-8, 0, 262), 22)
+	CityKit.crater(streets, Vector3.new(200, 0, 378), 16)
+	CityKit.crater(streets, Vector3.new(-190, 0, 148), 14)
+	CityKit.crater(streets, Vector3.new(40, 0, 668), 18)
+end
+
+local function downtown(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Downtown"
+	folder.Parent = city
+	labelDistrict(folder, Vector3.new(-40, 28, 118), "DOWNTOWN  ·  RUINS")
+
+	local plots = {
+		{ kind = "office", pos = Vector3.new(-120, 3, 190), sx = 70, sz = 50, height = 84, stories = 7, collapsedStory = 4, blown = 1 },
+		{ kind = "office", pos = Vector3.new(-120, 3, 320), sx = 64, sz = 56, height = 72, stories = 6, burned = true, roof = "caved" },
+		{ kind = "office", pos = Vector3.new(120, 3, 190), sx = 60, sz = 48, height = 96, stories = 8, openSouth = true },
+		{ kind = "office", pos = Vector3.new(128, 3, 330), sx = 72, sz = 52, height = 66, stories = 5, lean = 0.06, roof = "gone" },
+		{ kind = "apartment", pos = Vector3.new(-320, 3, 200), sx = 56, sz = 48, height = 70, stories = 6, burned = true },
+		{ kind = "apartment", pos = Vector3.new(320, 3, 200), sx = 52, sz = 50, height = 58, stories = 5, collapsedStory = 3 },
+		{ kind = "office", pos = Vector3.new(-320, 3, 330), sx = 58, sz = 46, height = 80, stories = 7, roof = "caved" },
+		{ kind = "apartment", pos = Vector3.new(318, 3, 330), sx = 60, sz = 48, height = 64, stories = 5, blown = 2 },
+	}
+	for _, spec in ipairs(plots) do
+		CityKit.building(folder, spec)
+	end
+	CityKit.leaningWall(folder, Vector3.new(40, 22, 210), Vector3.new(40, 36, 4), 0.4)
+	CityKit.wreck(folder, Vector3.new(-30, 3, 200), "bus")
+	CityKit.wreck(folder, Vector3.new(36, 3, 318), "truck")
+end
+
+local function residential(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Residential"
+	folder.Parent = city
+	labelDistrict(folder, Vector3.new(-300, 22, 430), "TENEMENTS")
+
+	local plots = {
+		{ kind = "apartment", pos = Vector3.new(-320, 3, 430), sx = 48, sz = 40, height = 54, stories = 5, burned = true },
+		{ kind = "apartment", pos = Vector3.new(-230, 3, 430), sx = 44, sz = 42, height = 48, stories = 4, collapsedStory = 2, roof = "gone" },
+		{ kind = "apartment", pos = Vector3.new(230, 3, 430), sx = 50, sz = 40, height = 60, stories = 5, lean = -0.05 },
+		{ kind = "apartment", pos = Vector3.new(320, 3, 430), sx = 46, sz = 44, height = 42, stories = 4, blown = 1 },
+		{ kind = "apartment", pos = Vector3.new(-320, 3, 700), sx = 52, sz = 46, height = 66, stories = 6, burned = true, roof = "caved" },
+		{ kind = "apartment", pos = Vector3.new(300, 3, 700), sx = 48, sz = 44, height = 50, stories = 4, openSouth = true },
+		{ kind = "apartment", pos = Vector3.new(-210, 3, 820), sx = 56, sz = 40, height = 58, stories = 5 },
+		{ kind = "apartment", pos = Vector3.new(200, 3, 820), sx = 50, sz = 42, height = 46, stories = 4, collapsedStory = 3 },
+	}
+	for _, spec in ipairs(plots) do
+		CityKit.building(folder, spec)
+	end
+	for _, p in ipairs({ Vector3.new(-260, 3, 390), Vector3.new(260, 3, 470), Vector3.new(-80, 3, 780) }) do
+		CityKit.rubble(folder, p, 16, 7)
+	end
+end
+
+local function market(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Market"
+	folder.Parent = city
+	labelDistrict(folder, Vector3.new(40, 18, 430), "MARKET ROW")
+
+	local shops = {
+		{ kind = "shop", pos = Vector3.new(-90, 3, 430), sx = 36, sz = 28, height = 28, stories = 2, burned = true },
+		{ kind = "shop", pos = Vector3.new(-40, 3, 430), sx = 32, sz = 26, height = 24, stories = 2, roof = "caved" },
+		{ kind = "shop", pos = Vector3.new(50, 3, 430), sx = 34, sz = 28, height = 30, stories = 2 },
+		{ kind = "shop", pos = Vector3.new(100, 3, 430), sx = 30, sz = 26, height = 22, stories = 2, blown = 1 },
+		{ kind = "shop", pos = Vector3.new(-90, 3, 200), sx = 34, sz = 24, height = 26, stories = 2 },
+		{ kind = "shop", pos = Vector3.new(90, 3, 200), sx = 36, sz = 24, height = 24, stories = 2, burned = true },
+	}
+	for _, spec in ipairs(shops) do
+		CityKit.building(folder, spec)
+	end
+	CityKit.wreck(folder, Vector3.new(8, 3, 430), "car")
+	CityKit.wreck(folder, Vector3.new(-12, 3, 448), "car")
+end
+
+local function parking(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Parking"
+	folder.Parent = city
+	CityKit.building(folder, {
+		kind = "parking",
+		name = "GarageWest",
+		pos = Vector3.new(-210, 3, 190),
+		sx = 70,
+		sz = 60,
+		height = 44,
+		stories = 4,
+		roof = "gone",
+		openSouth = true,
+	})
+	CityKit.building(folder, {
+		kind = "parking",
+		name = "GarageEast",
+		pos = Vector3.new(220, 3, 320),
+		sx = 66,
+		sz = 58,
+		height = 40,
+		stories = 3,
+		collapsedStory = 2,
+	})
+	CityKit.wreck(folder, Vector3.new(-180, 3, 160), "car")
+	CityKit.wreck(folder, Vector3.new(190, 3, 300), "truck")
+end
+
+local function plaza(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Plaza"
+	folder.Parent = city
+	labelDistrict(folder, Vector3.new(0, 26, 248), "LIBERTY PLAZA  ·  FFA")
+
+	box(folder, "PlazaSlab", Vector3.new(140, 1.2, 110), CFrame.new(0, 2.9, 300), Color3.fromRGB(72, 70, 66), Enum.Material.Concrete)
+	box(folder, "FountainRing", Vector3.new(28, 4, 28), CFrame.new(0, 5, 300), PAL.concreteDark)
+	box(folder, "FountainWater", Vector3.new(18, 1, 18), CFrame.new(0, 4.2, 300), PAL.water, Enum.Material.Glass)
+	CityKit.rubble(folder, Vector3.new(0, 4, 300), 12, 8)
+	CityKit.leaningWall(folder, Vector3.new(-48, 16, 268), Vector3.new(8, 28, 36), 1.1)
+	box(folder, "StatueBase", Vector3.new(14, 6, 14), CFrame.new(46, 6, 268), PAL.concrete)
+	box(folder, "StatueChunk", Vector3.new(8, 16, 8), CFrame.new(50, 14, 262) * CFrame.Angles(0.6, 0.4, 0.2), PAL.plaster)
+	CityKit.crater(folder, Vector3.new(20, 0, 330), 18)
+end
+
+local function industrial(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Industrial"
+	folder.Parent = city
+	labelDistrict(folder, Vector3.new(300, 22, 560), "INDUSTRIAL YARD")
+
+	box(folder, "Yard", Vector3.new(200, 1.4, 160), CFrame.new(300, 3, 560), Color3.fromRGB(70, 64, 52), Enum.Material.Ground)
+	CityKit.building(folder, {
+		kind = "warehouse",
+		pos = Vector3.new(280, 3, 530),
+		sx = 80,
+		sz = 48,
+		height = 36,
+		stories = 2,
+		burned = true,
+		roof = "caved",
+	})
+	CityKit.building(folder, {
+		kind = "warehouse",
+		pos = Vector3.new(360, 3, 600),
+		sx = 64,
+		sz = 44,
+		height = 32,
+		stories = 2,
+		blown = 1,
+	})
+	for i = 0, 3 do
+		box(folder, "Container", Vector3.new(10, 10, 24), CFrame.new(240 + (i % 2) * 14, 8, 600 + i * 16), (i % 2 == 0) and PAL.shopA or PAL.shopB, Enum.Material.Metal)
+	end
+	box(folder, "Silo", Vector3.new(16, 36, 16), CFrame.new(380, 20, 520), PAL.metal, Enum.Material.Metal)
+	box(folder, "CraneArm", Vector3.new(60, 3, 4), CFrame.new(320, 34, 560), PAL.rust, Enum.Material.Metal)
+	box(folder, "CraneMast", Vector3.new(4, 40, 4), CFrame.new(292, 22, 560), PAL.metal, Enum.Material.Metal)
+	CityKit.wreck(folder, Vector3.new(250, 3, 540), "truck")
+	CityKit.rubble(folder, Vector3.new(330, 3, 580), 18, 8)
+end
+
+local function freeway(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Freeway"
+	folder.Parent = city
+	labelDistrict(folder, Vector3.new(-300, 40, 258), "OVERPASS  7")
+
+	-- elevated deck across midtown, missing span near center-east
+	for i = -4, 4 do
+		local x = i * 88
+		if i == 1 then
+			-- collapsed span on the street
+			box(folder, "FallenDeck", Vector3.new(70, 4, 28), CFrame.new(x + 10, 10, 260) * CFrame.Angles(0, 0, 0.32), PAL.concreteDark)
+			CityKit.rubble(folder, Vector3.new(x, 3, 260), 16, 6)
+		else
+			box(folder, "Deck", Vector3.new(84, 3.4, 30), CFrame.new(x, 28, 260), PAL.concrete, Enum.Material.Concrete)
+			box(folder, "RailN", Vector3.new(84, 3, 1.2), CFrame.new(x, 31, 246), PAL.metal, Enum.Material.Metal)
+			box(folder, "RailS", Vector3.new(84, 3, 1.2), CFrame.new(x, 31, 274), PAL.metal, Enum.Material.Metal)
+		end
+		if i ~= 1 then
+			box(folder, "Pier", Vector3.new(8, 26, 8), CFrame.new(x, 14, 248), PAL.concreteDark)
+			box(folder, "Pier", Vector3.new(8, 26, 8), CFrame.new(x, 14, 272), PAL.concreteDark)
+		end
+	end
+	CityKit.wreck(folder, Vector3.new(-120, 29, 260), "car")
+	CityKit.wreck(folder, Vector3.new(200, 3, 248), "bus")
+end
+
+local function canal(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Canal"
+	folder.Parent = city
+	labelDistrict(folder, Vector3.new(-80, 24, 500), "CANAL  ·  BRIDGES DOWN")
+
+	box(folder, "Water", Vector3.new(900, 8, 56), CFrame.new(0, -4, 500), PAL.water, Enum.Material.Glass)
+	box(folder, "WallS", Vector3.new(900, 16, 6), CFrame.new(0, 4, 470), PAL.concreteDark)
+	box(folder, "WallN", Vector3.new(900, 16, 6), CFrame.new(0, 4, 530), PAL.concreteDark)
+
+	-- Main boulevard bridge — walkable but scarred
+	box(folder, "BridgeDeck", Vector3.new(56, 3, 72), CFrame.new(0, 12, 500), PAL.concrete)
+	box(folder, "BridgeRailL", Vector3.new(2, 5, 72), CFrame.new(-26, 15, 500), PAL.metal, Enum.Material.Metal)
+	box(folder, "BridgeRailR", Vector3.new(2, 5, 72), CFrame.new(26, 15, 500), PAL.metal, Enum.Material.Metal)
+	box(folder, "ApproachS", Vector3.new(56, 3, 28), CFrame.new(0, 8, 458) * CFrame.Angles(-0.22, 0, 0), PAL.concrete)
+	box(folder, "ApproachN", Vector3.new(56, 3, 28), CFrame.new(0, 8, 542) * CFrame.Angles(0.22, 0, 0), PAL.concrete)
+	CityKit.crater(folder, Vector3.new(8, 8, 500), 8)
+
+	-- West bridge collapsed into the water
+	box(folder, "WreckSpan", Vector3.new(40, 3, 50), CFrame.new(-210, 2, 496) * CFrame.Angles(0.35, 0.1, 0.2), PAL.concreteDark)
+	box(folder, "WreckPier", Vector3.new(8, 22, 8), CFrame.new(-210, 6, 472), PAL.concrete)
+	CityKit.rebar(folder, Vector3.new(-200, 6, 500), 18)
+
+	-- East bridge missing mid-span (gap) with one remaining pier
+	box(folder, "EastApproachS", Vector3.new(40, 3, 22), CFrame.new(210, 10, 466), PAL.concrete)
+	box(folder, "EastApproachN", Vector3.new(40, 3, 22), CFrame.new(210, 10, 534), PAL.concrete)
+	box(folder, "EastPier", Vector3.new(7, 20, 7), CFrame.new(210, 6, 500), PAL.concreteDark)
+	box(folder, "HangingSlab", Vector3.new(18, 2.4, 16), CFrame.new(218, 9, 488) * CFrame.Angles(0.5, 0, 0.1), PAL.concreteDark)
+
+	-- stepping wreckage under the west span
+	for i = -1, 1 do
+		box(folder, "Stepping", Vector3.new(16, 6, 14), CFrame.new(-210 + i * 4, 1, 500 + i * 8) * CFrame.Angles(0.1, 0, 0.05), PAL.rubble, Enum.Material.Slate)
+	end
+end
+
+local function subway(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Subway"
+	folder.Parent = city
+	labelDistrict(folder, Vector3.new(-200, 16, 660), "METRO  ·  CRATER")
+
+	CityKit.crater(folder, Vector3.new(-200, 0, 660), 36)
+	box(folder, "Pit", Vector3.new(48, 18, 48), CFrame.new(-200, -6, 660), PAL.soot, Enum.Material.Slate)
+	box(folder, "Tunnel", Vector3.new(70, 14, 18), CFrame.new(-200, -4, 700), PAL.concreteDark)
+	box(folder, "Kiosk", Vector3.new(16, 12, 16), CFrame.new(-168, 8, 640), PAL.metal, Enum.Material.Metal)
+	box(folder, "Escalator", Vector3.new(10, 2, 24), CFrame.new(-188, 4, 640) * CFrame.Angles(-0.4, 0.6, 0), PAL.metal, Enum.Material.Metal)
+	CityKit.rebar(folder, Vector3.new(-200, 4, 660), 16)
+	CityKit.rubble(folder, Vector3.new(-176, 3, 670), 14, 6)
+	CityKit.wreck(folder, Vector3.new(-150, 3, 680), "bus")
+end
+
+local function approach(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Boulevard"
+	folder.Parent = city
+
+	streetSlab(folder, Vector3.new(0, 0, 70), 72, 90)
+	laneMarks(folder, Vector3.new(0, 0, 70), 80, true)
+	box(folder, "MedianWreck", Vector3.new(8, 4, 24), CFrame.new(0, 5, 88), PAL.concreteDark)
+	CityKit.wreck(folder, Vector3.new(-22, 3, 70), "car")
+	CityKit.wreck(folder, Vector3.new(24, 3, 96), "truck")
+	CityKit.building(folder, { kind = "shop", pos = Vector3.new(-70, 3, 90), sx = 32, sz = 24, height = 26, stories = 2, burned = true })
+	CityKit.building(folder, { kind = "shop", pos = Vector3.new(72, 3, 90), sx = 30, sz = 24, height = 22, stories = 2, roof = "caved" })
+	CityKit.leaningWall(folder, Vector3.new(-48, 14, 50), Vector3.new(6, 24, 22), 0.2)
+end
+
+local function skylineStubs(city)
+	local folder = Instance.new("Folder")
+	folder.Name = "Skyline"
+	folder.Parent = city
+	local stubs = {
+		Vector3.new(-400, 3, 260),
+		Vector3.new(400, 3, 380),
+		Vector3.new(-380, 3, 820),
+		Vector3.new(390, 3, 820),
+		Vector3.new(-400, 3, 600),
+		Vector3.new(400, 3, 180),
+	}
+	for i, p in ipairs(stubs) do
+		CityKit.building(folder, {
+			kind = (i % 2 == 0) and "office" or "apartment",
+			pos = p,
+			sx = 40 + (i % 3) * 8,
+			sz = 36,
+			height = 40 + i * 6,
+			stories = 4 + i % 3,
+			roof = "gone",
+			blown = 1,
+			burned = i % 2 == 1,
+		})
+	end
+end
+
+function CityKit.build(world)
+	local city = Instance.new("Folder")
+	city.Name = "WarTornCity"
+	city.Parent = world
+
+	buildGround(city)
+	buildStreets(city)
+	approach(city)
+	downtown(city)
+	plaza(city)
+	market(city)
+	parking(city)
+	residential(city)
+	industrial(city)
+	freeway(city)
+	canal(city)
+	subway(city)
+	skylineStubs(city)
+
+	-- scattered street debris so lanes are not empty
+	local debris = Instance.new("Folder")
+	debris.Name = "StreetDebris"
+	debris.Parent = city
+	local spots = {
+		Vector3.new(-40, 3, 150),
+		Vector3.new(60, 3, 150),
+		Vector3.new(-80, 3, 380),
+		Vector3.new(90, 3, 380),
+		Vector3.new(-40, 3, 660),
+		Vector3.new(70, 3, 820),
+		Vector3.new(180, 3, 140),
+		Vector3.new(-180, 3, 380),
+	}
+	for i, p in ipairs(spots) do
+		CityKit.rubble(debris, p, 12, 5)
+		if i % 2 == 0 then
+			CityKit.wreck(debris, p + Vector3.new(16, 0, 4), pick({ "car", "truck", "bus" }))
+		end
+	end
+
+	return city
+end
+
+return CityKit
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX7">
+    <Properties>
+      <string name="Name">CombatService</string>
+      <ProtectedString name="Source"><![CDATA[local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+
+local Constants = require(game.ReplicatedStorage.Shared.Constants)
+local MechConfig = require(game.ReplicatedStorage.Shared.MechConfig)
+local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local Util = require(game.ReplicatedStorage.Shared.Util)
+
+local CombatService = {}
+
+local states = {} -- [player] = state
+local partToState = {}
+local lingerZones = {}
+local destroyedListeners = {}
+
+local speedMul
+
+local function isPlayerOwner(owner)
+	return typeof(owner) == "Instance" and owner:IsA("Player")
+end
+
+local function notify(player, text, kind)
+	Remotes.fire("Notify", player, { text = text, kind = kind or "info" })
+end
+
+local function pushState(player)
+	local st = states[player]
+	if not st then
+		Remotes.fire("MechState", player, { active = false })
+		return
+	end
+	Remotes.fire("MechState", player, {
+		active = true,
+		seated = st.seated,
+		mechId = st.mechId,
+		name = st.config.name,
+		health = st.health,
+		maxHealth = st.maxHealth,
+		ammo = st.ammo,
+		reloading = st.reloading,
+		cooldowns = st.cooldowns,
+		buffs = st.buffs,
+		selected = st.selected,
+		cloaked = st.cloaked,
+		speedMul = speedMul(st),
+	})
+end
+
+local function readyAt(st, key)
+	return (st.cooldowns[key] or 0) <= Util.now()
+end
+
+local function setCooldown(st, key, seconds)
+	st.cooldowns[key] = Util.now() + seconds
+end
+
+local function rpmDelay(weapon)
+	if weapon.cooldown then
+		return weapon.cooldown
+	end
+	local rpm = weapon.rpm or 60
+	return 60 / math.max(rpm, 1)
+end
+
+local function ignoreList(st)
+	local list = { st.model }
+	if isPlayerOwner(st.owner) and st.owner.Character then
+		table.insert(list, st.owner.Character)
+	end
+	return list
+end
+
+local function spawnFlash(cf, color, size)
+	local p = Util.part({
+		Name = "MuzzleFlash",
+		Size = size or Vector3.new(1.4, 1.4, 3),
+		CFrame = cf,
+		Color = color or Color3.fromRGB(255, 200, 80),
+		Material = Enum.Material.Neon,
+		Anchored = true,
+		CanCollide = false,
+		Parent = Workspace,
+	})
+	Debris:AddItem(p, 0.12)
+end
+
+local function spawnBoom(pos, radius, color)
+	local p = Util.part({
+		Name = "Boom",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.new(radius, radius, radius) * 1.4,
+		CFrame = CFrame.new(pos),
+		Color = color or Color3.fromRGB(255, 140, 40),
+		Material = Enum.Material.Neon,
+		Anchored = true,
+		CanCollide = false,
+		Transparency = 0.25,
+		Parent = Workspace,
+	})
+	Debris:AddItem(p, 0.35)
+end
+
+local function tracer(origin, hit, color)
+	local delta = hit - origin
+	local len = math.max(delta.Magnitude, 0.5)
+	local p = Util.part({
+		Name = "Tracer",
+		Size = Vector3.new(0.18, 0.18, len),
+		CFrame = CFrame.lookAt(origin + delta.Unit * (len / 2), hit),
+		Color = color or Color3.fromRGB(255, 220, 90),
+		Material = Enum.Material.Neon,
+		Anchored = true,
+		CanCollide = false,
+		Parent = Workspace,
+	})
+	Debris:AddItem(p, 0.08)
+end
+
+local function damageMul(st)
+	local m = 1
+	for _, b in pairs(st.buffs) do
+		if b.damageMul then
+			m *= b.damageMul
+		end
+	end
+	return m
+end
+
+local function takenMul(st, incomingDir)
+	local m = 1
+	for _, b in pairs(st.buffs) do
+		if b.damageTakenMul then
+			if b.frontal and incomingDir then
+				local look = st.model.PrimaryPart.CFrame.LookVector
+				if look:Dot(-incomingDir) > 0.25 then
+					m *= b.damageTakenMul
+				end
+			else
+				m *= b.damageTakenMul
+			end
+		end
+	end
+	return m
+end
+
+speedMul = function(st)
+	local m = 1
+	for _, b in pairs(st.buffs) do
+		if b.speedMul then
+			m *= b.speedMul
+		end
+	end
+	if st.firingSlowUntil and Util.now() < st.firingSlowUntil then
+		m *= st.firingSlowMul or 0.2
+	end
+	return m
+end
+
+function CombatService.speedMultiplier(player)
+	local st = states[player]
+	return st and speedMul(st) or 1
+end
+
+function CombatService.getState(player)
+	return states[player]
+end
+
+function CombatService.getByModel(model)
+	for _, st in pairs(states) do
+		if st.model == model then
+			return st
+		end
+	end
+	return nil
+end
+
+local function lifesteal(st, amount)
+	local steal = 0
+	for _, b in pairs(st.buffs) do
+		if b.lifesteal then
+			steal += amount * b.lifesteal
+		end
+	end
+	if steal > 0 then
+		st.health = math.min(st.maxHealth, st.health + steal)
+		st.model:SetAttribute(Constants.HealthAttr, st.health)
+	end
+end
+
+function CombatService.dealDamage(attackerState, victimState, amount, weaponId, hitPos)
+	if not victimState or victimState.dead then
+		return
+	end
+	if attackerState and attackerState.owner == victimState.owner then
+		return
+	end
+
+	local dir
+	if hitPos and victimState.model.PrimaryPart then
+		dir = Util.unit(hitPos - victimState.model.PrimaryPart.Position)
+	end
+	local dealt = math.max(1, math.floor(amount * takenMul(victimState, dir)))
+	victimState.health = math.max(0, victimState.health - dealt)
+	victimState.model:SetAttribute(Constants.HealthAttr, victimState.health)
+
+	if attackerState then
+		lifesteal(attackerState, dealt)
+		pushState(attackerState.owner)
+	end
+	pushState(victimState.owner)
+
+	Remotes.fireAll("VfxEvent", {
+		kind = "hit",
+		position = hitPos or victimState.model.PrimaryPart.Position,
+		amount = dealt,
+	})
+
+	if victimState.health <= 0 then
+		CombatService.destroyMech(victimState.owner, attackerState and attackerState.owner, weaponId)
+	end
+end
+
+local function aoeAt(attacker, pos, radius, damage, weaponId)
+	for _, st in pairs(states) do
+		if st.model and st.model.PrimaryPart and not st.dead then
+			if (st.model.PrimaryPart.Position - pos).Magnitude <= radius then
+				CombatService.dealDamage(attacker, st, damage, weaponId, pos)
+				if attacker and attacker.model == st.model then
+					-- self splash reduced already by same-owner check
+				end
+			end
+		end
+	end
+end
+
+local function addLinger(attacker, pos, radius, dps, life, color)
+	table.insert(lingerZones, {
+		owner = attacker,
+		pos = pos,
+		radius = radius,
+		dps = dps,
+		untilTime = Util.now() + life,
+		color = color,
+	})
+	local p = Util.part({
+		Name = "Linger",
+		Size = Vector3.new(radius * 2, 1.2, radius * 2),
+		CFrame = CFrame.new(pos),
+		Color = color or Color3.fromRGB(255, 90, 20),
+		Material = Enum.Material.Neon,
+		Anchored = true,
+		CanCollide = false,
+		Transparency = 0.45,
+		Parent = Workspace,
+	})
+	Debris:AddItem(p, life)
+end
+
+local function hitscan(st, weapon, origin, direction)
+	local range = weapon.range or 200
+	local pellets = weapon.pellets or 1
+	local spread = math.rad(weapon.spread or 0)
+	local params = Util.rayParams(ignoreList(st))
+	local dmg = (weapon.damage or 10) * damageMul(st)
+	local color = st.config.accent
+
+	for _ = 1, pellets do
+		local dir = direction
+		if spread > 0 then
+			dir = (CFrame.lookAt(origin, origin + direction) * CFrame.Angles(
+				(math.random() - 0.5) * spread,
+				(math.random() - 0.5) * spread,
+				0
+			)).LookVector
+		end
+		local result = Workspace:Raycast(origin, dir * range, params)
+		local hitPos = result and result.Position or (origin + dir * range)
+		tracer(origin, hitPos, color)
+		if result then
+			local mech = Util.findMechFromPart(result.Instance)
+			local vst = mech and CombatService.getByModel(mech)
+			if vst then
+				CombatService.dealDamage(st, vst, dmg, weapon.id, hitPos)
+			end
+		end
+	end
+end
+
+local function launchProjectile(st, weapon, origin, direction, extra)
+	extra = extra or {}
+	local count = extra.count or weapon.count or 1
+	local spread = math.rad(extra.spread or weapon.spread or 0)
+	local speed = weapon.speed or 140
+	local life = weapon.lifetime or 3
+	local radius = weapon.radius or 8
+	local dmg = (weapon.damage or 40) * damageMul(st)
+	local gravity = weapon.gravity or (weapon.kind == "mortar" and 80 or 0)
+	local arc = weapon.arc or 0
+
+	for i = 1, count do
+		local dir = direction
+		if spread > 0 then
+			dir = (CFrame.lookAt(origin, origin + direction) * CFrame.Angles(
+				(math.random() - 0.5) * spread,
+				(math.random() - 0.5) * 2 * spread / math.max(count, 1) + (i - (count + 1) / 2) * spread / count,
+				0
+			)).LookVector
+		end
+		if arc > 0 then
+			dir = (dir + Vector3.new(0, arc, 0)).Unit
+		end
+
+		local ball = Util.part({
+			Name = "MVMProjectile",
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.new(1.6, 1.6, 1.6),
+			CFrame = CFrame.new(origin),
+			Color = st.config.accent,
+			Material = Enum.Material.Neon,
+			Anchored = true,
+			CanCollide = false,
+			Parent = Workspace,
+		})
+
+		local vel = dir * speed
+		local t0 = Util.now()
+		local last = origin
+		local conn
+		conn = RunService.Heartbeat:Connect(function(dt)
+			if not ball.Parent then
+				conn:Disconnect()
+				return
+			end
+			vel += Vector3.new(0, -gravity, 0) * dt
+			local nxt = ball.Position + vel * dt
+			local params = Util.rayParams(ignoreList(st))
+			local result = Workspace:Raycast(last, nxt - last, params)
+			if result or Util.now() - t0 >= life then
+				local pos = result and result.Position or nxt
+				spawnBoom(pos, radius, st.config.accent)
+				aoeAt(st, pos, radius, dmg, weapon.id)
+				if weapon.linger and weapon.lingerDps then
+					addLinger(st, pos, radius, weapon.lingerDps, weapon.linger, Color3.fromRGB(255, 90, 20))
+				end
+				ball:Destroy()
+				conn:Disconnect()
+				return
+			end
+			ball.CFrame = CFrame.new(nxt, nxt + vel)
+			last = nxt
+		end)
+		Debris:AddItem(ball, life + 0.5)
+	end
+end
+
+local function coneHit(st, weapon, origin, direction)
+	local range = weapon.range or 40
+	local ang = math.rad(weapon.angle or 25)
+	local dmg = (weapon.damage or 10) * damageMul(st)
+	for _, vst in pairs(states) do
+		if vst ~= st and vst.model and vst.model.PrimaryPart and not vst.dead then
+			local delta = vst.model.PrimaryPart.Position - origin
+			if delta.Magnitude <= range then
+				local u = Util.unit(delta)
+				if u:Dot(direction) >= math.cos(ang) then
+					CombatService.dealDamage(st, vst, dmg, weapon.id, vst.model.PrimaryPart.Position)
+				end
+			end
+		end
+	end
+	spawnFlash(CFrame.lookAt(origin, origin + direction), Color3.fromRGB(255, 120, 30), Vector3.new(4, 4, range * 0.35))
+end
+
+local function meleeHit(st, weapon, origin, direction)
+	local range = weapon.range or 16
+	local dmg = (weapon.damage or 50) * damageMul(st)
+	local best, bestDist
+	for _, vst in pairs(states) do
+		if vst ~= st and vst.model and vst.model.PrimaryPart and not vst.dead then
+			local delta = vst.model.PrimaryPart.Position - origin
+			local dist = delta.Magnitude
+			if dist <= range + 8 and Util.unit(delta):Dot(direction) > 0.15 then
+				if not bestDist or dist < bestDist then
+					best, bestDist = vst, dist
+				end
+			end
+		end
+	end
+	if best then
+		CombatService.dealDamage(st, best, dmg, weapon.id, best.model.PrimaryPart.Position)
+		spawnFlash(best.model.PrimaryPart.CFrame, st.config.accent, Vector3.new(6, 6, 6))
+	else
+		spawnFlash(CFrame.lookAt(origin, origin + direction) + direction * (range * 0.5), st.config.accent)
+	end
+end
+
+local function lockTargets(st, weapon, origin)
+	local maxLocks = (weapon.maxLocks or 3) + (st.buffs.paint and st.buffs.paint.lockBonus or 0)
+	local range = weapon.lockRange or 320
+	local found = {}
+	for _, vst in pairs(states) do
+		if vst ~= st and vst.model and vst.model.PrimaryPart and not vst.dead then
+			local d = (vst.model.PrimaryPart.Position - origin).Magnitude
+			if d <= range then
+				table.insert(found, { st = vst, d = d })
+			end
+		end
+	end
+	table.sort(found, function(a, b)
+		return a.d < b.d
+	end)
+	local n = math.min(#found, maxLocks)
+	return found, n
+end
+
+local function tryAmmo(st, weapon)
+	if not weapon.ammo then
+		return true
+	end
+	local slot = weapon.slot
+	if st.reloading[slot] then
+		return false
+	end
+	local cur = st.ammo[slot] or 0
+	if cur <= 0 then
+		CombatService.reload(st.owner, slot)
+		return false
+	end
+	st.ammo[slot] = cur - 1
+	return true
+end
+
+function CombatService.reload(player, slot)
+	local st = states[player]
+	if not st then
+		return
+	end
+	local weapon = st.config.weapons[slot]
+	if not weapon or not weapon.ammo or st.reloading[slot] then
+		return
+	end
+	st.reloading[slot] = true
+	pushState(player)
+	task.delay(weapon.reload or 2, function()
+		if states[player] ~= st then
+			return
+		end
+		st.ammo[slot] = weapon.ammo
+		st.reloading[slot] = nil
+		pushState(player)
+	end)
+end
+
+function CombatService.applyBuff(st, weapon)
+	st.buffs[weapon.id] = {
+		untilTime = Util.now() + (weapon.duration or 4),
+		damageMul = weapon.damageMul,
+		damageTakenMul = weapon.damageTakenMul,
+		speedMul = weapon.speedMul,
+		fireRateMul = weapon.fireRateMul,
+		lifesteal = weapon.lifesteal,
+		lockBonus = weapon.lockBonus,
+		frontal = weapon.frontal,
+	}
+	if weapon.kind == "cloak" then
+		st.cloaked = true
+		local MechFactory = require(script.Parent.MechFactory)
+		MechFactory.setCloak(st.model, true)
+	end
+	setCooldown(st, weapon.slot, weapon.cooldown or 10)
+end
+
+function CombatService.tickBuffs()
+	local now = Util.now()
+	for player, st in pairs(states) do
+		local dirty = false
+		for id, b in pairs(st.buffs) do
+			if b.untilTime <= now then
+				st.buffs[id] = nil
+				dirty = true
+				if id == "cloak" or id == "ghost" then
+					st.cloaked = false
+					local MechFactory = require(script.Parent.MechFactory)
+					MechFactory.setCloak(st.model, false)
+				end
+			end
+		end
+		if dirty then
+			pushState(player)
+		end
+	end
+
+	for i = #lingerZones, 1, -1 do
+		local z = lingerZones[i]
+		if now >= z.untilTime then
+			table.remove(lingerZones, i)
+		else
+			for _, st in pairs(states) do
+				if st.model and st.model.PrimaryPart and not st.dead then
+					if (st.model.PrimaryPart.Position - z.pos).Magnitude <= z.radius then
+						CombatService.dealDamage(z.owner, st, z.dps * 0.25, "linger", z.pos)
+					end
+				end
+			end
+		end
+	end
+end
+
+function CombatService.register(player, model, mechId)
+	local cfg = MechConfig.get(mechId)
+	assert(cfg, "unknown mech")
+	local ammo = {}
+	for slot, w in pairs(cfg.weapons) do
+		if w.ammo then
+			ammo[slot] = w.ammo
+		end
+	end
+	local st = {
+		owner = player,
+		model = model,
+		mechId = mechId,
+		config = cfg,
+		health = cfg.maxHealth,
+		maxHealth = cfg.maxHealth,
+		ammo = ammo,
+		reloading = {},
+		cooldowns = {},
+		buffs = {},
+		seated = false,
+		selected = "primary",
+		cloaked = false,
+		dead = false,
+		lastFire = {},
+	}
+	states[player] = st
+	partToState[model] = st
+	pushState(player)
+	return st
+end
+
+function CombatService.setSeated(player, seated)
+	local st = states[player]
+	if not st then
+		return
+	end
+	st.seated = seated
+	pushState(player)
+	Remotes.fire("PilotState", player, { seated = seated, mechId = st.mechId })
+end
+
+function CombatService.tryFire(player, slot, origin, direction)
+	local st = states[player]
+	if not st or not st.seated or st.dead then
+		return
+	end
+	if typeof(origin) ~= "Vector3" or typeof(direction) ~= "Vector3" then
+		return
+	end
+	direction = Util.unit(direction)
+	if direction.Magnitude < 0.5 then
+		return
+	end
+
+	local weapon = st.config.weapons[slot]
+	if not weapon then
+		return
+	end
+
+	-- muzzle sanity: origin must be near the mech
+	local root = st.model.PrimaryPart
+	if not root or (origin - root.Position).Magnitude > 40 then
+		origin = root.Position + root.CFrame.LookVector * 8 + Vector3.new(0, 4, 0)
+	end
+
+	if not readyAt(st, slot) then
+		return
+	end
+	if not tryAmmo(st, weapon) then
+		pushState(player)
+		return
+	end
+
+	if weapon.decloak and st.cloaked then
+		st.cloaked = false
+		st.buffs.cloak = nil
+		st.buffs.ghost = nil
+		local MechFactory = require(script.Parent.MechFactory)
+		MechFactory.setCloak(st.model, false)
+	end
+
+	local delay = rpmDelay(weapon)
+	if st.buffs.overclock and st.buffs.overclock.fireRateMul then
+		delay /= st.buffs.overclock.fireRateMul
+	end
+	setCooldown(st, slot, delay)
+
+	if weapon.firingSlow then
+		st.firingSlowUntil = Util.now() + (weapon.slowHold or 0.6)
+		st.firingSlowMul = weapon.firingSlow
+	end
+
+	st.selected = slot
+	spawnFlash(CFrame.lookAt(origin, origin + direction), st.config.accent)
+
+	if weapon.kind == "hitscan" then
+		hitscan(st, weapon, origin, direction)
+	elseif weapon.kind == "projectile" or weapon.kind == "mortar" then
+		launchProjectile(st, weapon, origin, direction)
+	elseif weapon.kind == "cone" then
+		coneHit(st, weapon, origin, direction)
+	elseif weapon.kind == "melee" then
+		meleeHit(st, weapon, origin, direction)
+		if weapon.lunge and root then
+			root.AssemblyLinearVelocity = direction * 60 + Vector3.new(0, 8, 0)
+		end
+	elseif weapon.kind == "aoe" then
+		local pos = root.Position
+		aoeAt(st, pos, weapon.radius or 20, (weapon.damage or 50) * damageMul(st), weapon.id)
+		spawnBoom(pos, weapon.radius or 20, st.config.accent)
+		if weapon.linger and weapon.lingerDps then
+			addLinger(st, pos, weapon.radius or 20, weapon.lingerDps, weapon.linger, Color3.fromRGB(255, 80, 20))
+		end
+	elseif weapon.kind == "lockon" then
+		local found, n = lockTargets(st, weapon, origin)
+		if n == 0 then
+			launchProjectile(st, weapon, origin, direction)
+		else
+			for i = 1, n do
+				local tgt = found[i].st.model.PrimaryPart.Position
+				launchProjectile(st, weapon, origin, Util.unit(tgt - origin))
+			end
+		end
+	elseif weapon.kind == "buff" or weapon.kind == "shield" or weapon.kind == "cloak" then
+		CombatService.applyBuff(st, weapon)
+	elseif weapon.kind == "reload" then
+		for s, w in pairs(st.config.weapons) do
+			if w.ammo then
+				st.ammo[s] = w.ammo
+				st.reloading[s] = nil
+			end
+		end
+		setCooldown(st, slot, weapon.cooldown or 16)
+	elseif weapon.kind == "dash" then
+		local dist = weapon.distance or 40
+		root.AssemblyLinearVelocity = direction * dist * 2.2 + Vector3.new(0, 10, 0)
+		if weapon.damage then
+			aoeAt(st, root.Position + direction * 10, weapon.radius or 12, weapon.damage * damageMul(st), weapon.id)
+		end
+		setCooldown(st, slot, weapon.cooldown or 6)
+	end
+
+	pushState(player)
+	Remotes.fireAll("VfxEvent", { kind = "fire", slot = slot, mechId = st.mechId, origin = origin })
+end
+
+function CombatService.destroyMech(player, killer, weaponId, silent)
+	local st = states[player]
+	if not st or st.dead then
+		return
+	end
+	st.dead = true
+	st.seated = false
+
+	local pos = st.model.PrimaryPart and st.model.PrimaryPart.Position or Constants.DeliveryPad
+	if not silent then
+		spawnBoom(pos, 22, Color3.fromRGB(255, 160, 40))
+		local killerName = (killer and killer.DisplayName) or "the hangar"
+		local victimName = (typeof(player) == "Instance" and player.DisplayName) or (player and player.DisplayName) or "Unknown"
+		local mechName = st.config.name
+		Remotes.fireAll("KillFeed", {
+			text = string.format("%s wrecked %s [%s]", killerName, victimName, mechName),
+			weapon = weaponId,
+		})
+	end
+
+	if not silent then
+		for _, fn in ipairs(destroyedListeners) do
+			local ok, err = pcall(fn, player, st)
+			if not ok then
+				warn("[MVM] destroy listener: ", err)
+			end
+		end
+	end
+
+	if st.model then
+		st.model:Destroy()
+	end
+	states[player] = nil
+	pushState(player)
+	Remotes.fire("PilotState", player, { seated = false, destroyed = not silent, ejected = silent == true })
+end
+
+function CombatService.unregister(player, reason)
+	if states[player] then
+		local silent = reason == "eject"
+		CombatService.destroyMech(player, nil, reason or "eject", silent)
+	end
+end
+
+function CombatService.hasMech(player)
+	return states[player] ~= nil
+end
+
+function CombatService.onDestroyed(fn)
+	table.insert(destroyedListeners, fn)
+end
+
+function CombatService.start()
+	task.spawn(function()
+		while true do
+			CombatService.tickBuffs()
+			task.wait(0.25)
+		end
+	end)
+
+	Remotes.on("FireWeapon", function(player, payload)
+		if typeof(payload) ~= "table" then
+			return
+		end
+		CombatService.tryFire(player, payload.slot, payload.origin, payload.direction)
+	end)
+
+	Remotes.on("ReloadWeapon", function(player, slot)
+		if typeof(slot) ~= "string" then
+			slot = "primary"
+		end
+		CombatService.reload(player, slot)
+	end)
+
+	Players.PlayerRemoving:Connect(function(player)
+		if states[player] and states[player].model then
+			states[player].model:Destroy()
+		end
+		states[player] = nil
+	end)
+end
+
+return CombatService
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX8">
+    <Properties>
+      <string name="Name">DeliveryService</string>
+      <ProtectedString name="Source"><![CDATA[local Workspace = game:GetService("Workspace")
+
+local Constants = require(game.ReplicatedStorage.Shared.Constants)
+local MechConfig = require(game.ReplicatedStorage.Shared.MechConfig)
+local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local Util = require(game.ReplicatedStorage.Shared.Util)
+
+local CombatService = require(script.Parent.CombatService)
+local MechFactory = require(script.Parent.MechFactory)
+
+local DeliveryService = {}
+local busy = {}
+local onReady = nil
+
+local function heliPart(model, name, size, cf, color)
+	return Util.part({
+		Name = name,
+		Size = size,
+		CFrame = cf,
+		Color = color,
+		Material = Enum.Material.Metal,
+		Anchored = true,
+		CanCollide = false,
+		Parent = model,
+	})
+end
+
+local function createHelicopter(cf)
+	local heli = Instance.new("Model")
+	heli.Name = "MVMDropship"
+	local body = heliPart(heli, "Body", Vector3.new(18, 6, 32), cf, Color3.fromRGB(36, 42, 48))
+	heli.PrimaryPart = body
+	heliPart(heli, "Cabin", Vector3.new(10, 5, 10), cf * CFrame.new(0, 1, -12), Color3.fromRGB(28, 32, 36))
+	heliPart(heli, "Nose", Vector3.new(6, 3, 8), cf * CFrame.new(0, 0, -20), Color3.fromRGB(24, 28, 32))
+	heliPart(heli, "Tail", Vector3.new(3, 3, 18), cf * CFrame.new(0, 2, 20), Color3.fromRGB(40, 46, 52))
+	heliPart(heli, "Fin", Vector3.new(1.2, 8, 4), cf * CFrame.new(0, 7, 26), Color3.fromRGB(200, 70, 40))
+	local rotor = heliPart(heli, "Rotor", Vector3.new(34, 0.6, 2.4), cf * CFrame.new(0, 5.2, -2), Color3.fromRGB(20, 20, 22))
+	heliPart(heli, "RotorCross", Vector3.new(2.4, 0.6, 34), cf * CFrame.new(0, 5.2, -2), Color3.fromRGB(20, 20, 22))
+	heliPart(heli, "Stripe", Vector3.new(18.2, 0.8, 2), cf * CFrame.new(0, 1, 0), Color3.fromRGB(70, 200, 255))
+	local hook = heliPart(heli, "Hook", Vector3.new(1, 18, 1), cf * CFrame.new(0, -12, 0), Color3.fromRGB(80, 80, 84))
+	Util.billboard(body, "MVM DROPSHIP", UDim2.fromOffset(240, 32), Vector3.new(0, 8, 0))
+
+	local spin = rotor
+	task.spawn(function()
+		while heli.Parent and spin.Parent do
+			spin.CFrame = spin.CFrame * CFrame.Angles(0, math.rad(38), 0)
+			task.wait()
+		end
+	end)
+
+	heli.Parent = Workspace:FindFirstChild("MVMWorld") or Workspace
+	return heli, hook
+end
+
+local function tweenModel(model, target, t)
+	-- Heli parts are individually anchored; lerp the whole model via PivotTo.
+	local start = model:GetPivot()
+	local t0 = os.clock()
+	while os.clock() - t0 < t do
+		local a = math.clamp((os.clock() - t0) / t, 0, 1)
+		a = a * a * (3 - 2 * a)
+		model:PivotTo(start:Lerp(target, a))
+		task.wait()
+	end
+	model:PivotTo(target)
+end
+
+function DeliveryService.onReadyCallback(fn)
+	onReady = fn
+end
+
+function DeliveryService.isBusy(player)
+	return busy[player] == true
+end
+
+function DeliveryService.deliver(player, mechId)
+	if busy[player] then
+		Remotes.fire("SelectionResult", player, { ok = false, reason = "A dropship is already inbound." })
+		return
+	end
+	if CombatService.hasMech(player) then
+		Remotes.fire("SelectionResult", player, { ok = false, reason = "You already have a mech. Eject or die to re-select." })
+		return
+	end
+	local cfg = MechConfig.get(mechId)
+	if not cfg then
+		Remotes.fire("SelectionResult", player, { ok = false, reason = "Unknown mech." })
+		return
+	end
+
+	busy[player] = true
+	Remotes.fire("SelectionResult", player, { ok = true, mechId = mechId })
+	Remotes.fire("DeliveryStatus", player, { phase = "inbound", name = cfg.name })
+	Remotes.fireAll("Notify", { text = player.DisplayName .. " requested " .. cfg.name, kind = "info" })
+
+	task.spawn(function()
+		local heli
+		local ok, err = pcall(function()
+			local startCf = CFrame.new(Constants.HeliStart, Constants.HeliHover)
+			local hoverCf = CFrame.new(Constants.HeliHover, Constants.HeliHover + Vector3.new(0, 0, 12))
+			local exitCf = CFrame.new(Constants.HeliExit, Constants.HeliExit + Vector3.new(40, 0, 20))
+
+			heli = createHelicopter(startCf)
+			Util.play(heli.PrimaryPart, "rbxasset://sounds/impact_water.mp3", { Volume = 0.5, Name = "HeliIn" })
+
+			tweenModel(heli, hoverCf, 3.6)
+			Remotes.fire("DeliveryStatus", player, { phase = "hover", name = cfg.name })
+
+			local dropCf = CFrame.new(Constants.DeliveryPad + Vector3.new(0, 70, 0))
+			local mech = MechFactory.create(cfg, dropCf, player)
+			MechFactory.weldReady(mech)
+			mech:PivotTo(CFrame.new(Constants.DeliveryPad + Vector3.new(0, 48, 0)))
+
+			-- lower
+			Remotes.fire("DeliveryStatus", player, { phase = "lowering", name = cfg.name })
+			local land = CFrame.new(Constants.DeliveryPad + Vector3.new(0, 14 * (cfg.scale or 1), 0))
+			local t0 = os.clock()
+			local start = mech:GetPivot()
+			while os.clock() - t0 < 2.4 do
+				local a = math.clamp((os.clock() - t0) / 2.4, 0, 1)
+				mech:PivotTo(start:Lerp(land, a))
+				if heli.PrimaryPart then
+					heli:PivotTo(hoverCf)
+				end
+				task.wait()
+			end
+			mech:PivotTo(land)
+			MechFactory.setAnchored(mech, true)
+			Remotes.fireAll("VfxEvent", { kind = "land", position = land.Position })
+			if mech.PrimaryPart then
+				Util.play(mech.PrimaryPart, "rbxasset://sounds/impact_water.mp3", { Volume = 0.65, PlaybackSpeed = 0.5, Name = "DeliverOk" })
+			end
+
+			CombatService.register(player, mech, mechId)
+			if onReady then
+				onReady(player, mech, cfg)
+			end
+
+			Remotes.fire("DeliveryStatus", player, { phase = "ready", name = cfg.name })
+			Remotes.fire("Notify", player, { text = cfg.name .. " on the pad. Enter the cockpit.", kind = "ok" })
+
+			tweenModel(heli, exitCf, 3.2)
+			heli:Destroy()
+		end)
+
+		busy[player] = nil
+		if not ok then
+			if heli and heli.Parent then
+				heli:Destroy()
+			end
+			warn("[MVM] Delivery failed: ", err)
+			Remotes.fire("DeliveryStatus", player, { phase = "failed" })
+			Remotes.fire("Notify", player, { text = "Dropship aborted. Try the station again.", kind = "error" })
+		end
+	end)
+end
+
+return DeliveryService
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX9">
+    <Properties>
+      <string name="Name">DummyService</string>
+      <ProtectedString name="Source"><![CDATA[local Workspace = game:GetService("Workspace")
+
+local MechConfig = require(game.ReplicatedStorage.Shared.MechConfig)
+local Util = require(game.ReplicatedStorage.Shared.Util)
+
+local CombatService = require(script.Parent.CombatService)
+local MechFactory = require(script.Parent.MechFactory)
+
+local DummyService = {}
+
+local SPOTS = {
+	{ id = "titan", pos = Vector3.new(-36, 20, 292), yaw = 0.5 },
+	{ id = "assault", pos = Vector3.new(280, 20, 560), yaw = -2.2 },
+	{ id = "sniper", pos = Vector3.new(18, 20, 640), yaw = 3.05 },
+}
+
+local live = {} -- spec -> owner token
+
+local function spawnOne(spec)
+	local cfg = MechConfig.get(spec.id)
+	if not cfg then
+		return
+	end
+	local cf = CFrame.new(spec.pos) * CFrame.Angles(0, spec.yaw, 0)
+	local model = MechFactory.create(cfg, cf, nil)
+	model.Name = "Range Dummy · " .. cfg.name
+	local plate = model.PrimaryPart and model.PrimaryPart:FindFirstChild("MechPlate")
+	if plate and plate:FindFirstChild("Pilot") then
+		plate.Pilot.Text = "RANGE DUMMY  ·  MVM"
+	end
+	local enter = model.PrimaryPart and model.PrimaryPart:FindFirstChild("EnterCockpit")
+	if enter then
+		enter.Enabled = false
+	end
+	MechFactory.weldReady(model)
+	MechFactory.setAnchored(model, true)
+
+	local owner = {
+		DisplayName = "Range Dummy",
+		UserId = -(200 + math.abs(math.floor(spec.pos.X + spec.pos.Z))),
+		dummy = true,
+	}
+	local st = CombatService.register(owner, model, spec.id)
+	st.seated = true
+	st.dummy = true
+	model:SetAttribute("OwnerUserId", owner.UserId)
+	live[spec] = owner
+	return owner
+end
+
+local function seatedPlayerMechs()
+	local found = {}
+	local root = Workspace:FindFirstChild("MVMWorld") or Workspace
+	for _, inst in ipairs(root:GetDescendants()) do
+		if inst:IsA("Model") and inst:GetAttribute("MechId") and inst.PrimaryPart then
+			local ost = CombatService.getByModel(inst)
+			if ost and not ost.dummy and ost.seated then
+				table.insert(found, ost)
+			end
+		end
+	end
+	return found
+end
+
+local function aimAtNearest(st)
+	if not (st.model and st.model.PrimaryPart) then
+		return
+	end
+	local origin = st.model.PrimaryPart.Position + Vector3.new(0, 5, 0) + st.model.PrimaryPart.CFrame.LookVector * 8
+	local best, bestD
+	for _, ost in ipairs(seatedPlayerMechs()) do
+		local d = (ost.model.PrimaryPart.Position - origin).Magnitude
+		if d < 340 and (not bestD or d < bestD) then
+			best, bestD = ost, d
+		end
+	end
+	if not best then
+		return
+	end
+	local dir = Util.unit(best.model.PrimaryPart.Position - origin)
+	CombatService.tryFire(st.owner, "primary", origin, dir)
+end
+
+function DummyService.start()
+	for _, spec in ipairs(SPOTS) do
+		spawnOne(spec)
+	end
+
+	task.spawn(function()
+		while true do
+			task.wait(1.7)
+			for spec, owner in pairs(live) do
+				local st = CombatService.getState(owner)
+				if st and not st.dead then
+					aimAtNearest(st)
+				elseif not st then
+					-- slot empty after wreck; respawn handled by wrapDestroyed
+					live[spec] = live[spec]
+				end
+			end
+		end
+	end)
+end
+
+function DummyService.hookDestroyed()
+	CombatService.onDestroyed(function(owner, st)
+		if st and st.dummy then
+			local spec
+			for s, token in pairs(live) do
+				if token == owner then
+					spec = s
+					break
+				end
+			end
+			task.delay(4.5, function()
+				if spec then
+					spawnOne(spec)
+				end
+			end)
+		end
+	end)
+end
+
+return DummyService
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX10">
+    <Properties>
+      <string name="Name">MechFactory</string>
+      <ProtectedString name="Source"><![CDATA[local CollectionService = game:GetService("CollectionService")
+
+local Constants = require(game.ReplicatedStorage.Shared.Constants)
+local Util = require(game.ReplicatedStorage.Shared.Util)
+
+local MechFactory = {}
+
+local function addPart(model, name, size, offset, color, material, shape)
+	local p = Util.part({
+		Name = name,
+		Size = size,
+		Color = color,
+		Material = material or Enum.Material.Metal,
+		Anchored = true,
+		CanCollide = name == "Torso" or name == "Hip" or name:find("Leg") ~= nil,
+		Shape = shape,
+		Parent = model,
+	})
+	p.CFrame = model.PrimaryPart.CFrame * offset
+	return p
+end
+
+local function kitExtras(model, cfg)
+	local id = cfg.id
+	local accent = cfg.accent
+	local color = cfg.color
+
+	if id == "assault" then
+		addPart(model, "GunL", Vector3.new(1.4, 1.1, 7), CFrame.new(-4.6, 1.4, -5.2), accent)
+		addPart(model, "GunR", Vector3.new(1.4, 1.1, 7), CFrame.new(4.6, 1.4, -5.2), accent)
+		addPart(model, "PodL", Vector3.new(2.2, 1.4, 3.2), CFrame.new(-3.2, 5.6, 1.4), color)
+		addPart(model, "PodR", Vector3.new(2.2, 1.4, 3.2), CFrame.new(3.2, 5.6, 1.4), color)
+	elseif id == "titan" then
+		addPart(model, "Rail", Vector3.new(2.2, 2.2, 14), CFrame.new(5.4, 4.8, -4), accent)
+		addPart(model, "PauldronL", Vector3.new(5, 2.4, 4), CFrame.new(-4.6, 5.4, 0.6), color)
+		addPart(model, "PauldronR", Vector3.new(5, 2.4, 4), CFrame.new(4.6, 5.4, 0.6), color)
+		addPart(model, "Skirt", Vector3.new(10, 2, 6), CFrame.new(0, -2.2, 0.4), Color3.fromRGB(30, 30, 34))
+	elseif id == "scout" then
+		addPart(model, "SMGL", Vector3.new(0.9, 0.8, 5), CFrame.new(-3.6, 1.2, -4.4), accent)
+		addPart(model, "SMGR", Vector3.new(0.9, 0.8, 5), CFrame.new(3.6, 1.2, -4.4), accent)
+		addPart(model, "Fin", Vector3.new(0.4, 3.4, 4), CFrame.new(0, 6.2, 1.6), accent)
+	elseif id == "sniper" then
+		addPart(model, "LongBarrel", Vector3.new(1.2, 1.2, 18), CFrame.new(3.8, 3.6, -8), accent)
+		addPart(model, "Scope", Vector3.new(1.6, 1.4, 3), CFrame.new(3.8, 5.0, -2), Color3.fromRGB(20, 30, 48))
+	elseif id == "flame" then
+		addPart(model, "Nozzle", Vector3.new(2.4, 2.4, 8), CFrame.new(0, 0.6, -6.4), accent)
+		addPart(model, "TankL", Vector3.new(2.6, 4.2, 2.6), CFrame.new(-3.4, 3.4, 2.2), Color3.fromRGB(40, 20, 16))
+		addPart(model, "TankR", Vector3.new(2.6, 4.2, 2.6), CFrame.new(3.4, 3.4, 2.2), Color3.fromRGB(40, 20, 16))
+	elseif id == "rocket" then
+		for i = -2, 2 do
+			addPart(model, "Tube" .. i, Vector3.new(1.1, 1.1, 6), CFrame.new(i * 1.3, 5.8, 0.2), accent)
+		end
+		addPart(model, "Rack", Vector3.new(8, 1.6, 4), CFrame.new(0, 5.6, 0.6), color)
+	elseif id == "guardian" then
+		addPart(model, "ShieldPlate", Vector3.new(8, 9, 1.2), CFrame.new(-5.6, 2.2, -3.4), accent)
+		addPart(model, "Cannon", Vector3.new(1.8, 1.8, 9), CFrame.new(4.4, 2.2, -5), Color3.fromRGB(40, 80, 96))
+	elseif id == "shadow" then
+		addPart(model, "Shotgun", Vector3.new(1.2, 1.1, 6), CFrame.new(3.6, 1.4, -4.6), accent)
+		addPart(model, "Dagger", Vector3.new(0.7, 0.5, 5), CFrame.new(-3.8, 1.2, -3.8), Color3.fromRGB(200, 120, 255))
+		addPart(model, "Cowl", Vector3.new(5.4, 2, 4), CFrame.new(0, 5.4, 0.4), color)
+	elseif id == "howitzer" then
+		addPart(model, "Barrel", Vector3.new(2.6, 2.6, 16), CFrame.new(0, 5.6, -4) * CFrame.Angles(math.rad(-22), 0, 0), accent)
+		addPart(model, "Breech", Vector3.new(4.4, 3.4, 5), CFrame.new(0, 4.6, 2.4), color)
+	elseif id == "berserker" then
+		addPart(model, "ClawL", Vector3.new(1.6, 1.2, 7), CFrame.new(-5.2, 1.0, -4.2), accent)
+		addPart(model, "ClawR", Vector3.new(1.6, 1.2, 7), CFrame.new(5.2, 1.0, -4.2), accent)
+		addPart(model, "Axe", Vector3.new(1.2, 6, 2.2), CFrame.new(6.2, 3.4, -1.2), Color3.fromRGB(220, 200, 80))
+	end
+end
+
+function MechFactory.create(cfg, cframe, owner)
+	local scale = cfg.scale or 1
+	local model = Instance.new("Model")
+	model.Name = cfg.name
+	model:SetAttribute(Constants.MechIdAttr, cfg.id)
+	model:SetAttribute(Constants.OwnerAttr, owner and owner.UserId or 0)
+	model:SetAttribute(Constants.HealthAttr, cfg.maxHealth)
+	model:SetAttribute(Constants.MaxHealthAttr, cfg.maxHealth)
+	model:SetAttribute("DisplayName", cfg.name)
+
+	local torsoSize = Vector3.new(8, 7, 6) * scale
+	local torso = Util.part({
+		Name = "Torso",
+		Size = torsoSize,
+		Color = cfg.color,
+		Material = Enum.Material.Metal,
+		Anchored = true,
+		CFrame = cframe,
+		Parent = model,
+	})
+	model.PrimaryPart = torso
+
+	addPart(model, "Hip", Vector3.new(6.4, 2.2, 4.2) * scale, CFrame.new(0, -4.2 * scale, 0.2), cfg.color)
+	addPart(model, "LegL", Vector3.new(2.4, 7.2, 2.8) * scale, CFrame.new(-2.2 * scale, -8.4 * scale, 0.2), Color3.fromRGB(30, 32, 36))
+	addPart(model, "LegR", Vector3.new(2.4, 7.2, 2.8) * scale, CFrame.new(2.2 * scale, -8.4 * scale, 0.2), Color3.fromRGB(30, 32, 36))
+	addPart(model, "FootL", Vector3.new(3.2, 1.2, 4.4) * scale, CFrame.new(-2.2 * scale, -12.2 * scale, -0.4), cfg.accent)
+	addPart(model, "FootR", Vector3.new(3.2, 1.2, 4.4) * scale, CFrame.new(2.2 * scale, -12.2 * scale, -0.4), cfg.accent)
+	addPart(model, "ArmL", Vector3.new(2.2, 5.4, 2.4) * scale, CFrame.new(-5.4 * scale, 0.2, 0), cfg.color)
+	addPart(model, "ArmR", Vector3.new(2.2, 5.4, 2.4) * scale, CFrame.new(5.4 * scale, 0.2, 0), cfg.color)
+	addPart(model, "Head", Vector3.new(3.6, 2.6, 3.2) * scale, CFrame.new(0, 4.8 * scale, 0.2), cfg.cockpit or Color3.fromRGB(20, 24, 28))
+	local canopy = addPart(model, "Canopy", Vector3.new(3.2, 1.8, 2.4) * scale, CFrame.new(0, 5.2 * scale, -1.4 * scale), Color3.fromRGB(40, 180, 230), Enum.Material.Glass)
+	canopy.Transparency = 0.45
+
+	kitExtras(model, cfg)
+
+	local cam = addPart(model, "CameraPart", Vector3.new(0.6, 0.6, 0.6), CFrame.new(0, 5.4 * scale, -2.2 * scale), Color3.fromRGB(10, 10, 10), Enum.Material.SmoothPlastic)
+	cam.Transparency = 1
+	cam.CanCollide = false
+	cam.CanQuery = false
+
+	local seat = Instance.new("VehicleSeat")
+	seat.Name = "CockpitSeat"
+	seat.Size = Vector3.new(2, 1, 2)
+	seat.Transparency = 1
+	seat.Anchored = true
+	seat.CanCollide = false
+	seat.HeadsUpDisplay = false
+	seat.MaxSpeed = 0
+	seat.Torque = 0
+	seat.TurnSpeed = 0
+	seat.CFrame = torso.CFrame * CFrame.new(0, 1.6 * scale, 0.4)
+	seat.Parent = model
+
+	local attach = Instance.new("Attachment")
+	attach.Name = "Muzzle"
+	attach.Position = Vector3.new(0, 1.2 * scale, -torsoSize.Z * 0.5 - 2)
+	attach.Parent = torso
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "EnterCockpit"
+	prompt.ActionText = "Enter Cockpit"
+	prompt.ObjectText = cfg.name
+	prompt.HoldDuration = 0.4
+	prompt.MaxActivationDistance = 18
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = torso
+
+	local exitPrompt = Instance.new("ProximityPrompt")
+	exitPrompt.Name = "ExitCockpit"
+	exitPrompt.ActionText = "Eject"
+	exitPrompt.ObjectText = cfg.name
+	exitPrompt.HoldDuration = 0.55
+	exitPrompt.MaxActivationDistance = 10
+	exitPrompt.RequiresLineOfSight = false
+	exitPrompt.Enabled = false
+	exitPrompt.Parent = seat
+
+	local bb = Instance.new("BillboardGui")
+	bb.Name = "MechPlate"
+	bb.Size = UDim2.fromOffset(240, 52)
+	bb.StudsOffset = Vector3.new(0, 14 * scale, 0)
+	bb.AlwaysOnTop = false
+	bb.MaxDistance = 400
+	bb.Parent = torso
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Name = "Title"
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Size = UDim2.fromScale(1, 0.6)
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextScaled = true
+	nameLabel.TextColor3 = Color3.fromRGB(240, 246, 255)
+	nameLabel.TextStrokeTransparency = 0.5
+	nameLabel.Text = cfg.name
+	nameLabel.Parent = bb
+	local ownerLabel = Instance.new("TextLabel")
+	ownerLabel.Name = "Pilot"
+	ownerLabel.BackgroundTransparency = 1
+	ownerLabel.Position = UDim2.fromScale(0, 0.6)
+	ownerLabel.Size = UDim2.fromScale(1, 0.4)
+	ownerLabel.Font = Enum.Font.Gotham
+	ownerLabel.TextScaled = true
+	ownerLabel.TextColor3 = cfg.accent
+	ownerLabel.Text = owner and (owner.DisplayName .. "  ·  MVM") or "UNASSIGNED"
+	ownerLabel.Parent = bb
+
+	CollectionService:AddTag(model, Constants.MechTag)
+	model.Parent = workspace:FindFirstChild("MVMWorld") or workspace
+	return model
+end
+
+function MechFactory.weldReady(model)
+	local root = model.PrimaryPart
+	for _, inst in ipairs(model:GetDescendants()) do
+		if inst:IsA("BasePart") and inst ~= root then
+			inst.Anchored = false
+			inst.Massless = true
+			Util.weld(root, inst)
+		end
+	end
+	root.Anchored = true
+	root.CustomPhysicalProperties = PhysicalProperties.new(2.4, 0.4, 0.2, 1, 1)
+end
+
+function MechFactory.setAnchored(model, anchored)
+	if model.PrimaryPart then
+		model.PrimaryPart.Anchored = anchored
+	end
+end
+
+function MechFactory.setCloak(model, cloaked)
+	for _, inst in ipairs(model:GetDescendants()) do
+		if inst:IsA("BasePart") and inst.Name ~= "CameraPart" and inst.Name ~= "CockpitSeat" then
+			inst.LocalTransparencyModifier = 0
+			inst.Transparency = cloaked and 0.72 or (inst.Name == "Canopy" and 0.45 or 0)
+		end
+	end
+	local plate = model.PrimaryPart and model.PrimaryPart:FindFirstChild("MechPlate")
+	if plate then
+		plate.Enabled = not cloaked
+	end
+end
+
+return MechFactory
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX11">
+    <Properties>
+      <string name="Name">PilotService</string>
+      <ProtectedString name="Source"><![CDATA[local Players = game:GetService("Players")
+
+local Constants = require(game.ReplicatedStorage.Shared.Constants)
+local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local CombatService = require(script.Parent.CombatService)
+local MechFactory = require(script.Parent.MechFactory)
+
+local PilotService = {}
+local bindings = {} -- [model] = { enter, exit }
+
+local function restorePilot(player)
+	local char = player.Character
+	if not char then
+		return
+	end
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if hum then
+		hum.WalkSpeed = Constants.PilotWalkSpeed
+		hum.JumpPower = 50
+		hum.AutoRotate = true
+		if hum.Sit then
+			hum.Sit = false
+		end
+	end
+	for _, p in ipairs(char:GetDescendants()) do
+		if p:IsA("BasePart") then
+			p.LocalTransparencyModifier = 0
+			p.Transparency = 0
+		end
+	end
+	if root then
+		root.CFrame = CFrame.new(Constants.HangarSpawn + Vector3.new(math.random(-4, 4), 4, math.random(-4, 4)))
+		root.AssemblyLinearVelocity = Vector3.zero
+	end
+end
+
+local function hidePilot(char)
+	for _, p in ipairs(char:GetDescendants()) do
+		if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+			p.Transparency = 1
+		elseif p:IsA("Decal") or p:IsA("Texture") then
+			p.Transparency = 1
+		end
+		if p:IsA("Accessory") then
+			local h = p:FindFirstChildWhichIsA("BasePart")
+			if h then
+				h.Transparency = 1
+			end
+		end
+	end
+end
+
+local function bindMech(player, mech)
+	if bindings[mech] then
+		return
+	end
+	local seat = mech:FindFirstChild("CockpitSeat")
+	local enter = mech.PrimaryPart and mech.PrimaryPart:FindFirstChild("EnterCockpit")
+	local exitPrompt = seat and seat:FindFirstChild("ExitCockpit")
+	if not (seat and enter) then
+		return
+	end
+
+	local enterConn = enter.Triggered:Connect(function(who)
+		if who ~= player then
+			Remotes.fire("Notify", who, { text = "This chassis is assigned to " .. player.DisplayName, kind = "warn" })
+			return
+		end
+		PilotService.enter(player)
+	end)
+
+	local exitConn
+	if exitPrompt then
+		exitConn = exitPrompt.Triggered:Connect(function(who)
+			if who == player then
+				PilotService.eject(player, false)
+			end
+		end)
+	end
+
+	bindings[mech] = { enterConn, exitConn }
+end
+
+function PilotService.enter(player)
+	local st = CombatService.getState(player)
+	if not st or st.dead or st.seated then
+		return
+	end
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	local root = char and char:FindFirstChild("HumanoidRootPart")
+	local seat = st.model:FindFirstChild("CockpitSeat")
+	if not (hum and root and seat) then
+		return
+	end
+
+	hidePilot(char)
+	seat:Sit(hum)
+	hum.WalkSpeed = 0
+	hum.JumpPower = 0
+
+	if st.model.PrimaryPart then
+		pcall(function()
+			st.model.PrimaryPart:SetNetworkOwner(player)
+		end)
+		MechFactory.setAnchored(st.model, false)
+	end
+
+	local enter = st.model.PrimaryPart and st.model.PrimaryPart:FindFirstChild("EnterCockpit")
+	if enter then
+		enter.Enabled = false
+	end
+	local exitPrompt = seat:FindFirstChild("ExitCockpit")
+	if exitPrompt then
+		exitPrompt.Enabled = true
+	end
+
+	CombatService.setSeated(player, true)
+	Remotes.fire("Notify", player, { text = "Cockpit sealed. WASD move · mouse aim · LMB/RMB fire · Q/E specials · V camera · X eject", kind = "ok" })
+end
+
+function PilotService.eject(player, destroyed)
+	local st = CombatService.getState(player)
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.Sit = false
+	end
+
+	if st and st.model then
+		local enter = st.model.PrimaryPart and st.model.PrimaryPart:FindFirstChild("EnterCockpit")
+		if enter then
+			enter.Enabled = true
+		end
+		local seat = st.model:FindFirstChild("CockpitSeat")
+		local exitPrompt = seat and seat:FindFirstChild("ExitCockpit")
+		if exitPrompt then
+			exitPrompt.Enabled = false
+		end
+		if st.model.PrimaryPart then
+			pcall(function()
+				st.model.PrimaryPart:SetNetworkOwnershipAuto()
+			end)
+			MechFactory.setAnchored(st.model, true)
+		end
+	end
+
+	if not destroyed and st then
+		-- abandon chassis
+		CombatService.unregister(player, "eject")
+		Remotes.fire("Notify", player, { text = "RETURN TO STATION", kind = "info" })
+	end
+
+	task.delay(0.15, function()
+		restorePilot(player)
+	end)
+end
+
+function PilotService.start()
+	Remotes.on("EnterMech", function(player)
+		PilotService.enter(player)
+	end)
+
+	Remotes.on("ExitMech", function(player)
+		PilotService.eject(player, false)
+	end)
+
+	local DeliveryService = require(script.Parent.DeliveryService)
+	DeliveryService.onReadyCallback(function(player, mech)
+		bindMech(player, mech)
+	end)
+
+	CombatService.onDestroyed(function(player, st)
+		if typeof(player) ~= "Instance" or not player:IsA("Player") then
+			return
+		end
+		if st and st.model and bindings[st.model] then
+			for _, c in ipairs(bindings[st.model]) do
+				if c then
+					c:Disconnect()
+				end
+			end
+			bindings[st.model] = nil
+		end
+		PilotService.eject(player, true)
+		Remotes.fire("Notify", player, { text = "Chassis destroyed. Returning to hangar.", kind = "error" })
+	end)
+
+	local function hookChar(player, char)
+		local hum = char:WaitForChild("Humanoid", 8)
+		if hum then
+			hum.Died:Connect(function()
+				if CombatService.hasMech(player) then
+					CombatService.unregister(player, "pilot_down")
+				end
+			end)
+		end
+	end
+
+	local function watch(player)
+		player.CharacterAdded:Connect(function(char)
+			hookChar(player, char)
+			task.wait(0.2)
+			if not CombatService.hasMech(player) then
+				restorePilot(player)
+			end
+		end)
+		if player.Character then
+			hookChar(player, player.Character)
+		end
+	end
+	Players.PlayerAdded:Connect(watch)
+	for _, player in ipairs(Players:GetPlayers()) do
+		watch(player)
+	end
+end
+
+return PilotService
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX12">
+    <Properties>
+      <string name="Name">SelectionService</string>
+      <ProtectedString name="Source"><![CDATA[local Players = game:GetService("Players")
+
+local MechConfig = require(game.ReplicatedStorage.Shared.MechConfig)
+local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+
+local CombatService = require(script.Parent.CombatService)
+local DeliveryService = require(script.Parent.DeliveryService)
+local WorldBuilder = require(script.Parent.WorldBuilder)
+
+local SelectionService = {}
+
+function SelectionService.start()
+	local function bindPrompt()
+		local prompt = WorldBuilder.selectionPrompt()
+		if not prompt then
+			return
+		end
+		prompt.Triggered:Connect(function(player)
+			if CombatService.hasMech(player) then
+				Remotes.fire("Notify", player, {
+					text = "Eject or lose your current mech before choosing another.",
+					kind = "warn",
+				})
+				return
+			end
+			if DeliveryService.isBusy(player) then
+				Remotes.fire("Notify", player, { text = "Dropship already inbound.", kind = "warn" })
+				return
+			end
+			Remotes.fire("OpenSelection", player, {
+				mechs = MechConfig.list(),
+			})
+		end)
+	end
+
+	bindPrompt()
+
+	Remotes.on("SelectMech", function(player, mechId)
+		if typeof(mechId) ~= "string" then
+			return
+		end
+		if not MechConfig.get(mechId) then
+			Remotes.fire("SelectionResult", player, { ok = false, reason = "Unknown mech." })
+			return
+		end
+		if CombatService.hasMech(player) then
+			Remotes.fire("SelectionResult", player, { ok = false, reason = "You already own a mech." })
+			return
+		end
+		DeliveryService.deliver(player, mechId)
+	end)
+
+	local function greet(player)
+		task.delay(1, function()
+			Remotes.fire("Notify", player, {
+				text = "MVM — walk to the Selection Station in the hangar.",
+				kind = "info",
+			})
+		end)
+	end
+	Players.PlayerAdded:Connect(greet)
+	for _, player in ipairs(Players:GetPlayers()) do
+		greet(player)
+	end
+end
+
+return SelectionService
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX13">
+    <Properties>
+      <string name="Name">WorldBuilder</string>
+      <ProtectedString name="Source"><![CDATA[local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+
+local Constants = require(game.ReplicatedStorage.Shared.Constants)
+local Util = require(game.ReplicatedStorage.Shared.Util)
+local CityKit = require(script.Parent.CityKit)
+
+local WorldBuilder = {}
+
+local function neon(parent, size, cframe, color)
+	return Util.part({
+		Name = "Neon",
+		Size = size,
+		CFrame = cframe,
+		Color = color,
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+		Parent = parent,
+	})
+end
+
+local function box(parent, name, size, cframe, color, material)
+	return Util.part({
+		Name = name,
+		Size = size,
+		CFrame = cframe,
+		Color = color,
+		Material = material or Enum.Material.Concrete,
+		Parent = parent,
+	})
+end
+
+local function setupLighting()
+	-- Dusk over a burning city: long haze, warm decay, short readable fog.
+	Lighting.ClockTime = 17.15
+	Lighting.Brightness = 1.7
+	Lighting.Ambient = Color3.fromRGB(42, 38, 40)
+	Lighting.OutdoorAmbient = Color3.fromRGB(96, 82, 72)
+	Lighting.FogColor = Color3.fromRGB(92, 78, 68)
+	Lighting.FogStart = 220
+	Lighting.FogEnd = 1600
+
+	local at = Lighting:FindFirstChild("MVMAtmosphere") or Instance.new("Atmosphere")
+	at.Name = "MVMAtmosphere"
+	at.Density = 0.42
+	at.Offset = 0.25
+	at.Color = Color3.fromRGB(160, 140, 120)
+	at.Decay = Color3.fromRGB(80, 48, 32)
+	at.Glare = 0.15
+	at.Haze = 2.1
+	at.Parent = Lighting
+
+	local cc = Lighting:FindFirstChild("MVMColor") or Instance.new("ColorCorrectionEffect")
+	cc.Name = "MVMColor"
+	cc.Saturation = 0.04
+	cc.Contrast = 0.1
+	cc.TintColor = Color3.fromRGB(255, 228, 210)
+	cc.Parent = Lighting
+end
+
+local function buildHangar(world)
+	local hangar = Instance.new("Folder")
+	hangar.Name = "Hangar"
+	hangar.Parent = world
+
+	-- Fortified district slab at the south edge of the city.
+	box(hangar, "Apron", Vector3.new(180, 3, 130), CFrame.new(0, 1.5, -44), Color3.fromRGB(58, 60, 64), Enum.Material.Concrete)
+	box(hangar, "Floor", Vector3.new(88, 2, 64), CFrame.new(0, 2.1, -72), Color3.fromRGB(48, 50, 56), Enum.Material.DiamondPlate)
+
+	box(hangar, "WallL", Vector3.new(3, 28, 64), CFrame.new(-44, 16, -72), Color3.fromRGB(40, 44, 50), Enum.Material.Metal)
+	box(hangar, "WallR", Vector3.new(3, 28, 64), CFrame.new(44, 16, -72), Color3.fromRGB(40, 44, 50), Enum.Material.Metal)
+	box(hangar, "WallBack", Vector3.new(91, 28, 3), CFrame.new(0, 16, -103), Color3.fromRGB(36, 40, 46), Enum.Material.Metal)
+	box(hangar, "Roof", Vector3.new(94, 2, 70), CFrame.new(0, 31, -74), Color3.fromRGB(32, 34, 40), Enum.Material.Metal)
+
+	box(hangar, "BayL", Vector3.new(4, 26, 4), CFrame.new(-42, 15, -40), Color3.fromRGB(28, 30, 34), Enum.Material.Metal)
+	box(hangar, "BayR", Vector3.new(4, 26, 4), CFrame.new(42, 15, -40), Color3.fromRGB(28, 30, 34), Enum.Material.Metal)
+	box(hangar, "BayBeam", Vector3.new(88, 3, 4), CFrame.new(0, 29, -40), Color3.fromRGB(24, 26, 30), Enum.Material.Metal)
+
+	neon(hangar, Vector3.new(86, 0.4, 0.4), CFrame.new(0, 28, -39), Color3.fromRGB(70, 200, 255))
+	neon(hangar, Vector3.new(0.4, 24, 0.4), CFrame.new(-42, 16, -39), Color3.fromRGB(70, 200, 255))
+	neon(hangar, Vector3.new(0.4, 24, 0.4), CFrame.new(42, 16, -39), Color3.fromRGB(70, 200, 255))
+
+	for i = -1, 1 do
+		box(hangar, "Crate", Vector3.new(8, 6, 6), CFrame.new(-30 + i * 2, 6, -90), Color3.fromRGB(92, 70, 42), Enum.Material.Wood)
+		box(hangar, "Crate", Vector3.new(6, 4, 8), CFrame.new(32, 5, -88 + i * 8), Color3.fromRGB(70, 76, 84), Enum.Material.Metal)
+	end
+
+	-- Curtain wall facing the warzone, gate on the boulevard.
+	box(hangar, "BlastL", Vector3.new(70, 22, 6), CFrame.new(-70, 12, 8), Color3.fromRGB(48, 50, 54), Enum.Material.Concrete)
+	box(hangar, "BlastR", Vector3.new(70, 22, 6), CFrame.new(70, 12, 8), Color3.fromRGB(48, 50, 54), Enum.Material.Concrete)
+	box(hangar, "GateTowerL", Vector3.new(10, 34, 10), CFrame.new(-38, 18, 8), Color3.fromRGB(36, 38, 42), Enum.Material.Metal)
+	box(hangar, "GateTowerR", Vector3.new(10, 34, 10), CFrame.new(38, 18, 8), Color3.fromRGB(36, 38, 42), Enum.Material.Metal)
+	box(hangar, "GateBeam", Vector3.new(70, 4, 6), CFrame.new(0, 32, 8), Color3.fromRGB(28, 30, 34), Enum.Material.Metal)
+	neon(hangar, Vector3.new(66, 0.5, 0.5), CFrame.new(0, 31, 11), Color3.fromRGB(255, 160, 40))
+
+	for i = -3, 3 do
+		if math.abs(i) > 1 then
+			box(hangar, "Sandbag", Vector3.new(12, 4, 5), CFrame.new(i * 16, 5, -8), Color3.fromRGB(118, 104, 70), Enum.Material.Sandstone)
+		end
+	end
+
+	local sign = box(hangar, "BrandWall", Vector3.new(40, 10, 1), CFrame.new(0, 18, -101.2), Color3.fromRGB(18, 20, 24), Enum.Material.SmoothPlastic)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.Parent = sign
+	local title = Instance.new("TextLabel")
+	title.BackgroundTransparency = 1
+	title.Size = UDim2.fromScale(1, 0.62)
+	title.Font = Enum.Font.GothamBlack
+	title.TextScaled = true
+	title.TextColor3 = Color3.fromRGB(240, 248, 255)
+	title.Text = "MVM"
+	title.Parent = gui
+	local sub = Instance.new("TextLabel")
+	sub.BackgroundTransparency = 1
+	sub.Position = UDim2.fromScale(0, 0.62)
+	sub.Size = UDim2.fromScale(1, 0.32)
+	sub.Font = Enum.Font.GothamBold
+	sub.TextScaled = true
+	sub.TextColor3 = Color3.fromRGB(90, 210, 255)
+	sub.Text = "MECH VS MECH"
+	sub.Parent = gui
+
+	local gateSign = box(hangar, "GateSign", Vector3.new(48, 8, 1.2), CFrame.new(0, 24, 11.2), Color3.fromRGB(14, 14, 16), Enum.Material.SmoothPlastic)
+	local gsg = Instance.new("SurfaceGui")
+	gsg.Face = Enum.NormalId.Front
+	gsg.Parent = gateSign
+	local gt = Instance.new("TextLabel")
+	gt.BackgroundTransparency = 1
+	gt.Size = UDim2.fromScale(1, 1)
+	gt.Font = Enum.Font.GothamBlack
+	gt.TextScaled = true
+	gt.TextColor3 = Color3.fromRGB(255, 200, 90)
+	gt.Text = "FORTIFIED DISTRICT  ·  CITY GATE"
+	gt.Parent = gsg
+
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "HangarSpawn"
+	spawn.Size = Vector3.new(16, 1, 16)
+	spawn.CFrame = CFrame.new(Constants.HangarSpawn.X, 3.6, Constants.HangarSpawn.Z)
+	spawn.Anchored = true
+	spawn.Neutral = true
+	spawn.Duration = 0
+	spawn.BrickColor = BrickColor.new("Bright blue")
+	spawn.Material = Enum.Material.Neon
+	spawn.Transparency = 0.35
+	spawn.Parent = hangar
+	Util.billboard(spawn, "PILOT SPAWN", UDim2.fromOffset(220, 36), Vector3.new(0, 4, 0))
+
+	return hangar
+end
+
+local function buildSelectionStation(world)
+	local station = Instance.new("Model")
+	station.Name = "SelectionStation"
+	station.Parent = world
+
+	local base = box(station, "Base", Vector3.new(18, 1.2, 18), CFrame.new(0, 3.4, -62), Color3.fromRGB(28, 32, 40), Enum.Material.Metal)
+	station.PrimaryPart = base
+	box(station, "Ring", Vector3.new(16, 0.4, 16), CFrame.new(0, 4.1, -62), Color3.fromRGB(40, 160, 220), Enum.Material.Neon)
+	local console = box(station, "Console", Vector3.new(6, 4, 4), CFrame.new(0, 6.2, -62), Color3.fromRGB(22, 26, 32), Enum.Material.SmoothPlastic)
+	box(station, "Holo", Vector3.new(3.4, 2.2, 0.3), CFrame.new(0, 8.6, -62), Color3.fromRGB(70, 220, 255), Enum.Material.Neon)
+
+	local screen = Instance.new("SurfaceGui")
+	screen.Face = Enum.NormalId.Front
+	screen.Parent = console
+	local label = Instance.new("TextLabel")
+	label.BackgroundColor3 = Color3.fromRGB(8, 12, 18)
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBold
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(200, 240, 255)
+	label.Text = "MVM\nSELECT MECH"
+	label.Parent = screen
+
+	Util.billboard(console, "SELECTION STATION  ·  HOLD TO OPEN CATALOG", UDim2.fromOffset(420, 48), Vector3.new(0, 6, 0))
+
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "OpenCatalog"
+	prompt.ActionText = "Open Mech Catalog"
+	prompt.ObjectText = "MVM Selection Station"
+	prompt.HoldDuration = 0.35
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = console
+
+	return station
+end
+
+local function buildDeliveryPad(world)
+	local pad = Instance.new("Model")
+	pad.Name = "DeliveryPad"
+	pad.Parent = world
+
+	local deck = box(pad, "Deck", Vector3.new(36, 1, 36), CFrame.new(Constants.DeliveryPad), Color3.fromRGB(36, 40, 48), Enum.Material.DiamondPlate)
+	pad.PrimaryPart = deck
+	box(pad, "Paint", Vector3.new(28, 0.2, 28), CFrame.new(0, 3.55, 12), Color3.fromRGB(40, 180, 220), Enum.Material.Neon)
+	box(pad, "CrossA", Vector3.new(22, 0.25, 1.4), CFrame.new(0, 3.65, 12), Color3.fromRGB(255, 220, 80), Enum.Material.Neon)
+	box(pad, "CrossB", Vector3.new(1.4, 0.25, 22), CFrame.new(0, 3.65, 12), Color3.fromRGB(255, 220, 80), Enum.Material.Neon)
+
+	for i = 0, 3 do
+		local a = i * math.pi / 2
+		box(pad, "Beacon", Vector3.new(1.5, 6, 1.5), CFrame.new(math.cos(a) * 16, 6.5, 12 + math.sin(a) * 16), Color3.fromRGB(255, 180, 40), Enum.Material.Neon)
+	end
+
+	Util.billboard(deck, "HELICOPTER DROP PAD", UDim2.fromOffset(320, 40), Vector3.new(0, 10, 0))
+	return pad
+end
+
+function WorldBuilder.build()
+	setupLighting()
+
+	local existing = Workspace:FindFirstChild("MVMWorld")
+	if existing then
+		existing:Destroy()
+	end
+
+	for _, name in ipairs({ "Baseplate", "SpawnLocation" }) do
+		local inst = Workspace:FindFirstChild(name)
+		if inst and inst:IsA("BasePart") then
+			inst:Destroy()
+		end
+	end
+
+	local world = Instance.new("Folder")
+	world.Name = "MVMWorld"
+	world.Parent = Workspace
+
+	buildHangar(world)
+	buildSelectionStation(world)
+	buildDeliveryPad(world)
+	CityKit.build(world)
+
+	local kill = Util.part({
+		Name = "KillPlane",
+		Size = Vector3.new(1600, 4, 1800),
+		CFrame = CFrame.new(0, -40, 420),
+		Transparency = 1,
+		CanCollide = false,
+		Parent = world,
+	})
+	kill.Touched:Connect(function(hit)
+		local model = hit:FindFirstAncestorOfClass("Model")
+		local hum = model and model:FindFirstChildOfClass("Humanoid")
+		if hum and hum.Health > 0 then
+			hum.Health = 0
+		end
+	end)
+
+	return world
+end
+
+function WorldBuilder.selectionPrompt()
+	local world = Workspace:FindFirstChild("MVMWorld")
+	local station = world and world:FindFirstChild("SelectionStation")
+	local console = station and station:FindFirstChild("Console")
+	return console and console:FindFirstChild("OpenCatalog")
+end
+
+function WorldBuilder.padCFrame()
+	return CFrame.new(Constants.DeliveryPad + Vector3.new(0, 8, 0))
+end
+
+return WorldBuilder
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  </Item>
+  </Item>
+  <Item class="StarterPlayer" referent="RBX29">
+    <Properties>
+      <string name="Name">StarterPlayer</string>
+    </Properties>
+  <Item class="StarterPlayerScripts" referent="RBX28">
+    <Properties>
+      <string name="Name">StarterPlayerScripts</string>
+    </Properties>
+  <Item class="Folder" referent="RBX20">
+    <Properties>
+      <string name="Name">Controllers</string>
+    </Properties>
+  <Item class="ModuleScript" referent="RBX15">
+    <Properties>
+      <string name="Name">HUDController</string>
+      <ProtectedString name="Source"><![CDATA[local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local Remotes = require(game.ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
+local MechConfig = require(game.ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MechConfig"))
+local Theme = require(script.Parent.Theme)
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local HUD = {}
+local gui, hpFill, hpText, nameText, roleText
+local ammoText, plateAmmo, weaponText, cdText, cross, toast, feed, delivery
+local lastState
+
+local function setAmmo(text)
+	ammoText.Text = text
+	plateAmmo.Text = text
+end
+
+local function selectedWeapon(st)
+	if not st or not st.active then
+		return nil, nil
+	end
+	local cfg = MechConfig.get(st.mechId)
+	local slot = st.selected or "primary"
+	return cfg and cfg.weapons[slot], slot
+end
+
+local function ammoLine(st)
+	-- QA / pilots match the token AMMO. Always include it while seated.
+	if not st or not st.active or not st.seated then
+		return ""
+	end
+	local w, slot = selectedWeapon(st)
+	local now = os.clock()
+	local coolLeft = 0
+	if slot and st.cooldowns then
+		coolLeft = math.max(0, (st.cooldowns[slot] or 0) - now)
+	end
+	if slot and st.reloading and st.reloading[slot] then
+		return "AMMO RELOAD"
+	end
+	if w and w.ammo then
+		local left = st.ammo and st.ammo[slot]
+		local mag = string.format("AMMO %s/%s", tostring(left or 0), tostring(w.ammo))
+		if coolLeft > 0.05 then
+			return string.format("%s  COOL %.1fs", mag, coolLeft)
+		end
+		return mag
+	end
+	if coolLeft > 0.05 then
+		return string.format("AMMO COOL %.1fs", coolLeft)
+	end
+	return "AMMO READY"
+end
+
+local function weaponLine(st)
+	if not st or not st.active then
+		return "No chassis"
+	end
+	local w = selectedWeapon(st)
+	if not w then
+		return st.selected or "—"
+	end
+	return w.button .. "  " .. w.name
+end
+
+local function cooldownLine(st)
+	if not st or not st.cooldowns then
+		return ""
+	end
+	local now = os.clock()
+	local bits = {}
+	for _, slot in ipairs({ "primary", "secondary", "specialQ", "specialE" }) do
+		local ready = st.cooldowns[slot] or 0
+		local left = math.max(0, ready - now)
+		local cfg = MechConfig.get(st.mechId)
+		local w = cfg and cfg.weapons[slot]
+		if w then
+			if left > 0.05 then
+				table.insert(bits, string.format("%s %.1fs", w.button, left))
+			else
+				table.insert(bits, w.button .. " RDY")
+			end
+		end
+	end
+	return table.concat(bits, "   ")
+end
+
+function HUD.apply(st)
+	lastState = st
+	local seated = st and st.seated
+	cross.Visible = seated == true
+	if not st or not st.active then
+		nameText.Text = "NO CHASSIS"
+		roleText.Text = "Report to the Selection Station"
+		hpText.Text = "HULL  —"
+		hpFill.Size = UDim2.fromScale(0, 1)
+		setAmmo("")
+		weaponText.Text = ""
+		cdText.Text = ""
+		return
+	end
+	nameText.Text = st.name
+	local cfg = MechConfig.get(st.mechId)
+	roleText.Text = (cfg and cfg.role or "Pilot") .. (st.cloaked and "  ·  CLOAKED" or "")
+	local frac = math.clamp(st.health / math.max(st.maxHealth, 1), 0, 1)
+	hpFill.Size = UDim2.fromScale(frac, 1)
+	hpFill.BackgroundColor3 = frac < 0.28 and Theme.hpLow or Theme.hp
+	hpText.Text = string.format("HULL  %d / %d", math.floor(st.health), st.maxHealth)
+	weaponText.Text = weaponLine(st)
+	setAmmo(ammoLine(st))
+	cdText.Text = cooldownLine(st)
+end
+
+function HUD.toast(payload)
+	if typeof(payload) ~= "table" then
+		return
+	end
+	toast.Text = payload.text or ""
+	local kind = payload.kind or "info"
+	toast.TextColor3 = kind == "error" and Theme.err or kind == "ok" and Theme.ok or kind == "warn" and Theme.warn or Theme.text
+	toast.TextTransparency = 0
+	task.delay(3.2, function()
+		if toast.Text == (payload.text or "") then
+			TweenService:Create(toast, TweenInfo.new(0.4), { TextTransparency = 1 }):Play()
+		end
+	end)
+end
+
+function HUD.kill(payload)
+	if typeof(payload) ~= "table" then
+		return
+	end
+	local row = Theme.label(feed, {
+		text = payload.text or "",
+		size = UDim2.new(1, 0, 0, 18),
+		color = Theme.amber,
+		align = Enum.TextXAlignment.Right,
+	})
+	row.LayoutOrder = os.clock() * 1000
+	task.delay(5.5, function()
+		row:Destroy()
+	end)
+end
+
+function HUD.delivery(payload)
+	if typeof(payload) ~= "table" then
+		return
+	end
+	local phase = payload.phase
+	if phase == "inbound" then
+		delivery.Text = "DROPSHIP INBOUND  ·  " .. (payload.name or "")
+	elseif phase == "hover" then
+		delivery.Text = "ON STATION  ·  LOWERING " .. (payload.name or "")
+	elseif phase == "lowering" then
+		delivery.Text = "MECH ON CABLE  ·  CLEAR THE PAD"
+	elseif phase == "ready" then
+		delivery.Text = (payload.name or "MECH") .. " READY  ·  ENTER COCKPIT"
+		task.delay(4, function()
+			if string.find(delivery.Text, "READY", 1, true) then
+				delivery.Text = ""
+			end
+		end)
+	elseif phase == "failed" then
+		delivery.Text = "DROPSHIP ABORTED"
+		task.delay(3.2, function()
+			if delivery.Text == "DROPSHIP ABORTED" then
+				delivery.Text = ""
+			end
+		end)
+	else
+		delivery.Text = ""
+	end
+end
+
+function HUD.start()
+	gui = Instance.new("ScreenGui")
+	gui.Name = "MVMHUD"
+	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
+	gui.Parent = playerGui
+
+	local brand = Theme.label(gui, {
+		text = "MVM  /  MECH VS MECH",
+		font = Enum.Font.GothamBlack,
+		size = UDim2.new(0, 320, 0, 28),
+		pos = UDim2.new(0, 20, 0, 14),
+		color = Theme.text,
+		stroke = true,
+	})
+	brand.TextXAlignment = Enum.TextXAlignment.Left
+
+	local plate = Instance.new("Frame")
+	plate.BackgroundColor3 = Theme.bg
+	plate.BackgroundTransparency = 0.18
+	plate.Position = UDim2.new(0, 20, 1, -148)
+	plate.Size = UDim2.new(0, 360, 0, 128)
+	plate.Parent = gui
+	Theme.corner(plate, 8)
+	Theme.stroke(plate, Theme.accent, 1.2)
+	Theme.pad(plate, 10)
+
+	nameText = Theme.label(plate, {
+		text = "NO CHASSIS",
+		font = Enum.Font.GothamBlack,
+		size = UDim2.new(1, 0, 0, 22),
+	})
+	roleText = Theme.label(plate, {
+		text = "Report to the Selection Station",
+		size = UDim2.new(1, 0, 0, 16),
+		pos = UDim2.new(0, 0, 0, 22),
+		color = Theme.muted,
+	})
+
+	local track = Instance.new("Frame")
+	track.BackgroundColor3 = Color3.fromRGB(28, 34, 42)
+	track.Position = UDim2.new(0, 0, 0, 44)
+	track.Size = UDim2.new(1, 0, 0, 12)
+	track.Parent = plate
+	Theme.corner(track, 3)
+	hpFill = Instance.new("Frame")
+	hpFill.BackgroundColor3 = Theme.hp
+	hpFill.Size = UDim2.fromScale(0, 1)
+	hpFill.Parent = track
+	Theme.corner(hpFill, 3)
+
+	hpText = Theme.label(plate, {
+		text = "HULL  —",
+		size = UDim2.new(1, 0, 0, 16),
+		pos = UDim2.new(0, 0, 0, 58),
+	})
+	weaponText = Theme.label(plate, {
+		text = "",
+		size = UDim2.new(1, 0, 0, 16),
+		pos = UDim2.new(0, 0, 0, 74),
+		color = Theme.amber,
+	})
+	plateAmmo = Theme.label(plate, {
+		text = "",
+		font = Enum.Font.GothamBold,
+		size = UDim2.new(1, 0, 0, 18),
+		pos = UDim2.new(0, 0, 0, 90),
+		color = Theme.text,
+	})
+	plateAmmo.Name = "AmmoHUD"
+
+	ammoText = Theme.label(gui, {
+		text = "",
+		font = Enum.Font.GothamBold,
+		size = UDim2.new(0, 420, 0, 24),
+		pos = UDim2.new(0.5, -210, 1, -78),
+		color = Theme.text,
+		align = Enum.TextXAlignment.Center,
+		stroke = true,
+	})
+	ammoText.Name = "AmmoReadout"
+	cdText = Theme.label(gui, {
+		text = "",
+		size = UDim2.new(0, 520, 0, 18),
+		pos = UDim2.new(0.5, -260, 1, -54),
+		color = Theme.muted,
+		align = Enum.TextXAlignment.Center,
+	})
+
+	cross = Instance.new("Frame")
+	cross.Name = "Crosshair"
+	cross.AnchorPoint = Vector2.new(0.5, 0.5)
+	cross.Position = UDim2.fromScale(0.5, 0.5)
+	cross.Size = UDim2.fromOffset(18, 18)
+	cross.BackgroundTransparency = 1
+	cross.Visible = false
+	cross.Parent = gui
+	for _, d in ipairs({
+		{ UDim2.fromOffset(8, 2), UDim2.fromOffset(5, -9) },
+		{ UDim2.fromOffset(8, 2), UDim2.fromOffset(5, 7) },
+		{ UDim2.fromOffset(2, 8), UDim2.fromOffset(-9, 5) },
+		{ UDim2.fromOffset(2, 8), UDim2.fromOffset(7, 5) },
+	}) do
+		local p = Instance.new("Frame")
+		p.BackgroundColor3 = Theme.accent
+		p.Size = d[1]
+		p.Position = d[2]
+		p.BorderSizePixel = 0
+		p.Parent = cross
+	end
+
+	toast = Theme.label(gui, {
+		text = "",
+		font = Enum.Font.GothamBold,
+		size = UDim2.new(0.6, 0, 0, 28),
+		pos = UDim2.new(0.2, 0, 0.18, 0),
+		align = Enum.TextXAlignment.Center,
+		stroke = true,
+	})
+	toast.TextTransparency = 1
+
+	delivery = Theme.label(gui, {
+		text = "",
+		font = Enum.Font.GothamBold,
+		size = UDim2.new(0.7, 0, 0, 24),
+		pos = UDim2.new(0.15, 0, 0.12, 0),
+		align = Enum.TextXAlignment.Center,
+		color = Theme.amber,
+		stroke = true,
+	})
+
+	feed = Instance.new("Frame")
+	feed.BackgroundTransparency = 1
+	feed.Position = UDim2.new(1, -360, 0, 16)
+	feed.Size = UDim2.new(0, 340, 0, 160)
+	feed.Parent = gui
+	local layout = Instance.new("UIListLayout")
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, 2)
+	layout.Parent = feed
+
+	local hint = Theme.label(gui, {
+		text = "Station → dropship → cockpit   ·   drive the ruined city   ·   LMB/RMB  Q/E  V camera  X eject",
+		size = UDim2.new(1, -40, 0, 16),
+		pos = UDim2.new(0, 20, 1, -22),
+		color = Theme.muted,
+		align = Enum.TextXAlignment.Left,
+	})
+	hint.TextScaled = true
+
+	Remotes.client("MechState", HUD.apply)
+	Remotes.client("Notify", HUD.toast)
+	Remotes.client("KillFeed", HUD.kill)
+	Remotes.client("DeliveryStatus", HUD.delivery)
+
+	task.spawn(function()
+		while gui.Parent do
+			if lastState and lastState.active then
+				setAmmo(ammoLine(lastState))
+				cdText.Text = cooldownLine(lastState)
+			end
+			task.wait(0.15)
+		end
+	end)
+end
+
+return HUD
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX16">
+    <Properties>
+      <string name="Name">MechController</string>
+      <ProtectedString name="Source"><![CDATA[local ContextActionService = game:GetService("ContextActionService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local Constants = require(game.ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
+local MechConfig = require(game.ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MechConfig"))
+local Remotes = require(game.ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
+local Util = require(game.ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Util"))
+
+local player = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+
+local MechController = {}
+
+local seated = false
+local mechId
+local chassis
+local chase = true
+local move = Vector3.zero
+local lookYaw = 0
+local lookPitch = 0
+local holding = { primary = false, secondary = false }
+local connections = {}
+local lastState
+local nextClientFire = {}
+
+local function disconnectAll()
+	for _, c in ipairs(connections) do
+		c:Disconnect()
+	end
+	table.clear(connections)
+end
+
+local function findOwnMech()
+	local world = Workspace:FindFirstChild("MVMWorld")
+	local root = world or Workspace
+	for _, inst in ipairs(root:GetDescendants()) do
+		if inst:IsA("Model") and inst:GetAttribute(Constants.MechIdAttr) == mechId then
+			if inst:GetAttribute(Constants.OwnerAttr) == player.UserId then
+				return inst
+			end
+		end
+	end
+	for _, inst in ipairs(Workspace:GetDescendants()) do
+		if inst:IsA("Model") and inst:GetAttribute(Constants.OwnerAttr) == player.UserId and inst:GetAttribute(Constants.MechIdAttr) then
+			return inst
+		end
+	end
+	return nil
+end
+
+local function cfg()
+	return mechId and MechConfig.get(mechId)
+end
+
+local function aim()
+	local origin
+	if chassis and chassis.PrimaryPart then
+		local muzzle = chassis.PrimaryPart:FindFirstChild("Muzzle")
+		origin = muzzle and muzzle.WorldPosition or (chassis.PrimaryPart.Position + chassis.PrimaryPart.CFrame.LookVector * 8 + Vector3.new(0, 4, 0))
+	else
+		origin = camera.CFrame.Position
+	end
+	local dir = camera.CFrame.LookVector
+	local params = Util.rayParams({ chassis, player.Character })
+	local result = Workspace:Raycast(camera.CFrame.Position, dir * 900, params)
+	if result then
+		dir = Util.unit(result.Position - origin)
+	end
+	return origin, dir
+end
+
+local function fire(slot)
+	if not seated then
+		return
+	end
+	local c = cfg()
+	local weapon = c and c.weapons[slot]
+	local delay = 0.08
+	if weapon then
+		if weapon.cooldown then
+			delay = weapon.cooldown
+		elseif weapon.rpm then
+			delay = 60 / math.max(weapon.rpm, 1)
+		end
+	end
+	local now = os.clock()
+	if (nextClientFire[slot] or 0) > now then
+		return
+	end
+	nextClientFire[slot] = now + delay * 0.92
+	local origin, dir = aim()
+	Remotes.fireServer("FireWeapon", { slot = slot, origin = origin, direction = dir })
+	if chassis and chassis.PrimaryPart then
+		Util.play(chassis.PrimaryPart, "rbxasset://sounds/electronicpingshort.wav", {
+			Volume = 0.35,
+			PlaybackSpeed = 0.85 + math.random() * 0.3,
+		})
+	end
+end
+
+local function bindMove(name, _state, input)
+	local on = input.UserInputState == Enum.UserInputState.Begin
+	if name == "MVM_Fwd" then
+		move = Vector3.new(move.X, 0, on and -1 or (move.Z == -1 and 0 or move.Z))
+	elseif name == "MVM_Back" then
+		move = Vector3.new(move.X, 0, on and 1 or (move.Z == 1 and 0 or move.Z))
+	elseif name == "MVM_Left" then
+		move = Vector3.new(on and -1 or (move.X == -1 and 0 or move.X), 0, move.Z)
+	elseif name == "MVM_Right" then
+		move = Vector3.new(on and 1 or (move.X == 1 and 0 or move.X), 0, move.Z)
+	end
+	return Enum.ContextActionResult.Sink
+end
+
+local function bindFire(name, state)
+	local slot = (name == "MVM_Pri") and "primary" or "secondary"
+	holding[slot] = state == Enum.UserInputState.Begin
+	if holding[slot] then
+		fire(slot)
+	end
+	return Enum.ContextActionResult.Sink
+end
+
+local function bindSpecial(name, state)
+	if state ~= Enum.UserInputState.Begin then
+		return Enum.ContextActionResult.Sink
+	end
+	fire(name == "MVM_Q" and "specialQ" or "specialE")
+	return Enum.ContextActionResult.Sink
+end
+
+local function bindCam(_, state)
+	if state == Enum.UserInputState.Begin then
+		chase = not chase
+	end
+	return Enum.ContextActionResult.Sink
+end
+
+local function bindEject(_, state)
+	if state == Enum.UserInputState.Begin then
+		Remotes.fireServer("ExitMech")
+	end
+	return Enum.ContextActionResult.Sink
+end
+
+local function bindReload(_, state)
+	if state == Enum.UserInputState.Begin then
+		-- client asks server by firing empty primary when ammo 0; explicit reload via FireWeapon on depleted slot
+			Remotes.fireServer("ReloadWeapon", lastState and lastState.selected or "primary")
+	end
+	return Enum.ContextActionResult.Sink
+end
+
+local function bindInput()
+	ContextActionService:BindAction("MVM_Fwd", bindMove, false, Enum.KeyCode.W)
+	ContextActionService:BindAction("MVM_Back", bindMove, false, Enum.KeyCode.S)
+	ContextActionService:BindAction("MVM_Left", bindMove, false, Enum.KeyCode.A)
+	ContextActionService:BindAction("MVM_Right", bindMove, false, Enum.KeyCode.D)
+	ContextActionService:BindAction("MVM_Pri", bindFire, false, Enum.UserInputType.MouseButton1)
+	ContextActionService:BindAction("MVM_Sec", bindFire, false, Enum.UserInputType.MouseButton2)
+	ContextActionService:BindAction("MVM_Q", bindSpecial, false, Enum.KeyCode.Q)
+	ContextActionService:BindAction("MVM_E", bindSpecial, false, Enum.KeyCode.E)
+	ContextActionService:BindAction("MVM_Cam", bindCam, false, Enum.KeyCode.V)
+	ContextActionService:BindAction("MVM_Eject", bindEject, false, Enum.KeyCode.X)
+	ContextActionService:BindAction("MVM_Reload", bindReload, false, Enum.KeyCode.R)
+end
+
+local function unbindInput()
+	for _, n in ipairs({
+		"MVM_Fwd",
+		"MVM_Back",
+		"MVM_Left",
+		"MVM_Right",
+		"MVM_Pri",
+		"MVM_Sec",
+		"MVM_Q",
+		"MVM_E",
+		"MVM_Cam",
+		"MVM_Eject",
+		"MVM_Reload",
+	}) do
+		ContextActionService:UnbindAction(n)
+	end
+	holding.primary = false
+	holding.secondary = false
+	move = Vector3.zero
+end
+
+local function standHeight(model, c)
+	local s = (c and c.scale) or 1
+	return 13.2 * s
+end
+
+local function stepMovement(dt)
+	if not (seated and chassis and chassis.PrimaryPart) then
+		return
+	end
+	local root = chassis.PrimaryPart
+	local c = cfg()
+	if not c then
+		return
+	end
+
+	local speed = c.walkSpeed
+	if lastState and lastState.speedMul then
+		speed *= lastState.speedMul
+	elseif lastState and lastState.buffs then
+		for _, b in pairs(lastState.buffs) do
+			if b.speedMul then
+				speed *= b.speedMul
+			end
+		end
+	end
+
+	lookYaw -= UserInputService:GetMouseDelta().X * 0.004
+	lookPitch = math.clamp(lookPitch - UserInputService:GetMouseDelta().Y * 0.0035, math.rad(-50), math.rad(35))
+
+	local yawCf = CFrame.Angles(0, lookYaw, 0)
+	local look = yawCf.LookVector
+	local right = yawCf.RightVector
+	local wish = (look * -move.Z + right * move.X)
+	if wish.Magnitude > 1 then
+		wish = wish.Unit
+	end
+
+	local params = Util.rayParams({ chassis, player.Character })
+	local hover = standHeight(chassis, c)
+	local floor = Workspace:Raycast(root.Position + Vector3.new(0, 6, 0), Vector3.new(0, -80, 0), params)
+	local targetY = floor and (floor.Position.Y + hover) or root.Position.Y
+	local yVel = (targetY - root.Position.Y) * 8
+
+	local horiz = wish * speed
+	root.AssemblyLinearVelocity = Vector3.new(horiz.X, yVel, horiz.Z)
+	root.AssemblyAngularVelocity = Vector3.zero
+
+	local dest = CFrame.new(root.Position) * yawCf
+	root.CFrame = root.CFrame:Lerp(dest, math.clamp(dt * c.turnRate * 4, 0, 1))
+end
+
+local function stepCamera()
+	if not (seated and chassis and chassis.PrimaryPart) then
+		return
+	end
+	camera.CameraType = Enum.CameraType.Scriptable
+	local root = chassis.PrimaryPart
+	local yawCf = CFrame.Angles(0, lookYaw, 0) * CFrame.Angles(lookPitch, 0, 0)
+	if chase then
+		local off = Constants.ChaseOffset
+		local pivot = root.Position + Vector3.new(0, 6, 0)
+		local desired = CFrame.new(pivot) * yawCf * CFrame.new(off.X, off.Y * 0.15, off.Z)
+		camera.CFrame = camera.CFrame:Lerp(desired, 0.28)
+	else
+		local camPart = chassis:FindFirstChild("CameraPart")
+		local eye = camPart and camPart.CFrame.Position or (root.Position + Vector3.new(0, 6, -2))
+		camera.CFrame = CFrame.new(eye) * yawCf
+	end
+end
+
+local function enterSeat(id)
+	mechId = id
+	chassis = findOwnMech()
+	seated = true
+	chase = true
+	if chassis and chassis.PrimaryPart then
+		local look = chassis.PrimaryPart.CFrame.LookVector
+		lookYaw = math.atan2(-look.X, -look.Z)
+	end
+	UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+	UserInputService.MouseIconEnabled = false
+	bindInput()
+end
+
+local function leaveSeat()
+	seated = false
+	chassis = nil
+	mechId = nil
+	unbindInput()
+	UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+	UserInputService.MouseIconEnabled = true
+	camera.CameraType = Enum.CameraType.Custom
+	if player.Character then
+		camera.CameraSubject = player.Character:FindFirstChildOfClass("Humanoid")
+	end
+end
+
+function MechController.start()
+	Remotes.client("PilotState", function(payload)
+		if typeof(payload) ~= "table" then
+			return
+		end
+		if payload.seated then
+			enterSeat(payload.mechId)
+		else
+			leaveSeat()
+		end
+	end)
+
+	Remotes.client("MechState", function(st)
+		lastState = st
+		if st and st.active and st.seated and not seated then
+			enterSeat(st.mechId)
+		elseif st and (not st.active or not st.seated) and seated then
+			leaveSeat()
+		end
+	end)
+
+	table.insert(connections, RunService.RenderStepped:Connect(function(dt)
+		if not seated then
+			return
+		end
+		if not chassis or not chassis.Parent then
+			chassis = findOwnMech()
+		end
+		stepMovement(dt)
+		stepCamera()
+		if holding.primary then
+			fire("primary")
+		end
+		if holding.secondary then
+			fire("secondary")
+		end
+	end))
+
+	player.CharacterAdded:Connect(function()
+		if not seated then
+			task.wait(0.1)
+			camera.CameraType = Enum.CameraType.Custom
+		end
+	end)
+end
+
+return MechController
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX17">
+    <Properties>
+      <string name="Name">SelectionController</string>
+      <ProtectedString name="Source"><![CDATA[local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local Remotes = require(game.ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
+local Theme = require(script.Parent.Theme)
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local SelectionController = {}
+local screen, selectedId, cards, detail
+
+local function statBar(parent, y, name, value)
+	local row = Instance.new("Frame")
+	row.BackgroundTransparency = 1
+	row.Size = UDim2.new(1, 0, 0, 22)
+	row.Position = UDim2.new(0, 0, 0, y)
+	row.Parent = parent
+	Theme.label(row, { text = name, size = UDim2.new(0.34, 0, 1, 0), color = Theme.muted, scaled = true })
+	local track = Instance.new("Frame")
+	track.BackgroundColor3 = Color3.fromRGB(24, 32, 42)
+	track.Size = UDim2.new(0.64, 0, 0.55, 0)
+	track.Position = UDim2.new(0.36, 0, 0.22, 0)
+	track.Parent = row
+	Theme.corner(track, 3)
+	local fill = Instance.new("Frame")
+	fill.BackgroundColor3 = Theme.accent
+	fill.Size = UDim2.new(value / 10, 0, 1, 0)
+	fill.Parent = track
+	Theme.corner(fill, 3)
+end
+
+local function showDetail(cfg)
+	if not detail then
+		return
+	end
+	detail:ClearAllChildren()
+	Theme.pad(detail, 16)
+
+	Theme.label(detail, {
+		text = cfg.name,
+		font = Enum.Font.GothamBlack,
+		size = UDim2.new(1, 0, 0, 32),
+		color = Theme.text,
+	})
+	Theme.label(detail, {
+		text = string.upper(cfg.role) .. "  ·  MVM",
+		font = Enum.Font.GothamBold,
+		size = UDim2.new(1, 0, 0, 20),
+		pos = UDim2.new(0, 0, 0, 34),
+		color = cfg.accent,
+	})
+	Theme.label(detail, {
+		text = cfg.blurb,
+		size = UDim2.new(1, 0, 0, 52),
+		pos = UDim2.new(0, 0, 0, 58),
+		color = Theme.muted,
+		wrap = true,
+	})
+
+	statBar(detail, 118, "ARMOR", cfg.armor)
+	statBar(detail, 142, "SPEED", cfg.speed)
+	Theme.label(detail, {
+		text = "HULL  " .. tostring(cfg.maxHealth),
+		size = UDim2.new(1, 0, 0, 20),
+		pos = UDim2.new(0, 0, 0, 168),
+		color = Theme.text,
+	})
+
+	local y = 196
+	local order = { "primary", "secondary", "specialQ", "specialE" }
+	for _, slot in ipairs(order) do
+		local w = cfg.weapons[slot]
+		if w then
+			Theme.label(detail, {
+				text = w.button .. "  " .. w.name,
+				font = Enum.Font.GothamBold,
+				size = UDim2.new(1, 0, 0, 20),
+				pos = UDim2.new(0, 0, 0, y),
+				color = Theme.amber,
+			})
+			y += 22
+		end
+	end
+
+	local confirm = Theme.button(detail, {
+		text = "CONFIRM  ·  CALL DROPSHIP",
+		size = UDim2.new(1, 0, 0, 44),
+		pos = UDim2.new(0, 0, 1, -52),
+		bg = Color3.fromRGB(16, 70, 88),
+		stroke = Theme.amber,
+	})
+	confirm.Activated:Connect(function()
+		if selectedId then
+			Remotes.fireServer("SelectMech", selectedId)
+			SelectionController.close()
+		end
+	end)
+end
+
+local function makeCard(parent, cfg, index)
+	local card = Theme.button(parent, {
+		text = "",
+		size = UDim2.new(0.48, -6, 0, 72),
+		bg = Theme.panelAlt,
+	})
+	card.LayoutOrder = index
+	card.AutomaticSize = Enum.AutomaticSize.None
+
+	local swatch = Instance.new("Frame")
+	swatch.Size = UDim2.new(0, 10, 1, -12)
+	swatch.Position = UDim2.new(0, 8, 0, 6)
+	swatch.BackgroundColor3 = cfg.color
+	swatch.Parent = card
+	Theme.corner(swatch, 3)
+
+	Theme.label(card, {
+		text = cfg.name,
+		font = Enum.Font.GothamBold,
+		size = UDim2.new(1, -28, 0, 28),
+		pos = UDim2.new(0, 24, 0, 8),
+	})
+	Theme.label(card, {
+		text = cfg.role,
+		size = UDim2.new(1, -28, 0, 22),
+		pos = UDim2.new(0, 24, 0, 36),
+		color = Theme.muted,
+	})
+
+	card.Activated:Connect(function()
+		selectedId = cfg.id
+		for _, other in pairs(cards) do
+			other.BackgroundColor3 = Theme.panelAlt
+		end
+		card.BackgroundColor3 = Color3.fromRGB(28, 56, 72)
+		showDetail(cfg)
+	end)
+	return card
+end
+
+function SelectionController.close()
+	if screen then
+		screen.Enabled = false
+	end
+end
+
+function SelectionController.open(payload)
+	if not screen then
+		return
+	end
+	local list = screen:FindFirstChild("Root") and screen.Root:FindFirstChild("List")
+	if list then
+		for _, c in ipairs(list:GetChildren()) do
+			if c:IsA("TextButton") then
+				c:Destroy()
+			end
+		end
+	end
+	cards = {}
+	selectedId = nil
+	if payload and payload.mechs then
+		for i, cfg in ipairs(payload.mechs) do
+			cards[cfg.id] = makeCard(list, cfg, i)
+		end
+		if payload.mechs[1] then
+			selectedId = payload.mechs[1].id
+			showDetail(payload.mechs[1])
+			if cards[selectedId] then
+				cards[selectedId].BackgroundColor3 = Color3.fromRGB(28, 56, 72)
+			end
+		end
+	end
+	screen.Enabled = true
+	local root = screen:FindFirstChild("Root")
+	if root then
+		root.Position = UDim2.fromScale(0.5, 0.58)
+		TweenService:Create(root, TweenInfo.new(0.22, Enum.EasingStyle.Quad), {
+			Position = UDim2.fromScale(0.5, 0.5),
+		}):Play()
+	end
+end
+
+function SelectionController.start()
+	screen = Instance.new("ScreenGui")
+	screen.Name = "MVMSelection"
+	screen.ResetOnSpawn = false
+	screen.IgnoreGuiInset = true
+	screen.Enabled = false
+	screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screen.Parent = playerGui
+
+	local dim = Instance.new("TextButton")
+	dim.Name = "Dim"
+	dim.Text = ""
+	dim.AutoButtonColor = false
+	dim.BackgroundColor3 = Color3.new(0, 0, 0)
+	dim.BackgroundTransparency = 0.35
+	dim.Size = UDim2.fromScale(1, 1)
+	dim.Parent = screen
+	dim.Activated:Connect(SelectionController.close)
+
+	local root = Instance.new("Frame")
+	root.Name = "Root"
+	root.AnchorPoint = Vector2.new(0.5, 0.5)
+	root.Position = UDim2.fromScale(0.5, 0.5)
+	root.Size = UDim2.new(0.86, 0, 0.8, 0)
+	root.BackgroundColor3 = Theme.bg
+	root.Parent = screen
+	Theme.corner(root, 10)
+	Theme.stroke(root, Theme.accent, 2)
+
+	local header = Instance.new("Frame")
+	header.BackgroundColor3 = Theme.panel
+	header.Size = UDim2.new(1, 0, 0, 64)
+	header.Parent = root
+	Theme.corner(header, 10)
+	Theme.label(header, {
+		text = "MVM  /  MECH VS MECH",
+		font = Enum.Font.GothamBlack,
+		size = UDim2.new(0.7, 0, 0, 30),
+		pos = UDim2.new(0, 18, 0, 6),
+		color = Theme.text,
+	})
+	Theme.label(header, {
+		text = "SELECT A CHASSIS  ·  DROPSHIP WILL DELIVER TO THE PAD",
+		size = UDim2.new(0.7, 0, 0, 20),
+		pos = UDim2.new(0, 18, 0, 36),
+		color = Theme.muted,
+	})
+	local close = Theme.button(header, {
+		text = "CLOSE",
+		size = UDim2.new(0, 100, 0, 34),
+		pos = UDim2.new(1, -116, 0.5, -17),
+		bg = Color3.fromRGB(50, 24, 24),
+		stroke = Theme.err,
+	})
+	close.Activated:Connect(SelectionController.close)
+
+	local list = Instance.new("ScrollingFrame")
+	list.Name = "List"
+	list.BackgroundTransparency = 1
+	list.Position = UDim2.new(0, 16, 0, 76)
+	list.Size = UDim2.new(0.52, -12, 1, -92)
+	list.CanvasSize = UDim2.new(0, 0, 0, 780)
+	list.ScrollBarThickness = 6
+	list.Parent = root
+	local grid = Instance.new("UIGridLayout")
+	grid.CellSize = UDim2.new(0.48, -6, 0, 72)
+	grid.CellPadding = UDim2.fromOffset(8, 8)
+	grid.SortOrder = Enum.SortOrder.LayoutOrder
+	grid.Parent = list
+
+	detail = Instance.new("Frame")
+	detail.Name = "Detail"
+	detail.BackgroundColor3 = Theme.panel
+	detail.Position = UDim2.new(0.52, 8, 0, 76)
+	detail.Size = UDim2.new(0.48, -24, 1, -92)
+	detail.Parent = root
+	Theme.corner(detail, 8)
+
+	Remotes.client("OpenSelection", function(payload)
+		SelectionController.open(payload)
+	end)
+end
+
+return SelectionController
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX18">
+    <Properties>
+      <string name="Name">Theme</string>
+      <ProtectedString name="Source"><![CDATA[local Theme = {
+	bg = Color3.fromRGB(8, 12, 18),
+	panel = Color3.fromRGB(14, 20, 28),
+	panelAlt = Color3.fromRGB(20, 28, 38),
+	accent = Color3.fromRGB(70, 190, 230),
+	amber = Color3.fromRGB(232, 176, 64),
+	text = Color3.fromRGB(236, 242, 248),
+	muted = Color3.fromRGB(160, 176, 190),
+	ok = Color3.fromRGB(90, 210, 140),
+	warn = Color3.fromRGB(232, 176, 64),
+	err = Color3.fromRGB(230, 80, 80),
+	hp = Color3.fromRGB(70, 210, 120),
+	hpLow = Color3.fromRGB(230, 70, 70),
+}
+
+function Theme.pad(gui, px)
+	local u = Instance.new("UIPadding")
+	u.PaddingTop = UDim.new(0, px)
+	u.PaddingBottom = UDim.new(0, px)
+	u.PaddingLeft = UDim.new(0, px)
+	u.PaddingRight = UDim.new(0, px)
+	u.Parent = gui
+	return u
+end
+
+function Theme.corner(gui, px)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, px or 6)
+	c.Parent = gui
+	return c
+end
+
+function Theme.stroke(gui, color, t)
+	local s = Instance.new("UIStroke")
+	s.Color = color or Theme.accent
+	s.Thickness = t or 1.4
+	s.Transparency = 0.15
+	s.Parent = gui
+	return s
+end
+
+function Theme.label(parent, props)
+	local l = Instance.new("TextLabel")
+	l.BackgroundTransparency = props.bgT or 1
+	l.BackgroundColor3 = props.bg or Theme.panel
+	l.Font = props.font or Enum.Font.Gotham
+	l.Text = props.text or ""
+	l.TextColor3 = props.color or Theme.text
+	l.TextScaled = props.scaled ~= false
+	l.TextXAlignment = props.align or Enum.TextXAlignment.Left
+	l.TextYAlignment = props.valign or Enum.TextYAlignment.Center
+	l.Size = props.size or UDim2.fromScale(1, 1)
+	l.Position = props.pos or UDim2.new()
+	l.TextWrapped = props.wrap == true
+	l.ZIndex = props.z or 1
+	l.Parent = parent
+	if props.stroke then
+		l.TextStrokeTransparency = 0.5
+	end
+	return l
+end
+
+function Theme.button(parent, props)
+	local b = Instance.new("TextButton")
+	b.AutoButtonColor = true
+	b.BackgroundColor3 = props.bg or Theme.panelAlt
+	b.Font = Enum.Font.GothamBold
+	b.Text = props.text or "OK"
+	b.TextColor3 = props.color or Theme.text
+	b.TextScaled = true
+	b.Size = props.size or UDim2.fromOffset(140, 36)
+	b.Position = props.pos or UDim2.new()
+	b.Parent = parent
+	Theme.corner(b, 5)
+	Theme.stroke(b, props.stroke or Theme.accent, 1.2)
+	return b
+end
+
+return Theme
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  <Item class="ModuleScript" referent="RBX19">
+    <Properties>
+      <string name="Name">VfxController</string>
+      <ProtectedString name="Source"><![CDATA[local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+local Remotes = require(game.ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
+local Util = require(game.ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Util"))
+
+local VfxController = {}
+
+local function hitSpark(pos)
+	for _ = 1, 7 do
+		local dir = Vector3.new(math.random() - 0.5, math.random() * 0.9, math.random() - 0.5)
+		if dir.Magnitude < 0.08 then
+			dir = Vector3.yAxis
+		end
+		dir = dir.Unit
+		local p = Util.part({
+			Name = "HitSpark",
+			Size = Vector3.new(0.22, 0.22, 1.5),
+			CFrame = CFrame.lookAt(pos, pos + dir),
+			Color = Color3.fromRGB(255, 220, 90),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			Parent = Workspace,
+		})
+		TweenService:Create(p, TweenInfo.new(0.22), {
+			CFrame = CFrame.lookAt(pos + dir * 4.2, pos + dir * 8),
+			Transparency = 1,
+			Size = Vector3.new(0.08, 0.08, 0.35),
+		}):Play()
+		Debris:AddItem(p, 0.26)
+	end
+end
+
+local function landDust(pos)
+	Util.play(Workspace, "rbxasset://sounds/impact_water.mp3", { Volume = 0.55, PlaybackSpeed = 0.48 })
+	for i = 1, 10 do
+		local ang = (i / 10) * math.pi * 2
+		local p = Util.part({
+			Name = "PadDust",
+			Size = Vector3.new(2.4, 0.35, 2.4),
+			CFrame = CFrame.new(pos + Vector3.new(math.cos(ang) * 5, 0.35, math.sin(ang) * 5)),
+			Color = Color3.fromRGB(156, 132, 88),
+			Material = Enum.Material.Sand,
+			CanCollide = false,
+			Transparency = 0.12,
+			Parent = Workspace,
+		})
+		TweenService:Create(p, TweenInfo.new(0.72, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			CFrame = p.CFrame + Vector3.new(math.cos(ang) * 11, 3.2, math.sin(ang) * 11),
+			Transparency = 1,
+			Size = Vector3.new(5.5, 0.9, 5.5),
+		}):Play()
+		Debris:AddItem(p, 0.78)
+	end
+end
+
+local function numberPopup(pos, amount)
+	local part = Util.part({
+		Name = "DmgNum",
+		Size = Vector3.new(0.2, 0.2, 0.2),
+		CFrame = CFrame.new(pos + Vector3.new(0, 6, 0)),
+		Transparency = 1,
+		Anchored = true,
+		CanCollide = false,
+		Parent = Workspace,
+	})
+	local bb = Instance.new("BillboardGui")
+	bb.Size = UDim2.fromOffset(80, 32)
+	bb.AlwaysOnTop = true
+	bb.Parent = part
+	local t = Instance.new("TextLabel")
+	t.BackgroundTransparency = 1
+	t.Size = UDim2.fromScale(1, 1)
+	t.Font = Enum.Font.GothamBlack
+	t.TextScaled = true
+	t.TextColor3 = Color3.fromRGB(255, 210, 80)
+	t.TextStrokeTransparency = 0.4
+	t.Text = "-" .. tostring(amount)
+	t.Parent = bb
+	TweenService:Create(part, TweenInfo.new(0.6), {
+		CFrame = part.CFrame + Vector3.new(0, 4, 0),
+	}):Play()
+	Debris:AddItem(part, 0.65)
+end
+
+function VfxController.start()
+	Remotes.client("VfxEvent", function(payload)
+		if typeof(payload) ~= "table" then
+			return
+		end
+		if payload.kind == "hit" and typeof(payload.position) == "Vector3" then
+			numberPopup(payload.position, payload.amount or 0)
+			hitSpark(payload.position)
+			Util.play(Workspace, "rbxasset://sounds/impact_water.mp3", { Volume = 0.25, PlaybackSpeed = 1.4 })
+		elseif payload.kind == "land" and typeof(payload.position) == "Vector3" then
+			landDust(payload.position)
+		elseif payload.kind == "fire" then
+			Util.play(Workspace, "rbxasset://sounds/switch.wav", { Volume = 0.2, PlaybackSpeed = 0.7 })
+		end
+	end)
+end
+
+return VfxController
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  </Item>
+  <Item class="LocalScript" referent="RBX21">
+    <Properties>
+      <string name="Name">MVM</string>
+      <ProtectedString name="Source"><![CDATA[--[[
+	MVM (Mech vs Mech) — client bootstrap.
+]]
+
+local Shared = game.ReplicatedStorage:WaitForChild("Shared")
+local Remotes = require(Shared:WaitForChild("Remotes"))
+Remotes.init()
+
+local Controllers = script.Parent:WaitForChild("Controllers")
+require(Controllers:WaitForChild("SelectionController")).start()
+require(Controllers:WaitForChild("HUDController")).start()
+require(Controllers:WaitForChild("MechController")).start()
+require(Controllers:WaitForChild("VfxController")).start()
+
+print("[MVM] Client ready. Walk to the Selection Station.")
+]]></ProtectedString>
+    </Properties>
+  </Item>
+  </Item>
+  </Item>
+  <Item class="Players" referent="RBX30">
+    <Properties>
+      <string name="Name">Players</string>
+    </Properties>
+  </Item>
+  <Item class="StarterGui" referent="RBX31">
+    <Properties>
+      <string name="Name">StarterGui</string>
+    </Properties>
+  </Item>
+  <Item class="SoundService" referent="RBX32">
+    <Properties>
+      <string name="Name">SoundService</string>
+    </Properties>
+  </Item>
+  <Item class="Chat" referent="RBX33">
+    <Properties>
+      <string name="Name">Chat</string>
+    </Properties>
+  </Item>
+  <Item class="HttpService" referent="RBX34">
+    <Properties>
+      <string name="Name">HttpService</string>
+      <bool name="HttpEnabled">false</bool>
+    </Properties>
+  </Item>
+</roblox>
