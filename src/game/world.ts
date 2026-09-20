@@ -479,12 +479,10 @@ export class World {
     const floor = new THREE.Mesh(
       new THREE.CircleGeometry(9.5, 48),
       new THREE.MeshStandardMaterial({
-        color: 0x0c0d10,
-        metalness: 0.18,
-        roughness: 0.62,
-        map: concrete.map,
-        normalMap: concrete.normalMap,
-        envMapIntensity: 0.35,
+        color: 0x12141a,
+        metalness: 0.08,
+        roughness: 0.82,
+        envMapIntensity: 0.15,
       }),
     );
     floor.rotation.x = -Math.PI / 2;
@@ -539,17 +537,22 @@ export class World {
       this.hangar.add(area);
     }
 
-    const key = new THREE.SpotLight(0xffe0c8, 9.5, 28, 0.42, 0.38, 1.15);
-    key.position.set(-2.2, 11, 8.5);
-    key.target.position.set(0, 3.1, 0.4);
+    const key = new THREE.SpotLight(0xffe4d0, 12, 26, 0.5, 0.35, 1.1);
+    key.position.set(-3.2, 8.5, 9);
+    key.target.position.set(0, 3.2, 0.5);
     this.hangar.add(key);
     this.hangar.add(key.target);
-    const fill = new THREE.SpotLight(0xffb090, 2.4, 20, 0.7, 0.55, 1.2);
-    fill.position.set(4.2, 6.5, 8);
-    fill.target.position.set(0, 2.6, 0.2);
+    const chest = new THREE.DirectionalLight(0xfff0e4, 1.35);
+    chest.position.set(-4, 7, 10);
+    chest.target.position.set(0, 3.1, 0.4);
+    this.hangar.add(chest);
+    this.hangar.add(chest.target);
+    const fill = new THREE.SpotLight(0xffc4a8, 3.2, 20, 0.75, 0.5, 1.2);
+    fill.position.set(5, 5.5, 8);
+    fill.target.position.set(0, 2.8, 0.2);
     this.hangar.add(fill);
     this.hangar.add(fill.target);
-    const rim = new THREE.SpotLight(0xff4428, 4.6, 18, 0.65, 0.48, 1.2);
+    const rim = new THREE.SpotLight(0xff4428, 3.2, 18, 0.6, 0.5, 1.2);
     rim.position.set(5, 8.2, -6.5);
     rim.target.position.set(0, 3.2, 0);
     this.hangar.add(rim);
@@ -584,11 +587,11 @@ export class World {
     this.group.visible = !on;
     this.sky.visible = !on;
     if (on) {
-      this.scene.fog = new THREE.FogExp2(0x0c0d10, 0.012);
-      this.sun.intensity = 0.35;
-      this.hemi.intensity = 0.22;
-      this.fill.intensity = 0.08;
-      this.scene.environmentIntensity = 0.45;
+      this.scene.fog = new THREE.FogExp2(0x08090c, 0.005);
+      this.sun.intensity = 0.55;
+      this.hemi.intensity = 0.38;
+      this.fill.intensity = 0.22;
+      this.scene.environmentIntensity = 0.28;
     } else {
       this.scene.fog = new THREE.FogExp2(0x2a221c, 0.0062);
       this.sun.intensity = this.sun.castShadow ? 1.55 : 1.2;
