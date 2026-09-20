@@ -582,7 +582,7 @@ export class World {
   }
 
   setHangarMode(on: boolean) {
-    this.hangar.visible = true;
+    this.hangar.visible = on;
     this.group.visible = !on;
     this.sky.visible = !on;
     if (on) {
