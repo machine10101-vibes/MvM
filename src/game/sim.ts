@@ -201,8 +201,8 @@ export class Sim {
     this.loadout = { ...this.loadout, chassis: id, primary: CHASSIS[id].primary, secondary: CHASSIS[id].secondary };
     const p = this.local;
     if (!p) return;
-    const fresh = makeMech(p.id, p.name, id, 0, 0, p.yaw, { isLocal: true, loadout: this.loadout });
-    Object.assign(p, fresh, { x: 0, z: 0, y: 0, yaw: p.yaw });
+    const fresh = makeMech(p.id, p.name, id, 0, 0, 0, { isLocal: true, loadout: this.loadout });
+    Object.assign(p, fresh, { x: 0, z: 0, y: 0, yaw: 0 });
   }
 
   applyLoadoutStats(m: Mech) {
