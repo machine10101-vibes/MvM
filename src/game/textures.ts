@@ -575,6 +575,48 @@ export function makeHexCellMap() {
   return t;
 }
 
+/** Concentric cyclops iris — dark bezel, red rings, white-hot core. */
+export function makeCyclopsIrisMap() {
+  const size = 512;
+  const { c, ctx } = canvas(size);
+  const cx = size / 2;
+  const cy = size / 2;
+  ctx.fillStyle = "#050204";
+  ctx.fillRect(0, 0, size, size);
+  const rings: [number, string][] = [
+    [1.0, "#0a0608"],
+    [0.92, "#1a1214"],
+    [0.84, "#3a2020"],
+    [0.76, "#ff2a22"],
+    [0.7, "#140808"],
+    [0.58, "#2a1010"],
+    [0.5, "#ff3a28"],
+    [0.42, "#180606"],
+    [0.3, "#ff2218"],
+    [0.18, "#ff6644"],
+    [0.08, "#ffe8d0"],
+  ];
+  for (const [t, color] of rings) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, (size / 2) * t, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
+  }
+  ctx.strokeStyle = "rgba(255,48,36,0.85)";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.38, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,70,48,0.55)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.25, 0, Math.PI * 2);
+  ctx.stroke();
+  const t = tex(c, { repeat: 1, color: true, aniso: 8 });
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}
+
 /** High-contrast plate grid so Titan armor reads even without IBL. */
 export function makeTitanHullMap() {
   const size = 512;

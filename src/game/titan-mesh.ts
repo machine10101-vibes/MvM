@@ -1,6 +1,13 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-import { makeHexCellMap, makeMuzzleSprite, makeTitanHullMap, sharedArmor, sharedMetal } from "./textures";
+import {
+  makeCyclopsIrisMap,
+  makeHexCellMap,
+  makeMuzzleSprite,
+  makeTitanHullMap,
+  sharedArmor,
+  sharedMetal,
+} from "./textures";
 import type { MechRig } from "./mech-mesh";
 import type { WeaponId } from "./types";
 
@@ -23,6 +30,7 @@ const geo = {
 
 const hexMap = makeHexCellMap();
 const hullMap = makeTitanHullMap();
+const irisMap = makeCyclopsIrisMap();
 const muzzleTex = makeMuzzleSprite();
 const metal = sharedMetal();
 const armorT = sharedArmor();
@@ -52,35 +60,35 @@ function add(
 }
 
 function mats(wrecked: boolean) {
-  const paint = wrecked ? 0x2a2a2c : 0x4a515a;
+  const paint = wrecked ? 0x2a2a2c : 0x585f68;
   const glow = wrecked ? 0x331010 : 0xff2a22;
   return {
     armor: new THREE.MeshStandardMaterial({
       color: paint,
       map: hullMap.map,
       normalMap: hullMap.normalMap,
-      metalness: wrecked ? 0.32 : 0.38,
-      roughness: wrecked ? 0.64 : 0.46,
-      envMapIntensity: wrecked ? 0.3 : 0.85,
-      normalScale: new THREE.Vector2(1.6, 1.6),
+      metalness: wrecked ? 0.28 : 0.3,
+      roughness: wrecked ? 0.68 : 0.5,
+      envMapIntensity: wrecked ? 0.25 : 0.7,
+      normalScale: new THREE.Vector2(1.8, 1.8),
     }),
     armorB: new THREE.MeshStandardMaterial({
-      color: wrecked ? 0x242428 : 0x32383f,
+      color: wrecked ? 0x1c1c20 : 0x262c32,
       map: hullMap.map,
       normalMap: hullMap.normalMap,
-      metalness: 0.4,
-      roughness: 0.5,
-      envMapIntensity: 0.8,
-      normalScale: new THREE.Vector2(1.4, 1.4),
+      metalness: 0.32,
+      roughness: 0.54,
+      envMapIntensity: 0.65,
+      normalScale: new THREE.Vector2(1.6, 1.6),
     }),
     armorC: new THREE.MeshStandardMaterial({
-      color: wrecked ? 0x303034 : 0x5a626c,
+      color: wrecked ? 0x303034 : 0x6a727c,
       map: armorT.map,
       normalMap: armorT.normalMap,
-      metalness: 0.36,
-      roughness: 0.44,
-      envMapIntensity: 0.85,
-      normalScale: new THREE.Vector2(1.3, 1.3),
+      metalness: 0.28,
+      roughness: 0.46,
+      envMapIntensity: 0.72,
+      normalScale: new THREE.Vector2(1.5, 1.5),
     }),
     plate: new THREE.MeshStandardMaterial({
       color: 0x16181c,
@@ -128,6 +136,15 @@ function mats(wrecked: boolean) {
       opacity: 0.96,
       envMapIntensity: 1.4,
     }),
+    iris: new THREE.MeshStandardMaterial({
+      map: irisMap,
+      color: 0xffffff,
+      emissive: glow,
+      emissiveMap: irisMap,
+      emissiveIntensity: wrecked ? 0.3 : 2.6,
+      metalness: 0.12,
+      roughness: 0.28,
+    }),
     glow,
   };
 }
@@ -151,8 +168,8 @@ export function buildTitanMech(
   const hips = new THREE.Group();
   hips.position.y = 2.28;
   body.add(hips);
-  add(hips, geo.soft, m.dark, 1.72, 0.48, 1.12, 0, 0.06, 0);
-  add(hips, geo.soft, m.armor, 1.95, 0.52, 1.28, 0, 0.32, 0.04);
+  add(hips, geo.soft, m.dark, 1.88, 0.52, 1.22, 0, 0.06, 0);
+  add(hips, geo.soft, m.armor, 2.15, 0.56, 1.38, 0, 0.34, 0.06);
   add(hips, geo.cyl, m.plate, 0.72, 0.38, 0.72, 0, 0.28, 0);
   add(hips, geo.box, m.emit, 0.42, 0.03, 0.06, 0, 0.52, 0.62);
   if (detail) {
@@ -175,11 +192,11 @@ export function buildTitanMech(
   buildTorso(torso, m, detail);
 
   const muzzleChest = new THREE.Object3D();
-  muzzleChest.position.set(0, 1.32, 1.38);
+  muzzleChest.position.set(0, 1.54, 1.58);
   torso.add(muzzleChest);
 
   const head = new THREE.Group();
-  head.position.set(0, 1.72, 0.18);
+  head.position.set(0, 1.88, 0.22);
   torso.add(head);
 
   // Missile pods live on the torso so they stay planted like the reference.
@@ -187,10 +204,10 @@ export function buildTitanMech(
   buildMissilePod(torso, 1, m, detail);
 
   const lShoulder = new THREE.Group();
-  lShoulder.position.set(-1.28, 1.48, 0.06);
+  lShoulder.position.set(-1.42, 1.38, 0.08);
   torso.add(lShoulder);
   const rShoulder = new THREE.Group();
-  rShoulder.position.set(1.28, 1.48, 0.06);
+  rShoulder.position.set(1.42, 1.38, 0.08);
   torso.add(rShoulder);
   buildPauldron(lShoulder, -1, m);
   buildPauldron(rShoulder, 1, m);
@@ -231,18 +248,18 @@ export function buildTitanMech(
       depthWrite: false,
     }),
   );
-  shieldMesh.position.set(0, 1.35, 0);
+  shieldMesh.position.set(0, 1.5, 0);
   shieldMesh.visible = false;
   body.add(shieldMesh);
 
   const lights: THREE.PointLight[] = [];
   if (!wrecked) {
-    const eye = new THREE.PointLight(m.glow, 2.4, 11);
-    eye.position.set(0, 1.32, 1.4);
+    const eye = new THREE.PointLight(m.glow, 3.2, 12);
+    eye.position.set(0, 1.54, 1.62);
     torso.add(eye);
     lights.push(eye);
-    const crown = new THREE.PointLight(m.glow, 1.1, 7);
-    crown.position.set(0, 2.62, 0);
+    const crown = new THREE.PointLight(m.glow, 1.4, 8);
+    crown.position.set(0, 2.88, 0.04);
     torso.add(crown);
     lights.push(crown);
   }
@@ -266,7 +283,7 @@ export function buildTitanMech(
     leftArm.rotation.x = 0.8;
   }
 
-  root.scale.setScalar(1.06);
+  root.scale.setScalar(1.12);
   root.traverse((o) => {
     if ((o as THREE.Mesh).isMesh) {
       (o as THREE.Mesh).castShadow = true;
@@ -312,7 +329,51 @@ export function buildTitanMech(
 
 type TitanMats = ReturnType<typeof mats>;
 
-const HULL = { x: 0, y: 1.32, z: 0.04 };
+const HULL = { x: 0, y: 1.42, z: 0.08 };
+
+/** Sphere with inset plate seams so the chassis reads as armored, not a ball. */
+function makePaneledHull(radius: number, w: number, h: number, panelsU: number, panelsV: number) {
+  const g = new THREE.SphereGeometry(radius, w, h);
+  const pos = g.attributes.position;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const len = v.length() || 1;
+    const n = v.clone().multiplyScalar(1 / len);
+    const phi = Math.atan2(v.x, v.z);
+    const theta = Math.acos(THREE.MathUtils.clamp(v.y / len, -1, 1));
+    const u = ((phi + Math.PI) / (Math.PI * 2)) * panelsU;
+    const vv = (theta / Math.PI) * panelsV;
+    const localU = u - Math.floor(u);
+    const localV = vv - Math.floor(vv);
+    const checker = (Math.floor(u) + Math.floor(vv)) % 2 === 0 ? 0.035 : 0;
+    const seam = localU < 0.1 || localU > 0.9 || localV < 0.1 || localV > 0.9 ? 0.055 : 0;
+    v.addScaledVector(n, -checker - seam);
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+
+function sphPlate(
+  parent: THREE.Group,
+  material: THREE.Material,
+  radius: number,
+  phiStart: number,
+  phiLength: number,
+  thetaStart: number,
+  thetaLength: number,
+  wSeg = 10,
+  hSeg = 7,
+) {
+  const g = new THREE.SphereGeometry(radius, wSeg, hSeg, phiStart, phiLength, thetaStart, thetaLength);
+  const mesh = new THREE.Mesh(g, material);
+  mesh.position.set(HULL.x, HULL.y, HULL.z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
 
 function shellPlate(
   parent: THREE.Group,
@@ -334,79 +395,113 @@ function shellPlate(
 }
 
 function buildTorso(torso: THREE.Group, m: TitanMats, detail: boolean) {
-  // Dark inner hull — plates sit on top so seams read as recesses.
-  add(torso, geo.sphereHi, m.dark, 2.48, 2.2, 2.28, HULL.x, HULL.y, HULL.z);
-  add(torso, geo.sphere, m.plate, 2.28, 2.02, 2.1, HULL.x, HULL.y, HULL.z);
+  // Recessed faceted core — shows in plate gaps as dark seams.
+  const core = new THREE.Mesh(new THREE.IcosahedronGeometry(1.16, 1), m.dark);
+  core.scale.set(1.12, 1.0, 1.06);
+  core.position.set(HULL.x, HULL.y, HULL.z);
+  core.castShadow = true;
+  torso.add(core);
 
+  // Paneled ovoid hull — the main spherical chassis from the reference.
+  const hull = new THREE.Mesh(makePaneledHull(1.34, 28, 20, 10, 7), m.armor);
+  hull.scale.set(1.08, 0.96, 1.02);
+  hull.position.set(HULL.x, HULL.y, HULL.z);
+  hull.castShadow = true;
+  hull.receiveShadow = true;
+  torso.add(hull);
+
+  const hullB = new THREE.Mesh(makePaneledHull(1.38, 22, 16, 8, 6), m.armorB);
+  hullB.scale.set(1.06, 0.94, 1.0);
+  hullB.position.set(HULL.x, HULL.y, HULL.z);
+  hullB.castShadow = true;
+  torso.add(hullB);
+
+  // Three.js phi: 0 = -X, PI/2 = +Z (chest), PI = +X, 3PI/2 = -Z (back).
+  const F = Math.PI / 2;
+  // Large curved plates overlapping the paneled hull.
+  sphPlate(torso, m.armorC, 1.44, F - 0.78, 1.56, 0.28, 0.42, 12, 6); // brow wrap
+  sphPlate(torso, m.armor, 1.43, F - 1.22, 1.0, 0.78, 0.72, 10, 7); // left pec
+  sphPlate(torso, m.armorB, 1.44, F + 0.22, 1.0, 0.78, 0.72, 10, 7); // right pec
+  sphPlate(torso, m.armor, 1.42, F - 0.7, 1.4, 1.52, 0.52, 10, 6); // jaw / chin
+  sphPlate(torso, m.armorC, 1.41, F - 1.55, 0.62, 0.62, 0.85, 8, 7); // left cheek
+  sphPlate(torso, m.armorC, 1.41, F + 0.93, 0.62, 0.62, 0.85, 8, 7); // right cheek
+  sphPlate(torso, m.armorB, 1.4, -0.35, 1.05, 0.5, 1.15, 8, 8); // left side
+  sphPlate(torso, m.armorB, 1.4, Math.PI - 0.7, 1.05, 0.5, 1.15, 8, 8); // right side
+  sphPlate(torso, m.armor, 1.39, F + Math.PI - 0.95, 1.9, 0.35, 0.85, 12, 7); // back upper
+  sphPlate(torso, m.armorC, 1.38, F + Math.PI - 0.8, 1.6, 1.2, 0.75, 10, 6); // back lower
+  sphPlate(torso, m.plate, 1.4, F - 1.05, 2.1, 0.08, 0.28, 12, 4); // crown collar
+
+  // Structural rings — equator belt and upper collar.
+  add(torso, geo.torusFat, m.plate, 2.72, 2.72, 2.72, HULL.x, HULL.y - 0.02, HULL.z, Math.PI / 2, 0, 0);
+  add(torso, geo.torus, m.dark, 2.55, 2.55, 2.55, HULL.x, HULL.y + 0.55, HULL.z, Math.PI / 2, 0, 0);
+  add(torso, geo.torus, m.emit, 2.48, 2.48, 2.48, HULL.x, HULL.y + 0.02, HULL.z, Math.PI / 2, 0, 0);
+
+  // Thick raised greeble plates — read as reactive tiles even without IBL.
   const skins = [m.armor, m.armorB, m.armorC];
-  const bands = detail
+  const tiles = detail
     ? [
-        { pitch: 0.86, n: 8, w: 0.4, h: 0.2, r: 1.16 },
-        { pitch: 0.58, n: 11, w: 0.36, h: 0.22, r: 1.3 },
-        { pitch: 0.3, n: 13, w: 0.34, h: 0.24, r: 1.36 },
-        { pitch: 0.04, n: 14, w: 0.33, h: 0.24, r: 1.38 },
-        { pitch: -0.24, n: 13, w: 0.34, h: 0.22, r: 1.34 },
-        { pitch: -0.5, n: 10, w: 0.36, h: 0.2, r: 1.24 },
-        { pitch: -0.76, n: 8, w: 0.34, h: 0.18, r: 1.1 },
+        { yaw: -0.95, pitch: 0.55, w: 0.52, h: 0.34, r: 1.4 },
+        { yaw: 0.95, pitch: 0.55, w: 0.52, h: 0.34, r: 1.4 },
+        { yaw: -1.25, pitch: 0.18, w: 0.48, h: 0.38, r: 1.42 },
+        { yaw: 1.25, pitch: 0.18, w: 0.48, h: 0.38, r: 1.42 },
+        { yaw: -0.85, pitch: -0.42, w: 0.5, h: 0.32, r: 1.38 },
+        { yaw: 0.85, pitch: -0.42, w: 0.5, h: 0.32, r: 1.38 },
+        { yaw: -2.15, pitch: 0.22, w: 0.55, h: 0.36, r: 1.36 },
+        { yaw: 2.15, pitch: 0.22, w: 0.55, h: 0.36, r: 1.36 },
+        { yaw: 3.05, pitch: 0.05, w: 0.62, h: 0.4, r: 1.35 },
+        { yaw: -1.55, pitch: 0.72, w: 0.4, h: 0.26, r: 1.32 },
+        { yaw: 1.55, pitch: 0.72, w: 0.4, h: 0.26, r: 1.32 },
+        { yaw: 0, pitch: -0.72, w: 0.7, h: 0.28, r: 1.28 },
       ]
     : [
-        { pitch: 0.55, n: 8, w: 0.4, h: 0.24, r: 1.28 },
-        { pitch: 0.05, n: 10, w: 0.36, h: 0.24, r: 1.36 },
-        { pitch: -0.45, n: 8, w: 0.38, h: 0.22, r: 1.22 },
+        { yaw: -1.1, pitch: 0.25, w: 0.55, h: 0.38, r: 1.4 },
+        { yaw: 1.1, pitch: 0.25, w: 0.55, h: 0.38, r: 1.4 },
+        { yaw: 3.05, pitch: 0.1, w: 0.6, h: 0.36, r: 1.35 },
       ];
-
-  for (const band of bands) {
-    for (let i = 0; i < band.n; i++) {
-      const yaw = (i / band.n) * Math.PI * 2 - Math.PI;
-      // Leave a hole for the cyclops well on the front.
-      if (Math.abs(yaw) < 0.42 && Math.abs(band.pitch) < 0.38) continue;
-      const mat = skins[(i + Math.round(band.pitch * 10)) % skins.length];
-      shellPlate(torso, geo.soft, mat, band.r, yaw, band.pitch, band.w, band.h, 0.07);
-    }
-    if (detail) {
-      for (let i = 0; i < band.n; i += 2) {
-        const yaw = (i / band.n) * Math.PI * 2 - Math.PI + 0.08;
-        if (Math.abs(yaw) < 0.4 && Math.abs(band.pitch) < 0.36) continue;
-        shellPlate(torso, geo.hard, m.emit, band.r + 0.01, yaw, band.pitch, band.w * 0.9, 0.02, 0.03);
-      }
-    }
+  for (let i = 0; i < tiles.length; i++) {
+    const t = tiles[i];
+    shellPlate(torso, geo.soft, skins[i % skins.length], t.r, t.yaw, t.pitch, t.w, t.h, 0.14);
+    if (detail) shellPlate(torso, geo.hard, m.emit, t.r + 0.02, t.yaw, t.pitch, t.w * 0.82, 0.025, 0.04);
   }
 
-  // Signature face plates around the eye — brow, cheeks, jaw.
-  shellPlate(torso, geo.soft, m.armorC, 1.34, 0, 0.42, 0.95, 0.32, 0.1);
-  shellPlate(torso, geo.soft, m.armorB, 1.34, -0.72, 0.12, 0.48, 0.42, 0.1);
-  shellPlate(torso, geo.soft, m.armorB, 1.34, 0.72, 0.12, 0.48, 0.42, 0.1);
-  shellPlate(torso, geo.soft, m.armor, 1.3, 0, -0.4, 0.85, 0.28, 0.1);
-  shellPlate(torso, geo.soft, m.plate, 1.32, -0.95, -0.15, 0.4, 0.3, 0.08);
-  shellPlate(torso, geo.soft, m.plate, 1.32, 0.95, -0.15, 0.4, 0.3, 0.08);
+  // Face frame around the cyclops — brow ridge, cheeks, jaw keel.
+  shellPlate(torso, geo.soft, m.armorC, 1.4, 0, 0.48, 1.15, 0.38, 0.16);
+  shellPlate(torso, geo.soft, m.plate, 1.42, 0, 0.58, 0.95, 0.16, 0.1);
+  shellPlate(torso, geo.soft, m.armorB, 1.4, -0.78, 0.08, 0.55, 0.5, 0.14);
+  shellPlate(torso, geo.soft, m.armorB, 1.4, 0.78, 0.08, 0.55, 0.5, 0.14);
+  shellPlate(torso, geo.soft, m.armor, 1.36, 0, -0.48, 0.95, 0.34, 0.14);
+  shellPlate(torso, geo.soft, m.plate, 1.38, -1.05, -0.12, 0.42, 0.32, 0.1);
+  shellPlate(torso, geo.soft, m.plate, 1.38, 1.05, -0.12, 0.42, 0.32, 0.1);
 
-  // Lower abdomen — continuation of the hull, not a boxy slab.
-  add(torso, geo.sphere, m.armorB, 1.85, 0.85, 1.45, 0, 0.38, 0.1);
-  add(torso, geo.soft, m.armor, 1.55, 0.42, 1.15, 0, 0.22, 0.16);
-  add(torso, geo.box, m.emit, 0.7, 0.03, 0.05, 0, 0.48, 0.78);
-  add(torso, geo.box, m.emit, 0.04, 0.28, 0.05, -0.42, 0.32, 0.72);
-  add(torso, geo.box, m.emit, 0.04, 0.28, 0.05, 0.42, 0.32, 0.72);
+  // Sternum keel under the eye — vertical split with a red seam.
+  add(torso, geo.soft, m.plate, 0.38, 0.72, 0.28, 0, 0.72, 1.22);
+  add(torso, geo.box, m.emit, 0.05, 0.55, 0.06, 0, 0.7, 1.36);
+  add(torso, geo.soft, m.armor, 0.85, 0.38, 0.55, 0, 0.38, 1.05);
+  add(torso, geo.sphere, m.armorB, 1.95, 0.92, 1.55, 0, 0.32, 0.12);
 
-  // Side vent banks.
+  // Side vent banks carved into the equator.
   for (const side of [-1, 1]) {
-    add(torso, geo.soft, m.armorC, 0.38, 1.05, 1.15, side * 1.22, 1.18, 0.06, 0, 0, side * 0.16);
-    add(torso, geo.soft, m.dark, 0.18, 0.72, 0.85, side * 1.36, 1.18, 0.18);
-    for (let v = 0; v < 5; v++) {
-      add(torso, geo.hard, m.trim, 0.2, 0.04, 0.7, side * 1.38, 0.9 + v * 0.14, 0.2);
+    add(torso, geo.soft, m.armorC, 0.42, 1.15, 1.22, side * 1.36, 1.28, 0.08, 0, 0, side * 0.18);
+    add(torso, geo.soft, m.dark, 0.2, 0.82, 0.92, side * 1.5, 1.28, 0.2);
+    for (let v = 0; v < 6; v++) {
+      add(torso, geo.hard, m.trim, 0.22, 0.045, 0.78, side * 1.54, 0.96 + v * 0.13, 0.22);
     }
-    add(torso, geo.box, m.emit, 0.03, 0.7, 0.05, side * 1.46, 1.18, 0.38);
+    add(torso, geo.box, m.emit, 0.035, 0.82, 0.05, side * 1.6, 1.28, 0.42);
+    add(torso, geo.hex, m.trim, 0.18, 0.05, 0.18, side * 1.48, 1.85, 0.35, Math.PI / 2, 0, 0);
   }
 
   if (detail) {
     for (const [yaw, pitch] of [
-      [-0.85, 0.55],
-      [0.85, 0.55],
-      [-1.15, 0.15],
-      [1.15, 0.15],
-      [-0.7, -0.35],
-      [0.7, -0.35],
+      [-0.95, 0.62],
+      [0.95, 0.62],
+      [-1.35, 0.22],
+      [1.35, 0.22],
+      [-0.75, -0.38],
+      [0.75, -0.38],
+      [2.4, 0.35],
+      [-2.4, 0.35],
     ]) {
-      shellPlate(torso, geo.hex, m.trim, 1.4, yaw, pitch, 0.16, 0.16, 0.04);
+      shellPlate(torso, geo.hex, m.trim, 1.46, yaw, pitch, 0.18, 0.18, 0.05);
     }
   }
 
@@ -415,72 +510,89 @@ function buildTorso(torso: THREE.Group, m: TitanMats, detail: boolean) {
 }
 
 function buildCyclops(torso: THREE.Group, m: TitanMats) {
-  // Recessed well into the hull, then stacked plated rings like the reference.
-  add(torso, geo.cyl, m.dark, 1.05, 0.55, 1.05, 0, 1.32, 0.88, Math.PI / 2, 0, 0);
-  add(torso, geo.cyl, m.plate, 0.92, 0.2, 0.92, 0, 1.32, 1.05, Math.PI / 2, 0, 0);
-  const rings: [number, THREE.Material, number][] = [
-    [1.28, m.armorC, 0.14],
-    [1.12, m.emit, 0.08],
-    [1.0, m.armorB, 0.12],
-    [0.86, m.emit, 0.07],
-    [0.74, m.dark, 0.1],
-    [0.58, m.emit, 0.06],
+  const y = HULL.y + 0.1;
+  const z = HULL.z + 1.12;
+  // Deep well bored into the hull.
+  add(torso, geo.cyl, m.dark, 1.22, 0.72, 1.22, 0, y, z - 0.22, Math.PI / 2, 0, 0);
+  add(torso, geo.cyl, m.plate, 1.32, 0.18, 1.32, 0, y, z + 0.02, Math.PI / 2, 0, 0);
+  add(torso, geo.cyl, m.armorC, 1.18, 0.14, 1.18, 0, y, z + 0.1, Math.PI / 2, 0, 0);
+  add(torso, geo.cyl, m.dark, 1.02, 0.12, 1.02, 0, y, z + 0.16, Math.PI / 2, 0, 0);
+
+  const rings: [number, THREE.Material][] = [
+    [1.38, m.armorC],
+    [1.22, m.emit],
+    [1.08, m.plate],
+    [0.94, m.emit],
+    [0.8, m.dark],
+    [0.64, m.emit],
   ];
-  let z = 1.08;
-  for (const [size, mat, fat] of rings) {
-    const g = fat > 0.09 ? geo.torusFat : geo.torus;
-    add(torso, g, mat, size, size, size, 0, 1.32, z);
-    z += 0.045;
+  let zz = z + 0.08;
+  for (const [size, mat] of rings) {
+    add(torso, geo.torusFat, mat, size, size, size, 0, y, zz);
+    zz += 0.04;
   }
-  add(torso, geo.cyl, m.dark, 0.7, 0.12, 0.7, 0, 1.32, 1.2, Math.PI / 2, 0, 0);
-  add(torso, geo.sphere, m.lens, 0.62, 0.62, 0.24, 0, 1.32, 1.28);
-  add(torso, geo.sphere, m.emit, 0.26, 0.26, 0.22, 0, 1.32, 1.4);
-  add(torso, geo.cyl, m.emit, 0.1, 0.1, 0.08, 0, 1.32, 1.5, Math.PI / 2, 0, 0);
-  // Brow vents either side of the iris.
-  add(torso, geo.hard, m.dark, 0.22, 0.06, 0.04, -0.62, 1.55, 1.12);
-  add(torso, geo.hard, m.dark, 0.22, 0.06, 0.04, 0.62, 1.55, 1.12);
+
+  add(torso, geo.cyl, m.dark, 0.78, 0.1, 0.78, 0, y, z + 0.28, Math.PI / 2, 0, 0);
+  const iris = new THREE.Mesh(new THREE.CircleGeometry(0.4, 32), m.iris);
+  iris.position.set(0, y, z + 0.34);
+  iris.castShadow = true;
+  torso.add(iris);
+  add(torso, geo.sphere, m.lens, 0.7, 0.7, 0.26, 0, y, z + 0.3);
+  add(torso, geo.sphere, m.emit, 0.3, 0.3, 0.24, 0, y, z + 0.42);
+  add(torso, geo.cyl, m.emit, 0.11, 0.08, 0.11, 0, y, z + 0.54, Math.PI / 2, 0, 0);
+
+  // Brow vents and cheek bolts.
+  add(torso, geo.hard, m.dark, 0.26, 0.07, 0.05, -0.68, y + 0.28, z + 0.08);
+  add(torso, geo.hard, m.dark, 0.26, 0.07, 0.05, 0.68, y + 0.28, z + 0.08);
+  add(torso, geo.hex, m.trim, 0.12, 0.04, 0.12, -0.82, y - 0.18, z + 0.02, Math.PI / 2, 0, 0);
+  add(torso, geo.hex, m.trim, 0.12, 0.04, 0.12, 0.82, y - 0.18, z + 0.02, Math.PI / 2, 0, 0);
 }
 
 function buildCrown(torso: THREE.Group, m: TitanMats) {
-  add(torso, geo.hex, m.armorC, 2.15, 0.18, 2.15, 0, 2.36, -0.02);
-  add(torso, geo.hex, m.plate, 1.95, 0.12, 1.95, 0, 2.48, -0.02);
-  add(torso, geo.hex, m.dark, 1.78, 0.08, 1.78, 0, 2.56, -0.02);
-  add(torso, geo.hex, m.emit, 1.7, 0.03, 1.7, 0, 2.58, -0.02);
-  const crown = new THREE.Mesh(new THREE.CircleGeometry(0.88, 6), m.hex);
-  crown.rotation.x = -Math.PI / 2 + 0.12;
-  crown.position.set(0, 2.62, 0.06);
-  crown.castShadow = true;
-  torso.add(crown);
+  const y = HULL.y + 1.18;
+  add(torso, geo.hex, m.armorC, 2.28, 0.2, 2.28, 0, y, 0);
+  add(torso, geo.hex, m.plate, 2.08, 0.14, 2.08, 0, y + 0.12, 0);
+  add(torso, geo.hex, m.dark, 1.88, 0.16, 1.88, 0, y + 0.16, 0);
+  add(torso, geo.hex, m.emit, 1.78, 0.035, 1.78, 0, y + 0.22, 0);
+  const well = new THREE.Mesh(new THREE.CircleGeometry(0.9, 6), m.hex);
+  well.rotation.x = -Math.PI / 2;
+  well.position.set(0, y + 0.24, 0.02);
+  well.castShadow = true;
+  torso.add(well);
+  // Raised hex lip bolts.
+  for (let i = 0; i < 6; i++) {
+    const a = (i / 6) * Math.PI * 2 + Math.PI / 6;
+    add(torso, geo.cyl, m.trim, 0.1, 0.06, 0.1, Math.cos(a) * 1.02, y + 0.22, Math.sin(a) * 1.02);
+  }
 }
 
 function buildMissilePod(torso: THREE.Group, side: number, m: TitanMats, detail: boolean) {
   const pod = new THREE.Group();
-  // High and outboard, flush with the hex crown like the reference.
-  pod.position.set(side * 1.42, 2.52, -0.02);
+  pod.position.set(side * 1.52, 2.72, 0);
   torso.add(pod);
-  add(pod, geo.soft, m.plate, 1.08, 0.52, 0.92, 0, 0, 0);
-  add(pod, geo.soft, m.dark, 0.95, 0.18, 0.8, 0, 0.22, 0);
-  add(pod, geo.soft, m.armor, 1.02, 0.22, 0.72, 0, -0.18, 0.02);
-  const cols = [-0.28, 0, 0.28];
-  const rows = [-0.22, 0, 0.22];
+  add(pod, geo.soft, m.plate, 1.12, 0.55, 0.98, 0, 0, 0);
+  add(pod, geo.soft, m.dark, 0.98, 0.2, 0.86, 0, 0.24, 0);
+  add(pod, geo.soft, m.armor, 1.06, 0.24, 0.76, 0, -0.2, 0.02);
+  const cols = [-0.3, 0, 0.3];
+  const rows = [-0.24, 0, 0.24];
   for (const x of cols) {
     for (const z of rows) {
-      add(pod, geo.cyl, m.dark, 0.2, 0.28, 0.2, x, 0.28, z);
-      add(pod, geo.cyl, m.plate, 0.16, 0.08, 0.16, x, 0.4, z);
-      add(pod, geo.cyl, m.emit, 0.08, 0.04, 0.08, x, 0.44, z);
+      add(pod, geo.cyl, m.dark, 0.22, 0.3, 0.22, x, 0.3, z);
+      add(pod, geo.cyl, m.plate, 0.17, 0.08, 0.17, x, 0.44, z);
+      add(pod, geo.cyl, m.emit, 0.09, 0.04, 0.09, x, 0.48, z);
     }
   }
   if (detail) {
-    add(pod, geo.box, m.emit, 0.72, 0.03, 0.04, 0, 0.02, 0.42);
-    add(pod, geo.hex, m.trim, 0.12, 0.04, 0.12, side * 0.38, -0.08, 0.38);
+    add(pod, geo.box, m.emit, 0.78, 0.03, 0.04, 0, 0.02, 0.46);
+    add(pod, geo.hex, m.trim, 0.12, 0.04, 0.12, side * 0.4, -0.1, 0.4);
   }
 }
 
 function buildPauldron(sh: THREE.Group, side: number, m: TitanMats) {
-  add(sh, geo.sphere, m.plate, 0.72, 0.72, 0.72, 0, 0.02, 0);
-  add(sh, geo.soft, m.armor, 0.95, 0.58, 0.92, -side * 0.12, 0.12, 0.02);
-  add(sh, geo.cyl, m.dark, 0.42, 0.55, 0.42, 0, -0.28, 0.02);
-  add(sh, geo.box, m.emit, 0.06, 0.04, 0.42, side * 0.38, 0.22, 0.08);
+  add(sh, geo.sphere, m.plate, 0.82, 0.78, 0.8, 0, 0.06, 0);
+  add(sh, geo.soft, m.armor, 1.05, 0.62, 0.98, -side * 0.14, 0.16, 0.04);
+  add(sh, geo.cyl, m.dark, 0.46, 0.58, 0.46, 0, -0.3, 0.02);
+  add(sh, geo.box, m.emit, 0.06, 0.04, 0.48, side * 0.42, 0.26, 0.1);
 }
 
 function buildTitanArm(arm: THREE.Group, side: number, m: TitanMats, detail: boolean) {

@@ -478,15 +478,13 @@ export class World {
     });
     const floor = new THREE.Mesh(
       new THREE.CircleGeometry(9.5, 48),
-      new THREE.MeshPhysicalMaterial({
-        color: 0x16181c,
-        metalness: 0.55,
-        roughness: 0.22,
-        clearcoat: 0.35,
-        clearcoatRoughness: 0.4,
+      new THREE.MeshStandardMaterial({
+        color: 0x0c0d10,
+        metalness: 0.18,
+        roughness: 0.62,
         map: concrete.map,
         normalMap: concrete.normalMap,
-        envMapIntensity: 0.85,
+        envMapIntensity: 0.35,
       }),
     );
     floor.rotation.x = -Math.PI / 2;
@@ -534,26 +532,26 @@ export class World {
       );
       strip.position.set(i * 4.6, 13.85, -2);
       this.hangar.add(strip);
-      const area = new THREE.RectAreaLight(0xfff1dc, 1.1, 4.5, 0.5);
+      const area = new THREE.RectAreaLight(0xfff1dc, 0.55, 4.5, 0.5);
       area.position.copy(strip.position);
       area.position.y -= 0.2;
       area.lookAt(0, 0, 0);
       this.hangar.add(area);
     }
 
-    const key = new THREE.SpotLight(0xffe8d4, 16, 30, 0.48, 0.32, 1.15);
-    key.position.set(-2.5, 12, 9);
-    key.target.position.set(0, 2.2, 0);
+    const key = new THREE.SpotLight(0xffe0c8, 9.5, 28, 0.42, 0.38, 1.15);
+    key.position.set(-2.2, 11, 8.5);
+    key.target.position.set(0, 3.1, 0.4);
     this.hangar.add(key);
     this.hangar.add(key.target);
-    const fill = new THREE.SpotLight(0xffc4a8, 3.4, 22, 0.75, 0.55, 1.2);
-    fill.position.set(4, 7, 9);
-    fill.target.position.set(0, 2.0, 0);
+    const fill = new THREE.SpotLight(0xffb090, 2.4, 20, 0.7, 0.55, 1.2);
+    fill.position.set(4.2, 6.5, 8);
+    fill.target.position.set(0, 2.6, 0.2);
     this.hangar.add(fill);
     this.hangar.add(fill.target);
-    const rim = new THREE.SpotLight(0xff5533, 3.8, 20, 0.7, 0.5, 1.2);
-    rim.position.set(5, 8, -7);
-    rim.target.position.set(0, 2.6, 0);
+    const rim = new THREE.SpotLight(0xff4428, 4.6, 18, 0.65, 0.48, 1.2);
+    rim.position.set(5, 8.2, -6.5);
+    rim.target.position.set(0, 3.2, 0);
     this.hangar.add(rim);
     this.hangar.add(rim.target);
 
