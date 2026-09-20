@@ -542,7 +542,9 @@ export class World {
     key.target.position.set(0, 3.2, 0.5);
     this.hangar.add(key);
     this.hangar.add(key.target);
-    const chest = new THREE.DirectionalLight(0xfff0e4, 1.35);
+    const amb = new THREE.AmbientLight(0x7a828c, 0.7);
+    this.hangar.add(amb);
+    const chest = new THREE.DirectionalLight(0xfff0e4, 2.1);
     chest.position.set(-4, 7, 10);
     chest.target.position.set(0, 3.1, 0.4);
     this.hangar.add(chest);
@@ -589,7 +591,7 @@ export class World {
     if (on) {
       this.scene.fog = new THREE.FogExp2(0x08090c, 0.005);
       this.sun.intensity = 0.55;
-      this.hemi.intensity = 0.38;
+      this.hemi.intensity = 0.7;
       this.fill.intensity = 0.22;
       this.scene.environmentIntensity = 0.28;
     } else {

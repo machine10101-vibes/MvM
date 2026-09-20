@@ -575,26 +575,23 @@ export function makeHexCellMap() {
   return t;
 }
 
-/** Concentric cyclops iris — dark bezel, red rings, white-hot core. */
+/** Recessed cyclops — dark metal well, one red ring, hot pupil. */
 export function makeCyclopsIrisMap() {
   const size = 512;
   const { c, ctx } = canvas(size);
   const cx = size / 2;
   const cy = size / 2;
-  ctx.fillStyle = "#050204";
+  ctx.fillStyle = "#07080a";
   ctx.fillRect(0, 0, size, size);
   const rings: [number, string][] = [
-    [1.0, "#0a0608"],
-    [0.92, "#1a1214"],
-    [0.84, "#3a2020"],
-    [0.76, "#ff2a22"],
-    [0.7, "#140808"],
-    [0.58, "#2a1010"],
-    [0.5, "#ff3a28"],
-    [0.42, "#180606"],
-    [0.3, "#ff2218"],
-    [0.18, "#ff6644"],
-    [0.08, "#ffe8d0"],
+    [1.0, "#121418"],
+    [0.9, "#1c2026"],
+    [0.78, "#0a0c10"],
+    [0.62, "#ff2a22"],
+    [0.54, "#140606"],
+    [0.38, "#1a0a0a"],
+    [0.22, "#ff3a28"],
+    [0.1, "#ffe0c0"],
   ];
   for (const [t, color] of rings) {
     ctx.beginPath();
@@ -602,15 +599,10 @@ export function makeCyclopsIrisMap() {
     ctx.fillStyle = color;
     ctx.fill();
   }
-  ctx.strokeStyle = "rgba(255,48,36,0.85)";
-  ctx.lineWidth = 5;
+  ctx.strokeStyle = "rgba(255,48,36,0.7)";
+  ctx.lineWidth = 6;
   ctx.beginPath();
-  ctx.arc(cx, cy, size * 0.38, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.strokeStyle = "rgba(255,70,48,0.55)";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(cx, cy, size * 0.25, 0, Math.PI * 2);
+  ctx.arc(cx, cy, size * 0.31, 0, Math.PI * 2);
   ctx.stroke();
   const t = tex(c, { repeat: 1, color: true, aniso: 8 });
   t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
@@ -621,27 +613,35 @@ export function makeCyclopsIrisMap() {
 export function makeTitanHullMap() {
   const size = 512;
   const { c, ctx } = canvas(size);
-  ctx.fillStyle = "#3a4048";
+  ctx.fillStyle = "#08090c";
   ctx.fillRect(0, 0, size, size);
-  const pw = 64;
-  const ph = 48;
+  const pw = 96;
+  const ph = 72;
   for (let y = 0; y < size; y += ph) {
-    for (let x = 0; x < size; x += pw) {
-      const shade = 52 + ((x / pw + y / ph) % 3) * 10;
-      ctx.fillStyle = `rgb(${shade + 8},${shade + 4},${shade})`;
-      ctx.fillRect(x + 3, y + 3, pw - 6, ph - 6);
-      ctx.strokeStyle = "rgba(8,8,10,0.95)";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(x + 1.5, y + 1.5, pw - 3, ph - 3);
-      ctx.strokeStyle = "rgba(255,40,32,0.22)";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 4, y + 4, pw - 8, ph - 8);
-      ctx.fillStyle = "#9aa2aa";
+    const stagger = (Math.floor(y / ph) % 2) * (pw / 2);
+    for (let x = -pw; x < size + pw; x += pw) {
+      const px = x + stagger;
+      const shade = 118 + ((x / pw + y / ph) % 3) * 28;
+      ctx.fillStyle = `rgb(${shade + 10},${shade + 6},${shade})`;
+      ctx.fillRect(px + 6, y + 6, pw - 12, ph - 12);
+      ctx.strokeStyle = "#050608";
+      ctx.lineWidth = 7;
+      ctx.strokeRect(px + 3, y + 3, pw - 6, ph - 6);
+      ctx.strokeStyle = "rgba(255,42,32,0.35)";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(px + 10, y + 10, pw - 20, ph - 20);
+      ctx.fillStyle = "#d0d6dc";
       ctx.beginPath();
-      ctx.arc(x + 10, y + 10, 2.2, 0, Math.PI * 2);
+      ctx.arc(px + 16, y + 16, 3.4, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(x + pw - 10, y + 10, 2.2, 0, Math.PI * 2);
+      ctx.arc(px + pw - 16, y + 16, 3.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px + 16, y + ph - 16, 3.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(px + pw - 16, y + ph - 16, 3.4, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -651,7 +651,7 @@ export function makeTitanHullMap() {
     height[i] = img.data[i * 4] / 255;
   }
   return {
-    map: tex(c, { repeat: 3, color: true, aniso: 8 }),
-    normalMap: tex(heightToNormal(height, size, 14), { repeat: 3 }),
+    map: tex(c, { repeat: 2, color: true, aniso: 8 }),
+    normalMap: tex(heightToNormal(height, size, 18), { repeat: 2 }),
   };
 }
