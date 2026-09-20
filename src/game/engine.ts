@@ -176,13 +176,15 @@ export class Engine {
     if (this.view === "hangar") {
       const t = time / 1000;
       const hulking = p.chassis === "titan";
-      // Stay inside the hangar bay (walls at ~13.4) so the orbit never clips.
-      const dist = hulking ? 11.6 : 12.2;
-      this.camera.position.set(Math.sin(t * 0.2) * dist, hulking ? 4.35 : 3.55, Math.cos(t * 0.2) * dist);
-      this.camera.lookAt(p.x, hulking ? 1.9 : 1.55, p.z);
+      // Stay inside the hangar bay (walls at ~13.4). Titan starts on a 3/4
+      // front orbit so the hex crown, cyclops, and tube pods all read.
+      const dist = hulking ? 11.8 : 12.2;
+      const a = hulking ? t * 0.12 + 0.62 : t * 0.2;
+      this.camera.position.set(Math.sin(a) * dist, hulking ? 3.85 : 3.55, Math.cos(a) * dist);
+      this.camera.lookAt(p.x, hulking ? 2.15 : 1.55, p.z);
       p.x = 0;
       p.z = 0;
-      p.yaw += dt * 0.18;
+      if (!hulking) p.yaw += dt * 0.18;
       return;
     }
     if (this.view === "title") {
