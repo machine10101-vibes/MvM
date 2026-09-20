@@ -4,6 +4,7 @@ import { input } from "./input";
 import { buildMech, poseMech, type MechRig } from "./mech-mesh";
 import { detectQuality, PostFx } from "./postfx";
 import { Sim } from "./sim";
+import { rayHitsBuilding } from "./city";
 import type { ChassisId, ControlsProbe, GameMode, HudSnap, Loadout, ViewMode } from "./types";
 import { Vfx } from "./vfx";
 import { World } from "./world";
@@ -27,6 +28,7 @@ export class Engine {
   private _look = new THREE.Vector3();
   private disposed = false;
   private hangarIndex = 0;
+  hangarWalk = false;
   private world: World;
   private vfx: Vfx;
   private post: PostFx;
@@ -42,7 +44,7 @@ export class Engine {
     this.renderer.setPixelRatio(this.quality.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.92;
+    this.renderer.toneMappingExposure = 0.78;
     this.renderer.shadowMap.enabled = this.quality.shadows;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.shadowMap.autoUpdate = true;
@@ -126,6 +128,17 @@ export class Engine {
     this.syncRigs();
   }
 
+  applyLoadout(loadout: Loadout) {
+    this.sim.loadout = loadout;
+    const p = this.sim.local;
+    if (!p) return;
+    if (p.chassis !== loadout.chassis) this.sim.setHangarChassis(loadout.chassis);
+    p.primary = loadout.primary;
+    p.secondary = loadout.secondary;
+    this.sim.applyLoadoutStats(p);
+    this.syncRigs();
+  }
+
   start() {
     if (this.running) return;
     this.running = true;
@@ -180,7 +193,14 @@ export class Engine {
     const fx = -Math.sin(look);
     const fz = -Math.cos(look);
     this.camDist = THREE.MathUtils.lerp(this.camDist, 12.4, 1 - Math.exp(-dt * 3));
-    this._desired.set(p.x - fx * this.camDist, p.y + 5.6, p.z - fz * this.camDist);
+    const wantX = p.x - fx * this.camDist;
+    const wantZ = p.z - fz * this.camDist;
+    const backX = wantX - p.x;
+    const backZ = wantZ - p.z;
+    const backLen = Math.hypot(backX, backZ) || 1;
+    const blocked = rayHitsBuilding(p.x, p.z, backX / backLen, backZ / backLen, backLen, this.sim.city.buildings);
+    const dist = Math.max(4.2, blocked - 1.1);
+    this._desired.set(p.x + (backX / backLen) * dist, p.y + 5.6, p.z + (backZ / backLen) * dist);
     this.vfx.shakeOffset(_shake);
     this._desired.add(_shake);
     this.camera.position.lerp(this._desired, 1 - Math.exp(-dt * 6));
@@ -193,9 +213,14 @@ export class Engine {
     for (const m of this.sim.mechs) {
       seen.add(m.id);
       let rig = this.rigs.get(m.id);
-      if (!rig || rig.chassis !== m.chassis) {
+      if (!rig || rig.chassis !== m.chassis || rig.primary !== m.primary || rig.secondary !== m.secondary) {
         if (rig) this.scene.remove(rig.root);
-        rig = buildMech(m.chassis, !m.alive && m.hp <= 0 && !m.isLocal, this.quality.mobile);
+        rig = buildMech(
+          m.chassis,
+          !m.alive && m.hp <= 0 && !m.isLocal,
+          this.quality.mobile,
+          { primary: m.primary, secondary: m.secondary },
+        );
         this.rigs.set(m.id, rig);
         this.scene.add(rig.root);
       }
@@ -203,8 +228,12 @@ export class Engine {
       rig.root.position.set(m.x, m.y, m.z);
       rig.root.rotation.y = m.yaw;
       if (this.view === "hangar" && m.isLocal) {
-        m.speed = 0;
-        m.walk = 0;
+        if (this.hangarWalk) {
+          m.speed = 5.2;
+          m.walk += 0.085;
+        } else {
+          m.speed = 0;
+        }
       }
       poseMech(
         rig,

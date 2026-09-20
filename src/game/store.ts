@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { defaultLoadout } from "./catalog";
-import type { ChassisId, HudSnap, Loadout, MatchMode, Screen } from "./types";
+import { CHASSIS, defaultLoadout } from "./catalog";
+import type { ChassisId, HudSnap, Loadout, MatchMode, Screen, WeaponId } from "./types";
 
 const SAVE_KEY = "mvm-hangar-v1";
 
@@ -25,6 +25,7 @@ export interface GameState {
   muted: boolean;
   setScreen: (s: Screen) => void;
   setChassis: (id: ChassisId) => void;
+  setWeapons: (slot: "primary" | "secondary", id: WeaponId) => void;
   setLoadout: (l: Loadout) => void;
   setHud: (h: HudSnap) => void;
   setRoom: (code: string) => void;
@@ -46,7 +47,18 @@ export const useGame = create<GameState>((set) => ({
   setScreen: (screen) => set({ screen }),
   setChassis: (id) =>
     set((s) => {
-      const loadout = { ...s.loadout, chassis: id };
+      const c = CHASSIS[id];
+      const loadout = { ...s.loadout, chassis: id, primary: c.primary, secondary: c.secondary };
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(loadout));
+      } catch {
+        /* ignore */
+      }
+      return { loadout };
+    }),
+  setWeapons: (slot, id) =>
+    set((s) => {
+      const loadout = { ...s.loadout, [slot]: id };
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(loadout));
       } catch {

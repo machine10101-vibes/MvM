@@ -105,14 +105,14 @@ export class World {
     uniforms.showSunDisc.value = 1;
     scene.add(this.sky);
     scene.environment = this.env;
-    scene.environmentIntensity = 0.92;
-    scene.fog = new THREE.FogExp2(0x5a4638, 0.0084);
-    scene.background = new THREE.Color(0x1a1614);
+    scene.environmentIntensity = 0.78;
+    scene.fog = new THREE.FogExp2(0x2a221c, 0.0062);
+    scene.background = new THREE.Color(0x121014);
 
-    this.hemi = new THREE.HemisphereLight(0xb7c4d8, 0x2c241c, 0.58);
+    this.hemi = new THREE.HemisphereLight(0x8a96a8, 0x1c1814, 0.42);
     scene.add(this.hemi);
 
-    this.sun = new THREE.DirectionalLight(0xffc9a0, quality.mobile ? 1.55 : 2.05);
+    this.sun = new THREE.DirectionalLight(0xffb888, quality.mobile ? 1.2 : 1.55);
     this.sun.position.copy(this.sunDir).multiplyScalar(80);
     this.sun.castShadow = quality.shadows;
     if (quality.shadows) {
@@ -145,8 +145,8 @@ export class World {
         roughnessMap: groundT.roughnessMap,
         roughness: 0.95,
         metalness: 0.04,
-        color: 0x9a9aa0,
-        envMapIntensity: 0.35,
+        color: 0x4e4c4a,
+        envMapIntensity: 0.28,
       }),
     );
     this.ground.rotation.x = -Math.PI / 2;
@@ -156,7 +156,7 @@ export class World {
     const plaza = new THREE.Mesh(
       new THREE.CircleGeometry(22, 48),
       new THREE.MeshPhysicalMaterial({
-        color: 0x3a3c42,
+        color: 0x2a2c30,
         metalness: 0.18,
         roughness: 0.22,
         clearcoat: 0.55,
@@ -178,8 +178,8 @@ export class World {
       roughnessMap: asphaltT.roughnessMap,
       roughness: 0.72,
       metalness: 0.08,
-      color: 0x888990,
-      envMapIntensity: 0.45,
+      color: 0x3c3e44,
+      envMapIntensity: 0.35,
     });
     for (let i = -2; i <= 2; i++) {
       const h = new THREE.Mesh(new THREE.BoxGeometry(MAP_SIZE, 0.06, 11), roadMat);
@@ -235,6 +235,29 @@ export class World {
           ruined: false,
         });
       }
+      if (!b.ruined) {
+        boxes.push({
+          x: b.x,
+          y: b.h + 0.18,
+          z: b.z,
+          w: b.w + 1.1,
+          h: 0.35,
+          d: b.d + 1.1,
+          rot: b.rot,
+          ruined: false,
+        });
+      } else {
+        boxes.push({
+          x: b.x + Math.sin(b.rot) * 2.2,
+          y: Math.max(1.1, b.h * 0.22),
+          z: b.z + 1.6,
+          w: b.w * 0.55,
+          h: Math.max(1.4, b.h * 0.28),
+          d: b.d * 0.7,
+          rot: b.rot + 0.55,
+          ruined: true,
+        });
+      }
     }
     const intact = boxes.filter((b) => !b.ruined);
     const ruined = boxes.filter((b) => b.ruined);
@@ -247,8 +270,8 @@ export class World {
       emissiveIntensity: 0.85,
       roughness: 0.72,
       metalness: 0.08,
-      color: 0xc4c8ce,
-      envMapIntensity: 0.55,
+      color: 0x6e7278,
+      envMapIntensity: 0.42,
     });
     const ruinMat = wallMat.clone();
     ruinMat.map = ruin.map;
@@ -256,7 +279,7 @@ export class World {
     ruinMat.roughnessMap = ruin.roughnessMap;
     ruinMat.emissiveMap = ruin.emissiveMap;
     ruinMat.emissiveIntensity = 0.4;
-    ruinMat.color = new THREE.Color(0xb0a89c);
+    ruinMat.color = new THREE.Color(0x6a6258);
     const roofMat = new THREE.MeshStandardMaterial({
       color: 0x2a2c30,
       roughness: 0.82,
@@ -558,17 +581,17 @@ export class World {
     this.group.visible = true;
     this.sky.visible = true;
     if (on) {
-      this.scene.fog = new THREE.FogExp2(0x3a322c, 0.012);
-      this.sun.intensity = 0.85;
-      this.hemi.intensity = 0.32;
-      this.fill.intensity = 0.12;
-      this.scene.environmentIntensity = 0.7;
+      this.scene.fog = new THREE.FogExp2(0x1c1816, 0.01);
+      this.sun.intensity = 0.7;
+      this.hemi.intensity = 0.28;
+      this.fill.intensity = 0.1;
+      this.scene.environmentIntensity = 0.55;
     } else {
-      this.scene.fog = new THREE.FogExp2(0x5a4638, 0.0084);
-      this.sun.intensity = this.sun.castShadow ? 2.05 : 1.55;
-      this.hemi.intensity = 0.58;
-      this.fill.intensity = 0.28;
-      this.scene.environmentIntensity = 0.92;
+      this.scene.fog = new THREE.FogExp2(0x2a221c, 0.0062);
+      this.sun.intensity = this.sun.castShadow ? 1.55 : 1.2;
+      this.hemi.intensity = 0.42;
+      this.fill.intensity = 0.22;
+      this.scene.environmentIntensity = 0.78;
     }
   }
 

@@ -38,6 +38,9 @@ export function Hud() {
             <p className="font-display text-xs tracking-[0.2em] uppercase">{hud.mode}</p>
           )}
           <p className="mt-1 font-mono text-xs tabular text-muted">{hud.kills} kills</p>
+          {hud.mode === "survival" ? (
+            <p className="font-mono text-xs tabular text-muted">{hud.aliveEnemies} hostiles</p>
+          ) : null}
         </div>
       </div>
 
@@ -75,7 +78,7 @@ export function Hud() {
           <Cooldown frac={hud.cdPrimary} />
         </div>
         <div className="hidden max-w-sm text-center font-mono text-[10px] tracking-widest text-muted uppercase sm:block">
-          WASD move · mouse aim · LMB fire · RMB alt · shift boost · space jets
+          WASD · Q/C strafe · R vent · LMB fire · RMB alt · shift boost · space jets
         </div>
         <div className="rounded-[var(--radius-md)] border border-border bg-bg/70 px-3 py-2 text-right backdrop-blur-sm">
           <p className="text-[10px] uppercase tracking-widest text-muted">Secondary</p>
@@ -86,7 +89,7 @@ export function Hud() {
 
       {hud.overheat ? (
         <p className="absolute top-[28%] left-1/2 -translate-x-1/2 font-display text-sm tracking-[0.25em] text-heat uppercase">
-          Overheat
+          Overheat — tap R to vent
         </p>
       ) : null}
       {hud.toast ? (

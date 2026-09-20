@@ -16,6 +16,7 @@ const GAME_KEYS = new Set([
   "KeyE",
   "KeyQ",
   "KeyR",
+  "KeyC",
   "KeyF",
   "Escape",
   "KeyP",
@@ -148,6 +149,9 @@ export class Input {
     }
     steer = clamp(steer, -1, 1);
 
+    let strafe = (keys.has("KeyQ") ? -1 : 0) + (keys.has("KeyC") ? 1 : 0);
+    let vent = keys.has("KeyR");
+
     const rawPads = typeof navigator !== "undefined" ? navigator.getGamepads?.() : null;
     const pads = rawPads ? Array.from(rawPads) : [];
     for (const pad of pads) {
@@ -158,6 +162,9 @@ export class Input {
       steer += -ls.x;
       look.x += rs.x * 14;
       look.y += rs.y * 10;
+      if (pad.buttons[15]?.pressed) strafe += 1;
+      if (pad.buttons[14]?.pressed) strafe -= 1;
+      if (pad.buttons[2]?.pressed) vent = true;
       if (pad.buttons[7]?.value) throttle = Math.max(throttle, pad.buttons[7].value);
       if (pad.buttons[6]?.pressed) this.touch.boost = true;
       if (pad.buttons[0]?.pressed) this.touch.jump = true;
@@ -174,6 +181,8 @@ export class Input {
       alt: this.altFiring || this.touch.alt || keys.has("KeyE"),
       boost: keys.has("ShiftLeft") || keys.has("ShiftRight") || this.touch.boost,
       jump: keys.has("Space") || this.touch.jump,
+      vent,
+      strafe: clamp(strafe, -1, 1),
       pause: keys.has("Escape") || keys.has("KeyP"),
     };
   }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { CHASSIS, CHASSIS_LIST, WEAPONS } from "@/game/catalog";
+import { CHASSIS, CHASSIS_LIST, WEAPON_LIST, WEAPONS } from "@/game/catalog";
 import { useGame } from "@/game/store";
 import { Button } from "@/components/ui/button";
 import { SignedIn, SignedOut, SignInGate, UserButton } from "@/lib/auth/gates";
@@ -49,7 +49,7 @@ export function TitleOverlay({ engine, onStart }: { engine: Engine | null; onSta
           </Button>
         </div>
         <p className="hidden text-xs text-subtle sm:block">
-          W/S throttle · A/D turn · mouse aim · click fire · Shift boost · Space jump jets
+          W/S throttle · A/D turn · Q/C strafe · mouse aim · LMB fire · RMB/E alt · R vent · Shift boost · Space jets
         </p>
       </div>
     </div>
@@ -57,9 +57,10 @@ export function TitleOverlay({ engine, onStart }: { engine: Engine | null; onSta
 }
 
 export function HangarOverlay({ engine }: { engine: Engine | null }) {
-  const { loadout, setChassis, setScreen, setLoadout } = useGame();
+  const { loadout, setChassis, setWeapons, setScreen, setLoadout } = useGame();
   const user = useCurrentUser();
   const def = CHASSIS[loadout.chassis];
+  const [walk, setWalk] = useState(false);
 
   useEffect(() => {
     engine?.setView("hangar");
@@ -89,6 +90,12 @@ export function HangarOverlay({ engine }: { engine: Engine | null }) {
     engine?.setHangar(id);
   }
 
+  function pickWeapon(slot: "primary" | "secondary", id: WeaponId) {
+    setWeapons(slot, id);
+    const next = { ...useGame.getState().loadout, [slot]: id };
+    engine?.applyLoadout(next);
+  }
+
   function persist() {
     if (!user) return;
     void saveHangar({
@@ -108,7 +115,7 @@ export function HangarOverlay({ engine }: { engine: Engine | null }) {
           <h2 className="font-display text-3xl">{def.name}</h2>
           <p className="text-sm text-muted">{def.role} — {def.blurb}</p>
         </div>
-        <Button variant="ghost" onClick={() => { engine?.setView("title"); setScreen("title"); }}>
+        <Button variant="ghost" onClick={() => { if (engine) engine.hangarWalk = false; engine?.setView("title"); setScreen("title"); }}>
           Back
         </Button>
       </header>
@@ -129,22 +136,57 @@ export function HangarOverlay({ engine }: { engine: Engine | null }) {
             </button>
           ))}
         </div>
-        <div className="flex gap-2">
-          <div className="hidden rounded-[var(--radius-md)] border border-border bg-bg/70 px-3 py-2 text-xs text-muted sm:block">
-            <p>{WEAPONS[def.primary].name}</p>
-            <p>{WEAPONS[def.secondary].name}</p>
-            <p className="tabular">{def.hp} hull · {def.armor} plate · {def.speed} m/s</p>
+        <div className="flex flex-col gap-2 sm:items-end">
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <label className="space-y-1">
+              <span className="uppercase tracking-widest text-muted">Primary</span>
+              <select
+                className="h-10 w-full rounded-[var(--radius-sm)] border border-border bg-bg/80 px-2 text-fg"
+                value={loadout.primary}
+                onChange={(e) => pickWeapon("primary", e.target.value as WeaponId)}
+              >
+                {WEAPON_LIST.map((w) => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1">
+              <span className="uppercase tracking-widest text-muted">Secondary</span>
+              <select
+                className="h-10 w-full rounded-[var(--radius-sm)] border border-border bg-bg/80 px-2 text-fg"
+                value={loadout.secondary}
+                onChange={(e) => pickWeapon("secondary", e.target.value as WeaponId)}
+              >
+                {WEAPON_LIST.map((w) => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            </label>
           </div>
-          <Button
-            size="lg"
-            onClick={() => {
-              persist();
-              setScreen("title");
-              engine?.setView("title");
-            }}
-          >
-            Confirm Frame
-          </Button>
+          <p className="tabular text-xs text-muted">{def.hp} hull · {def.armor} plate · {def.speed} m/s</p>
+          <div className="flex gap-2">
+            <Button
+              variant={walk ? "primary" : "secondary"}
+              onClick={() => {
+                const next = !walk;
+                setWalk(next);
+                if (engine) engine.hangarWalk = next;
+              }}
+            >
+              {walk ? "Stop gait" : "Cycle gait"}
+            </Button>
+            <Button
+              size="lg"
+              onClick={() => {
+                persist();
+                if (engine) engine.hangarWalk = false;
+                setScreen("title");
+                engine?.setView("title");
+              }}
+            >
+              Confirm Frame
+            </Button>
+          </div>
         </div>
       </div>
     </div>

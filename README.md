@@ -13,7 +13,7 @@ No Roblox / Rojo place file. Survival mode, hangar loadouts, and local callsigns
 3. **Hangar** — pick a chassis; the choice is saved in this browser.
 4. **Multiplayer** — room codes and P2P mesh still exist, but GitHub Pages has no `/api/rtc` signaling server. Peers will not connect on this host. Share the repo and self-host with a signaling backend if you want drops with friends.
 
-Controls: **W/S** throttle · **A/D** turn · mouse aim · click fire · **Shift** boost · **Space** jump jets · **Esc** pause.
+Controls: **W/S** throttle · **A/D** turn · **Q/C** strafe · mouse aim · **LMB** fire · **RMB / E** alt · **R** vent heat · **Shift** boost · **Space** jump jets · **Esc** pause. Hangar can swap primary/secondary weapons and preview the walk cycle.
 
 ## Local development
 

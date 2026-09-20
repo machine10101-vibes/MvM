@@ -72,6 +72,8 @@ function makeMech(
     fireFlash: 0,
     altFlash: 0,
     walk: 0,
+    sidestep: 0,
+    venting: 0,
     kills: 0,
     deaths: 0,
     aimX: -Math.sin(yaw),
@@ -198,7 +200,7 @@ export class Sim {
     Object.assign(p, fresh, { x: 0, z: 0, y: 0, yaw: p.yaw });
   }
 
-  private applyLoadoutStats(m: Mech) {
+  applyLoadoutStats(m: Mech) {
     const c = CHASSIS[m.chassis];
     const stats = applyItems(
       { hp: c.hp, armor: c.armor, speed: c.speed, heatCap: c.heatCap, dmgMul: 1 },
@@ -275,6 +277,23 @@ export class Sim {
     const reverse = m.speed >= 0 ? 1 : -1;
     m.yaw += a.steer * c.turn * speedFactor * reverse * dt;
 
+    const topLat = top * 0.62;
+    const wantSide = a.strafe * topLat;
+    if (a.strafe !== 0) m.sidestep += Math.sign(wantSide - m.sidestep) * 28 * dt;
+    else m.sidestep += -Math.sign(m.sidestep) * 22 * dt;
+    if (Math.abs(m.sidestep - wantSide) < 0.35 && a.strafe !== 0) m.sidestep = wantSide;
+    if (Math.abs(m.sidestep) < 0.2 && a.strafe === 0) m.sidestep = 0;
+    m.sidestep = clamp(m.sidestep, -topLat, topLat);
+
+    if (a.vent && m.venting <= 0 && m.heat > 8) {
+      m.venting = 1.15;
+      m.heat = Math.max(0, m.heat - 42);
+      this.toast = "HEAT VENT";
+      this.toastT = 0.7;
+      audio.ui();
+    }
+    m.venting = Math.max(0, m.venting - dt);
+
     if (a.boost && m.boost > 0) {
       m.boost = Math.max(0, m.boost - dt * 0.28);
       const bx = Math.sin(m.yaw);
@@ -293,7 +312,7 @@ export class Sim {
     m.aimY = Math.sin(-m.pitch) + 0.08;
 
     this.updateLock(m, dt);
-    const overheat = m.heat >= m.heatCap;
+    const overheat = m.heat >= m.heatCap || m.venting > 0;
     if (!overheat) {
       if (a.fire) this.tryFire(m, m.primary, false);
       if (a.alt) this.tryFire(m, m.secondary, true);
@@ -304,8 +323,10 @@ export class Sim {
   private integrate(m: Mech, dt: number) {
     const fx = -Math.sin(m.yaw);
     const fz = -Math.cos(m.yaw);
-    m.x += fx * m.speed * dt;
-    m.z += fz * m.speed * dt;
+    const rx = -Math.cos(m.yaw);
+    const rz = Math.sin(m.yaw);
+    m.x += fx * m.speed * dt + rx * m.sidestep * dt;
+    m.z += fz * m.speed * dt + rz * m.sidestep * dt;
     m.vy -= 22 * dt;
     m.y += m.vy * dt;
     if (m.y < 0) {
@@ -315,7 +336,7 @@ export class Sim {
     const resolved = resolveBuildings(m.x, m.z, RADIUS, this.city.buildings);
     m.x = resolved.x;
     m.z = resolved.z;
-    m.walk += Math.abs(m.speed) * dt * 1.7;
+    m.walk += (Math.abs(m.speed) + Math.abs(m.sidestep) * 0.85) * dt * 1.7;
     m.cdPrimary = Math.max(0, m.cdPrimary - dt);
     m.cdSecondary = Math.max(0, m.cdSecondary - dt);
     m.fireFlash = Math.max(0, m.fireFlash - dt);
@@ -663,9 +684,15 @@ export class Sim {
 
   collect(item: ItemDef) {
     this.loadout.items = [...this.loadout.items, item].slice(-12);
-    if (item.weaponId) {
-      if (item.kind === "weapon") this.loadout.primary = item.weaponId;
+    if (item.weaponId && item.kind === "weapon") {
+      const stock = CHASSIS[this.local.chassis].primary;
+      if (this.local.primary === stock && item.weaponId !== this.local.primary) {
+        this.loadout.primary = item.weaponId;
+      } else if (item.weaponId !== this.local.primary) {
+        this.loadout.secondary = item.weaponId;
+      }
       this.local.primary = this.loadout.primary;
+      this.local.secondary = this.loadout.secondary;
     }
     this.applyLoadoutStats(this.local);
     this.local.hp = Math.min(this.local.maxHp, this.local.hp + (item.hp ?? 40));
@@ -781,11 +808,19 @@ export class Sim {
     m.aimY = 0.05;
     const los = rayHitsBuilding(m.x, m.z, m.aimX, m.aimZ, dist, this.city.buildings);
     const skill = this.mode === "survival" ? Math.min(0.92, 0.45 + this.wave * 0.06) : 0.55;
-    if (los >= dist - 2 && dist < 90 && this.rng() < skill * dt * 3) {
-      this.tryFire(m, m.primary, false);
+    if (los < dist - 4) {
+      m.sidestep += (this.rng() > 0.5 ? 1 : -1) * 10 * dt;
+      m.yaw += (this.rng() - 0.5) * dt * 3;
+    } else {
+      if (dist < 90 && this.rng() < skill * dt * 3) this.tryFire(m, m.primary, false);
+      if (dist < 70 && this.rng() < skill * dt) this.tryFire(m, m.secondary, true);
     }
-    if (los >= dist - 2 && dist < 70 && this.rng() < skill * dt) this.tryFire(m, m.secondary, true);
     if (dist < 18 && this.rng() < dt * 0.4) m.yaw += (this.rng() - 0.5) * 2;
+    if (dist > 40 && this.rng() < dt * 0.35) m.boost = Math.max(0.2, m.boost);
+    if (m.heat > m.heatCap * 0.85 && this.rng() < dt * 2) {
+      m.venting = 0.8;
+      m.heat *= 0.55;
+    }
   }
 
   applyRemoteState(

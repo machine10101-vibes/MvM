@@ -80,6 +80,8 @@ export interface Mech {
   fireFlash: number;
   altFlash: number;
   walk: number;
+  sidestep: number;
+  venting: number;
   kills: number;
   deaths: number;
   aimX: number;
@@ -160,6 +162,8 @@ export interface Actions {
   alt: boolean;
   boost: boolean;
   jump: boolean;
+  vent: boolean;
+  strafe: number;
   pause: boolean;
 }
 

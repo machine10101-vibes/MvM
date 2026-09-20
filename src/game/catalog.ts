@@ -230,6 +230,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
 };
 
 export const CHASSIS_LIST = Object.values(CHASSIS);
+export const WEAPON_LIST = Object.values(WEAPONS);
 
 const LOOT_POOL: ItemDef[] = [
   { id: "w-assault", kind: "weapon", name: "Kestrel Rifle", rarity: "common", weaponId: "assault" },

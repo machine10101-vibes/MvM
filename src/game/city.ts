@@ -44,6 +44,13 @@ export function generateCity(seed: number): CityData {
     }
   }
 
+  buildings.push(
+    { x: 8.5, z: 6.5, w: 3.2, d: 1.1, h: 2.4, ruined: true, rot: 0.08, tier: 0 },
+    { x: -7.5, z: -5.2, w: 2.8, d: 1.2, h: 2.1, ruined: true, rot: -0.12, tier: 0 },
+    { x: 4.2, z: -9.4, w: 4.4, d: 1.3, h: 2.6, ruined: false, rot: 0.02, tier: 1 },
+    { x: -10.2, z: 3.6, w: 1.4, d: 3.8, h: 2.2, ruined: true, rot: 0.2, tier: 0 },
+  );
+
   const spawns = [
     { x: 0, z: 14 },
     { x: 14, z: 0 },
@@ -55,19 +62,19 @@ export function generateCity(seed: number): CityData {
     { x: -22, z: -22 },
   ];
 
-  const wrecks = Array.from({ length: 5 }, () => ({
+  const wrecks = Array.from({ length: 8 }, () => ({
     x: (rng() - 0.5) * MAP_SIZE * 0.65,
     z: (rng() - 0.5) * MAP_SIZE * 0.65,
     yaw: rng() * Math.PI * 2,
     chassis: Math.floor(rng() * 4),
   }));
 
-  const fires = Array.from({ length: 8 }, () => ({
+  const fires = Array.from({ length: 12 }, () => ({
     x: (rng() - 0.5) * MAP_SIZE * 0.78,
     z: (rng() - 0.5) * MAP_SIZE * 0.78,
   }));
 
-  const debris = Array.from({ length: 48 }, () => ({
+  const debris = Array.from({ length: 72 }, () => ({
     x: (rng() - 0.5) * MAP_SIZE,
     z: (rng() - 0.5) * MAP_SIZE,
     s: 0.4 + rng() * 1.9,

@@ -10,7 +10,7 @@ import {
   sharedRubber,
   sharedVisor,
 } from "./textures";
-import type { ChassisId } from "./types";
+import type { ChassisId, WeaponId } from "./types";
 
 export interface MechRig {
   root: THREE.Group;
@@ -40,6 +40,8 @@ export interface MechRig {
   lights: THREE.PointLight[];
   glow: THREE.MeshStandardMaterial[];
   chassis: ChassisId;
+  primary: WeaponId;
+  secondary: WeaponId;
 }
 
 const segs = 14;
@@ -178,8 +180,15 @@ function cable(parent: THREE.Object3D, mats: Mats, x: number, y: number, z: numb
   add(parent, geo.cyl, mats.rubber, 0.07, len, 0.07, x, y, z, rx, 0, 0);
 }
 
-export function buildMech(chassis: ChassisId, wrecked = false, lowDetail = false): MechRig {
+export function buildMech(
+  chassis: ChassisId,
+  wrecked = false,
+  lowDetail = false,
+  weapons?: { primary: WeaponId; secondary: WeaponId },
+): MechRig {
   const def = CHASSIS[chassis];
+  const primary = weapons?.primary ?? def.primary;
+  const secondary = weapons?.secondary ?? def.secondary;
   const glow = GLOW[chassis];
   const detail = !wrecked && !lowDetail;
   const paintColor = wrecked ? 0x2a2a2c : def.paint;
@@ -192,9 +201,9 @@ export function buildMech(chassis: ChassisId, wrecked = false, lowDetail = false
       normalMap: armor.normalMap,
       roughnessMap: armor.roughnessMap,
       metalnessMap: armor.metalnessMap,
-      metalness: wrecked ? 0.52 : 0.68,
-      roughness: wrecked ? 0.64 : 0.34,
-      clearcoat: wrecked ? 0.06 : 0.48,
+      metalness: wrecked ? 0.52 : 0.62,
+      roughness: wrecked ? 0.64 : 0.38,
+      clearcoat: wrecked ? 0.06 : 0.36,
       clearcoatRoughness: wrecked ? 0.55 : 0.32,
       clearcoatNormalMap: armor.normalMap,
       clearcoatNormalScale: new THREE.Vector2(0.25, 0.25),
@@ -379,8 +388,8 @@ export function buildMech(chassis: ChassisId, wrecked = false, lowDetail = false
   const muzzle2 = new THREE.Object3D();
   const flashes: THREE.Sprite[] = [];
   const muzzleLights: THREE.PointLight[] = [];
-  const rightGun = attachWeapon(rightFore, def.primary, mats, muzzle, flashes, wrecked ? [] : muzzleLights, detail);
-  const leftGun = attachWeapon(leftFore, def.secondary, mats, muzzle2, flashes, wrecked ? [] : muzzleLights, detail);
+  const rightGun = attachWeapon(rightFore, primary, mats, muzzle, flashes, wrecked ? [] : muzzleLights, detail);
+  const leftGun = attachWeapon(leftFore, secondary, mats, muzzle2, flashes, wrecked ? [] : muzzleLights, detail);
 
   if (wrecked) {
     root.rotation.z = 0.72;
@@ -434,6 +443,8 @@ export function buildMech(chassis: ChassisId, wrecked = false, lowDetail = false
     lights,
     glow: [mats.emit, mats.heat],
     chassis,
+    primary,
+    secondary,
   };
 }
 
@@ -473,6 +484,11 @@ function buildLeg(
   joint(knee, mats, 0.54 * fat, 0, 0, 0);
   add(knee, geo.hex, mats.accent, 0.5 * fat, 0.36, 0.58 * fat, 0, 0, 0, Math.PI / 2, 0, 0);
   add(knee, geo.cyl, mats.dark, 0.14, 0.14, 0.46, side * 0.3, 0, 0, 0, 0, Math.PI / 2);
+  // Knee cap on the flexion side: front for humanoid, forward-high for reverse-joint.
+  const capZ = reverse ? 0.22 : 0.28;
+  add(knee, geo.plate, mats.armor, 0.48 * fat, 0.42, 0.2, 0, reverse ? 0.06 : 0.02, capZ);
+  add(knee, geo.plate, mats.trim, 0.34 * fat, 0.22, 0.1, 0, 0.04, capZ + 0.06);
+  piston(knee, mats, side * 0.18, -0.08, reverse ? -0.2 : -0.22, 0.55, side, "z");
   if (detail) add(knee, geo.hex, mats.hyd, 0.12, 0.08, 0.12, side * 0.34, 0.02, 0.08, 0, 0, Math.PI / 2);
 
   const shinLen = reverse ? 1.42 : 1.24;
@@ -494,6 +510,7 @@ function buildLeg(
   add(foot, geo.plate, mats.armor, 0.86 * fat, 0.26, 1.28, 0, 0.12, 0.22);
   add(foot, geo.plate, mats.trim, 0.26, 0.14, 0.52, -0.28 * fat, 0.16, 0.62);
   add(foot, geo.plate, mats.trim, 0.26, 0.14, 0.52, 0.28 * fat, 0.16, 0.62);
+  add(foot, geo.box, mats.dark, 0.7 * fat, 0.1, 0.28, 0, 0.04, 0.72);
   add(foot, geo.box, mats.armor, 0.22, 0.12, 0.34, 0, 0.2, -0.46);
   add(foot, geo.box, mats.emit, 0.18, 0.05, 0.3, 0, 0.24, -0.44);
   add(foot, geo.cylR, mats.heat, 0.22, 0.18, 0.22, 0, 0.06, -0.52, Math.PI / 2, 0, 0);
@@ -869,30 +886,34 @@ export function poseMech(
   const breath = Math.sin(time * 1.35) * 0.016;
   const aim = -pitch * 0.38;
 
+  // +Y up, +Z forward. Hip/knee rotation.x: +X swings a downward limb FORWARD.
+  // Humanoid knees must flex BACKWARD (negative X). Reverse-joint (Reaper)
+  // knees flex FORWARD (positive X).
+  const stanceHip = reverse ? -0.22 : 0.1;
+  const stanceKnee = reverse ? 0.72 : -0.34;
+  const jumpHip = jumping ? 0.38 : boost ? 0.16 : 0;
+  const jumpKnee = jumping ? (reverse ? 0.22 : -0.42) : 0;
+
   rig.leftHip.position.y = 0.02 + passL * (moving ? 0.14 : 0) + (jumping ? 0.08 : 0);
   rig.rightHip.position.y = 0.02 + passR * (moving ? 0.14 : 0) + (jumping ? 0.08 : 0);
   rig.leftHip.rotation.set(
-    L * amp + (jumping ? 0.42 : boost ? 0.2 : idle * 0.04) + (reverse ? 0.28 : 0),
-    L * amp * 0.12,
-    reverse ? 0.08 : 0.05,
+    stanceHip + L * amp + jumpHip + idle * 0.035,
+    L * amp * 0.1,
+    reverse ? 0.06 : 0.04,
   );
   rig.rightHip.rotation.set(
-    R * amp + (jumping ? 0.42 : boost ? 0.2 : -idle * 0.04) + (reverse ? 0.28 : 0),
-    R * amp * 0.12,
-    reverse ? -0.08 : -0.05,
+    stanceHip + R * amp + jumpHip - idle * 0.035,
+    R * amp * 0.1,
+    reverse ? -0.06 : -0.04,
   );
 
-  if (reverse) {
-    rig.leftKnee.rotation.x = -0.62 - passL * amp * 1.05 - (jumping ? 0.28 : 0);
-    rig.rightKnee.rotation.x = -0.62 - passR * amp * 1.05 - (jumping ? 0.28 : 0);
-  } else {
-    rig.leftKnee.rotation.x = 0.14 + passL * amp * 1.45 + (jumping ? 0.48 : 0);
-    rig.rightKnee.rotation.x = 0.14 + passR * amp * 1.45 + (jumping ? 0.48 : 0);
-  }
+  const kneeFlex = reverse ? 1.05 : -1.45;
+  rig.leftKnee.rotation.x = stanceKnee + passL * amp * kneeFlex + jumpKnee;
+  rig.rightKnee.rotation.x = stanceKnee + passR * amp * kneeFlex + jumpKnee;
   rig.leftFoot.rotation.x =
-    -rig.leftHip.rotation.x * 0.42 - rig.leftKnee.rotation.x * 0.32 + passL * 0.18;
+    -rig.leftHip.rotation.x * 0.55 - rig.leftKnee.rotation.x * 0.45 + (moving ? passL * 0.12 : 0.04);
   rig.rightFoot.rotation.x =
-    -rig.rightHip.rotation.x * 0.42 - rig.rightKnee.rotation.x * 0.32 + passR * 0.18;
+    -rig.rightHip.rotation.x * 0.55 - rig.rightKnee.rotation.x * 0.45 + (moving ? passR * 0.12 : 0.04);
 
   rig.body.position.y = breath + (moving ? Math.abs(L) * 0.1 : 0) + (jumping ? 0.1 : 0);
   rig.body.rotation.y = moving ? L * 0.05 : 0;
