@@ -34,6 +34,8 @@ const GradeShader = {
 
 export interface Quality {
   mobile: boolean;
+  software: boolean;
+  cheap: boolean;
   shadows: boolean;
   bloom: boolean;
   aa: boolean;
@@ -41,17 +43,34 @@ export interface Quality {
   shadowSize: number;
 }
 
+function detectSoftwareGl() {
+  try {
+    const c = document.createElement("canvas");
+    const gl = c.getContext("webgl2", { powerPreference: "low-power" }) || c.getContext("webgl");
+    if (!gl) return true;
+    const info = gl.getExtension("WEBGL_debug_renderer_info");
+    const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : "";
+    return /swiftshader|llvmpipe|softpipe|microsoft basic render|virtualbox/i.test(name);
+  } catch {
+    return false;
+  }
+}
+
 export function detectQuality(): Quality {
   const mobile =
     window.innerWidth < 740 ||
     (typeof navigator !== "undefined" && /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
+  const software = detectSoftwareGl();
+  const low = mobile || software;
   return {
     mobile,
-    shadows: !mobile,
-    bloom: true,
-    aa: !mobile,
-    pixelRatio: Math.min(window.devicePixelRatio || 1, mobile ? 1.25 : 1.75),
-    shadowSize: mobile ? 512 : 2048,
+    software,
+    cheap: low,
+    shadows: !low,
+    bloom: !low,
+    aa: !low,
+    pixelRatio: Math.min(window.devicePixelRatio || 1, low ? 1 : 1.25),
+    shadowSize: low ? 512 : 1024,
   };
 }
 
@@ -60,18 +79,20 @@ export class PostFx {
   private bloom: UnrealBloomPass | null = null;
   private smaa: SMAAPass | null = null;
   private grade: ShaderPass;
+  private cheap = false;
 
   constructor(
-    renderer: THREE.WebGLRenderer,
-    scene: THREE.Scene,
-    camera: THREE.Camera,
+    private renderer: THREE.WebGLRenderer,
+    private scene: THREE.Scene,
+    private camera: THREE.Camera,
     private quality: Quality,
   ) {
+    this.cheap = !quality.bloom && !quality.aa;
     this.composer = new EffectComposer(renderer);
     this.composer.setPixelRatio(quality.pixelRatio);
     this.composer.addPass(new RenderPass(scene, camera));
     if (quality.bloom) {
-      this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), quality.mobile ? 0.14 : 0.22, 0.42, 0.84);
+      this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), quality.mobile ? 0.12 : 0.18, 0.4, 0.86);
       this.composer.addPass(this.bloom);
     }
     if (quality.aa) {
@@ -79,9 +100,15 @@ export class PostFx {
       this.composer.addPass(this.smaa);
     }
     this.grade = new ShaderPass(GradeShader);
-    this.grade.uniforms.vignette.value = quality.mobile ? 0.22 : 0.34;
+    this.grade.uniforms.vignette.value = quality.mobile ? 0.22 : 0.3;
     this.composer.addPass(this.grade);
     this.composer.addPass(new OutputPass());
+  }
+
+  setCheap(on: boolean) {
+    this.cheap = on;
+    if (this.bloom) this.bloom.enabled = !on;
+    if (this.smaa) this.smaa.enabled = !on;
   }
 
   resize(w: number, h: number) {
@@ -90,6 +117,10 @@ export class PostFx {
   }
 
   render() {
+    if (this.cheap) {
+      this.renderer.render(this.scene, this.camera);
+      return;
+    }
     this.composer.render();
   }
 

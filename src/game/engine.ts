@@ -29,36 +29,55 @@ export class Engine {
   private disposed = false;
   private hangarIndex = 0;
   hangarWalk = false;
+  ready = false;
   private world: World;
   private vfx: Vfx;
   private post: PostFx;
   private quality = detectQuality();
+  private hudAcc = 0;
+  private lastHudKey = "";
+  private fpsEma = 60;
+  private frames = 0;
+  private adapted = false;
+  private shadowTick = 0;
+  private readyFns = new Set<() => void>();
 
   constructor(private canvas: HTMLCanvasElement) {
     this.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: !this.quality.mobile,
+      antialias: false,
       powerPreference: "high-performance",
       alpha: false,
+      stencil: false,
+      depth: true,
     });
     this.renderer.setPixelRatio(this.quality.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.78;
+    this.renderer.toneMapping = this.quality.software ? THREE.NoToneMapping : THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = this.quality.software ? 1 : 0.78;
     this.renderer.shadowMap.enabled = this.quality.shadows;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.renderer.shadowMap.autoUpdate = true;
+    this.renderer.shadowMap.autoUpdate = false;
 
     this.world = new World(this.scene, this.renderer, this.sim.city, this.quality);
-    this.vfx = new Vfx(this.scene);
+    this.vfx = new Vfx(this.scene, this.quality);
     this.post = new PostFx(this.renderer, this.scene, this.camera, this.quality);
 
     this.resize();
     window.addEventListener("resize", this.resize);
 
     input.attach(canvas);
+    this.trimDemoRoster();
     this.syncRigs();
     this.camera.position.set(12, 6.5, 20);
+    this.ready = true;
+    requestAnimationFrame(() => {
+      for (const fn of this.readyFns) fn();
+      this.readyFns.clear();
+      const warm = () => this.world.ensurePlayWorld();
+      if (typeof requestIdleCallback === "function") requestIdleCallback(warm, { timeout: 900 });
+      else setTimeout(warm, 80);
+    });
 
     this.probe = {
       getYaw: () => this.sim.local?.yaw ?? 0,
@@ -85,13 +104,24 @@ export class Engine {
     return () => this.hudListeners.delete(fn);
   }
 
+  onReady(fn: () => void) {
+    if (this.ready) {
+      fn();
+      return () => {};
+    }
+    this.readyFns.add(fn);
+    return () => this.readyFns.delete(fn);
+  }
+
   setView(v: ViewMode) {
     this.view = v;
     this.world.setHangarMode(v === "hangar");
+    this.renderer.shadowMap.enabled = this.quality.shadows && v === "play";
     this.camera.fov = v === "hangar" ? 38 : v === "title" ? 50 : 58;
     this.camera.updateProjectionMatrix();
     if (v === "title") {
       this.sim.resetDemo();
+      this.trimDemoRoster();
       this.syncRigs();
     }
     if (v === "hangar") {
@@ -101,10 +131,12 @@ export class Engine {
   }
 
   startSurvival(loadout: Loadout) {
+    this.world.ensurePlayWorld();
     this.sim.startSurvival(loadout);
     this.sim.paused = false;
     this.view = "play";
     this.world.setHangarMode(false);
+    this.renderer.shadowMap.enabled = this.quality.shadows;
     this.camera.fov = 58;
     this.camera.updateProjectionMatrix();
     this.syncRigs();
@@ -112,10 +144,12 @@ export class Engine {
   }
 
   startMatch(mode: "ffa" | "tdm", loadout: Loadout, roster: { id: string; name: string; chassis: ChassisId; team: number }[]) {
+    this.world.ensurePlayWorld();
     this.sim.startMatch(mode, loadout, roster);
     this.sim.paused = false;
     this.view = "play";
     this.world.setHangarMode(false);
+    this.renderer.shadowMap.enabled = this.quality.shadows;
     this.camera.fov = 58;
     this.camera.updateProjectionMatrix();
     this.syncRigs();
@@ -149,26 +183,76 @@ export class Engine {
 
   private loop = (time: number) => {
     if (this.disposed) return;
-    const raw = Math.min((time - this.last) / 1000, 0.1);
+    const raw = Math.min((time - this.last) / 1000, 0.08);
     this.last = time;
+    this.fpsEma = this.fpsEma * 0.9 + (1 / Math.max(raw, 0.001)) * 0.1;
+    this.frames++;
+    if (!this.adapted && this.frames === 40) {
+      this.adapted = true;
+      if (this.fpsEma < 48) this.applyLowQuality();
+    }
+    if (this.sim.paused && this.view === "play") {
+      this.post.render();
+      return;
+    }
     this.acc += raw;
     const actions = input.getActions();
-    while (this.acc >= STEP) {
+    let steps = 0;
+    while (this.acc >= STEP && steps < 2) {
       if (this.view === "play" || this.view === "title") this.sim.step(STEP, actions);
       this.acc -= STEP;
+      steps++;
     }
+    if (this.acc > STEP) this.acc = 0;
     this.syncRigs();
-    this.vfx.captureMuzzles(this.rigs);
-    this.vfx.sync(this.sim, raw);
+    if (this.view === "play") {
+      this.vfx.captureMuzzles(this.rigs);
+      this.vfx.sync(this.sim, raw);
+    }
     const p = this.sim.local;
-    this.world.update(raw, time, p?.x ?? 0, p?.z ?? 0);
+    this.world.update(raw, time, p?.x ?? 0, p?.z ?? 0, this.view === "hangar");
     this.updateCamera(raw, time);
+    this.shadowTick++;
+    if (this.quality.shadows && this.view === "play" && this.shadowTick % 2 === 0) {
+      this.renderer.shadowMap.needsUpdate = true;
+    }
     this.post.render();
     if (this.view === "play") {
-      const snap = this.sim.hud();
-      for (const fn of this.hudListeners) fn(snap);
+      this.hudAcc += raw;
+      if (this.hudAcc >= 0.1) {
+        this.hudAcc = 0;
+        const snap = this.sim.hud();
+        const key = `${snap.hp | 0}|${snap.armor | 0}|${(snap.heat * 8) | 0}|${snap.wave}|${snap.kills}|${snap.alive ? 1 : 0}|${snap.toast ?? ""}|${(snap.boost * 16) | 0}|${snap.aliveEnemies}|${snap.overheat ? 1 : 0}`;
+        if (key !== this.lastHudKey) {
+          this.lastHudKey = key;
+          for (const fn of this.hudListeners) fn(snap);
+        }
+      }
     }
   };
+
+  private applyLowQuality() {
+    this.quality.cheap = true;
+    this.quality.bloom = false;
+    this.quality.aa = false;
+    this.quality.shadows = false;
+    this.quality.pixelRatio = Math.min(this.quality.pixelRatio, 1);
+    this.renderer.setPixelRatio(this.quality.pixelRatio);
+    this.renderer.shadowMap.enabled = false;
+    this.renderer.toneMapping = THREE.NoToneMapping;
+    this.post.setCheap(true);
+    this.world.sun.castShadow = false;
+    this.vfx.setCheap(true);
+  }
+
+  private trimDemoRoster() {
+    if (!(this.quality.software || this.quality.mobile)) return;
+    this.sim.mechs = this.sim.mechs.filter((m) => m.isLocal);
+  }
+
+  private lowMesh() {
+    return this.quality.mobile || this.quality.software;
+  }
 
   private updateCamera(dt: number, time: number) {
     const p = this.sim.local;
@@ -224,7 +308,7 @@ export class Engine {
         rig = buildMech(
           m.chassis,
           !m.alive && m.hp <= 0 && !m.isLocal,
-          this.quality.mobile,
+          this.lowMesh(),
           { primary: m.primary, secondary: m.secondary },
         );
         this.rigs.set(m.id, rig);
@@ -241,21 +325,29 @@ export class Engine {
           m.speed = 0;
         }
       }
-      poseMech(
-        rig,
-        m.walk,
-        m.speed,
-        m.torso,
-        m.pitch,
-        m.boost < 0.85 && Math.abs(m.speed) > 8,
-        m.fireFlash,
-        m.y > 0.4,
-        m.altFlash,
-        this.last / 1000,
-        m.specialFlash,
-        m.shieldUp,
-        m.shield,
-      );
+      const local = this.sim.local;
+      const far =
+        this.view === "play" &&
+        !m.isLocal &&
+        local &&
+        (m.x - local.x) * (m.x - local.x) + (m.z - local.z) * (m.z - local.z) > 6400;
+      if (!far) {
+        poseMech(
+          rig,
+          m.walk,
+          m.speed,
+          m.torso,
+          m.pitch,
+          m.boost < 0.85 && Math.abs(m.speed) > 8,
+          m.fireFlash,
+          m.y > 0.4,
+          m.altFlash,
+          this.last / 1000,
+          m.specialFlash,
+          m.shieldUp,
+          m.shield,
+        );
+      }
       if (!m.alive) {
         rig.root.rotation.z = Math.min(1.1, (rig.root.rotation.z || 0) + 0.02);
       } else rig.root.rotation.z = 0;

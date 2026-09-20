@@ -47,7 +47,7 @@ function tex(c: HTMLCanvasElement, opts: { repeat?: number; color?: boolean; ani
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(opts.repeat ?? 1, opts.repeat ?? 1);
-  t.anisotropy = opts.aniso ?? 8;
+  t.anisotropy = opts.aniso ?? 4;
   t.colorSpace = opts.color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   t.needsUpdate = true;
   return t;
@@ -94,17 +94,17 @@ function fillRgb(ctx: CanvasRenderingContext2D, size: number, fn: (x: number, y:
   ctx.putImageData(img, 0, 0);
 }
 
-export function makeGroundTextures() {
-  const size = 512;
+export function makeGroundTextures(cheap = false) {
+  const size = cheap ? 128 : 256;
   const period = 8;
   const height = new Float32Array(size * size);
   const { c: albedoC, ctx } = canvas(size);
   fillRgb(ctx, size, (x, y) => {
     const u = (x / size) * period;
     const v = (y / size) * period;
-    const n = fbm(u, v, period, 6);
-    const cracks = Math.pow(Math.abs(fbm(u * 2.4, v * 2.4, period * 2, 3) - 0.5) * 2, 6);
-    const stain = fbm(u * 0.6 + 20, v * 0.6, period, 4);
+    const n = fbm(u, v, period, cheap ? 3 : 5);
+    const cracks = cheap ? 0 : Math.pow(Math.abs(fbm(u * 2.4, v * 2.4, period * 2, 3) - 0.5) * 2, 6);
+    const stain = cheap ? n : fbm(u * 0.6 + 20, v * 0.6, period, 4);
     height[y * size + x] = n * 0.7 + cracks * 0.45;
     const ash = 38 + n * 42 + stain * 18;
     const r = ash + 8 - cracks * 28;
@@ -112,6 +112,9 @@ export function makeGroundTextures() {
     const b = ash - 8 - cracks * 20;
     return [r, g, b];
   });
+  if (cheap) {
+    return { map: tex(albedoC, { repeat: 28, color: true }), normalMap: null, roughnessMap: null };
+  }
   const { c: roughC, ctx: rctx } = canvas(size);
   fillRgb(rctx, size, (x, y) => {
     const n = height[y * size + x];
@@ -125,21 +128,21 @@ export function makeGroundTextures() {
   };
 }
 
-export function makeAsphaltTextures() {
-  const size = 512;
+export function makeAsphaltTextures(cheap = false) {
+  const size = cheap ? 128 : 256;
   const period = 4;
   const height = new Float32Array(size * size);
   const { c, ctx } = canvas(size);
   fillRgb(ctx, size, (x, y) => {
     const u = (x / size) * period;
     const v = (y / size) * period;
-    const n = fbm(u, v, period, 5);
-    const oil = Math.max(0, fbm(u * 1.8 + 9, v * 1.8, period, 3) - 0.62) * 3;
+    const n = fbm(u, v, period, cheap ? 3 : 5);
+    const oil = cheap ? 0 : Math.max(0, fbm(u * 1.8 + 9, v * 1.8, period, 3) - 0.62) * 3;
     height[y * size + x] = n + oil * 0.2;
     let r = 28 + n * 22;
     let g = 28 + n * 20;
     let b = 30 + n * 18;
-    const dash = Math.abs(x - 256) < 6 && y % 48 < 22;
+    const dash = Math.abs(x - size / 2) < 6 && y % 48 < 22;
     if (dash) {
       r = g = b = 168;
     }
@@ -148,6 +151,9 @@ export function makeAsphaltTextures() {
     b = b * (1 - oil * 0.15);
     return [r, g, b];
   });
+  if (cheap) {
+    return { map: tex(c, { repeat: 2, color: true }), normalMap: null, roughnessMap: null };
+  }
   const { c: roughC, ctx: rctx } = canvas(size);
   fillRgb(rctx, size, (x, y) => {
     const oil = Math.max(0, fbm((x / size) * 4 * 1.8 + 9, (y / size) * 4 * 1.8, 8, 3) - 0.62);
@@ -161,8 +167,8 @@ export function makeAsphaltTextures() {
   };
 }
 
-export function makeFacadeTextures(ruined: boolean) {
-  const size = 512;
+export function makeFacadeTextures(ruined: boolean, cheap = false) {
+  const size = cheap ? 128 : 256;
   const cols = 6;
   const rows = 10;
   const height = new Float32Array(size * size);
@@ -176,10 +182,12 @@ export function makeFacadeTextures(ruined: boolean) {
   ctx.fillStyle = ruined ? "#3a3733" : "#2c3036";
   ctx.fillRect(0, 0, size, size);
 
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const n = fbm((x / size) * 6, (y / size) * 6, 6, 4);
-      height[y * size + x] = n * 0.25;
+  if (!cheap) {
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const n = fbm((x / size) * 6, (y / size) * 6, 6, 4);
+        height[y * size + x] = n * 0.25;
+      }
     }
   }
 
@@ -220,31 +228,33 @@ export function makeFacadeTextures(ruined: boolean) {
     ctx.fillStyle = "rgba(12,10,8,0.5)";
     ctx.beginPath();
     ctx.moveTo(0, 300);
-    ctx.lineTo(512, 160);
-    ctx.lineTo(512, 512);
-    ctx.lineTo(0, 512);
+    ctx.lineTo(size, 160);
+    ctx.lineTo(size, size);
+    ctx.lineTo(0, size);
     ctx.fill();
   }
 
-  const frame = ctx.getImageData(0, 0, size, size);
-  for (let i = 0; i < size * size; i++) {
-    const n = (fbm((i % size) / 40, Math.floor(i / size) / 40, 8, 2) - 0.5) * 18;
-    frame.data[i * 4] = Math.max(0, Math.min(255, frame.data[i * 4] + n));
-    frame.data[i * 4 + 1] = Math.max(0, Math.min(255, frame.data[i * 4 + 1] + n));
-    frame.data[i * 4 + 2] = Math.max(0, Math.min(255, frame.data[i * 4 + 2] + n));
+  if (!cheap) {
+    const frame = ctx.getImageData(0, 0, size, size);
+    for (let i = 0; i < size * size; i++) {
+      const n = (fbm((i % size) / 40, Math.floor(i / size) / 40, 8, 2) - 0.5) * 18;
+      frame.data[i * 4] = Math.max(0, Math.min(255, frame.data[i * 4] + n));
+      frame.data[i * 4 + 1] = Math.max(0, Math.min(255, frame.data[i * 4 + 1] + n));
+      frame.data[i * 4 + 2] = Math.max(0, Math.min(255, frame.data[i * 4 + 2] + n));
+    }
+    ctx.putImageData(frame, 0, 0);
   }
-  ctx.putImageData(frame, 0, 0);
 
   return {
     map: tex(c, { color: true, aniso: 4 }),
-    normalMap: tex(heightToNormal(height, size, 12), {}),
-    roughnessMap: tex(roughC, {}),
+    normalMap: cheap ? null : tex(heightToNormal(height, size, 12), {}),
+    roughnessMap: cheap ? null : tex(roughC, {}),
     emissiveMap: tex(emitC, { color: true }),
   };
 }
 
 export function makeMetalTextures() {
-  const size = 512;
+  const size = 128;
   const period = 6;
   const height = new Float32Array(size * size);
   const { c, ctx } = canvas(size);
@@ -256,7 +266,7 @@ export function makeMetalTextures() {
     const panelY = Math.abs(Math.sin((y / size) * Math.PI * 6));
     const seam = panelX < 0.06 || panelY < 0.06 ? 0.35 : 0;
     const scratch = Math.pow(valueNoise(u * 30, v * 4, period * 16), 8);
-    const n = fbm(u, v, period, 4);
+    const n = fbm(u, v, period, 3);
     height[y * size + x] = n * 0.4 + seam * 0.8 + scratch * 0.3 + brush * 0.12;
     const base = 92 + brush * 40 + n * 20 - seam * 50;
     return [base + 4, base, base - 6];
@@ -286,7 +296,7 @@ export function sharedMetal() {
 }
 
 export function makeArmorTextures() {
-  const size = 512;
+  const size = 128;
   const period = 8;
   const height = new Float32Array(size * size);
   const { c, ctx } = canvas(size);
@@ -301,7 +311,7 @@ export function makeArmorTextures() {
   fillRgb(ctx, size, (x, y) => {
     const u = (x / size) * period;
     const v = (y / size) * period;
-    const n = fbm(u, v, period, 5);
+    const n = fbm(u, v, period, 3);
     const brush = valueNoise(u * 22, v * 0.35, period * 16);
     const px = x % pw;
     const py = y % ph;
@@ -373,7 +383,7 @@ export function sharedArmor() {
 }
 
 export function makeHazardTexture() {
-  const size = 256;
+  const size = 128;
   const { c, ctx } = canvas(size);
   ctx.fillStyle = "#1a1408";
   ctx.fillRect(0, 0, size, size);
@@ -395,7 +405,7 @@ export function sharedHazard() {
 }
 
 export function makeVisorTexture() {
-  const size = 256;
+  const size = 128;
   const { c, ctx } = canvas(size);
   ctx.fillStyle = "#071018";
   ctx.fillRect(0, 0, size, size);
@@ -539,7 +549,7 @@ export function makeFlareSprite() {
 
 /** Red honeycomb used on the Titan crown — matches the reference hex cell panel. */
 export function makeHexCellMap() {
-  const size = 512;
+  const size = 256;
   const { c, ctx } = canvas(size);
   ctx.fillStyle = "#080305";
   ctx.fillRect(0, 0, size, size);
@@ -577,7 +587,7 @@ export function makeHexCellMap() {
 
 /** Recessed cyclops — dark metal well, one red ring, hot pupil. */
 export function makeCyclopsIrisMap() {
-  const size = 512;
+  const size = 256;
   const { c, ctx } = canvas(size);
   const cx = size / 2;
   const cy = size / 2;
@@ -611,12 +621,12 @@ export function makeCyclopsIrisMap() {
 
 /** High-contrast plate grid so Titan armor reads even without IBL. */
 export function makeTitanHullMap() {
-  const size = 512;
+  const size = 256;
   const { c, ctx } = canvas(size);
   ctx.fillStyle = "#08090c";
   ctx.fillRect(0, 0, size, size);
-  const pw = 96;
-  const ph = 72;
+  const pw = 48;
+  const ph = 36;
   for (let y = 0; y < size; y += ph) {
     const stagger = (Math.floor(y / ph) % 2) * (pw / 2);
     for (let x = -pw; x < size + pw; x += pw) {
@@ -645,13 +655,7 @@ export function makeTitanHullMap() {
       ctx.fill();
     }
   }
-  const height = new Float32Array(size * size);
-  const img = ctx.getImageData(0, 0, size, size);
-  for (let i = 0; i < size * size; i++) {
-    height[i] = img.data[i * 4] / 255;
-  }
   return {
-    map: tex(c, { repeat: 2, color: true, aniso: 8 }),
-    normalMap: tex(heightToNormal(height, size, 18), { repeat: 2 }),
+    map: tex(c, { repeat: 2, color: true, aniso: 4 }),
   };
 }

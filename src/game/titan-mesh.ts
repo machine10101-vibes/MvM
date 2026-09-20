@@ -321,23 +321,35 @@ function makePaneledHull(radius: number, w: number, h: number, panelsU: number, 
   return g;
 }
 
-function shellPlate(
-  parent: THREE.Group,
-  geometry: THREE.BufferGeometry,
-  material: THREE.Material,
-  radius: number,
-  yaw: number,
-  pitch: number,
-  w: number,
-  h: number,
-  d: number,
-) {
-  const x = radius * Math.cos(pitch) * Math.sin(yaw);
-  const y = radius * Math.sin(pitch);
-  const z = radius * Math.cos(pitch) * Math.cos(yaw);
-  const mesh = add(parent, geometry, material, w, h, d, HULL.x + x, HULL.y + y, HULL.z + z);
-  mesh.lookAt(HULL.x + x * 2, HULL.y + y * 2, HULL.z + z * 2);
-  return mesh;
+type PlateSpec = { r: number; yaw: number; pitch: number; w: number; h: number; d: number };
+
+function flushPlates(parent: THREE.Group, geometry: THREE.BufferGeometry, buckets: Map<THREE.Material, PlateSpec[]>) {
+  const dummy = new THREE.Object3D();
+  for (const [material, list] of buckets) {
+    if (!list.length) continue;
+    const mesh = new THREE.InstancedMesh(geometry, material, list.length);
+    for (let i = 0; i < list.length; i++) {
+      const p = list[i];
+      const x = p.r * Math.cos(p.pitch) * Math.sin(p.yaw);
+      const y = p.r * Math.sin(p.pitch);
+      const z = p.r * Math.cos(p.pitch) * Math.cos(p.yaw);
+      dummy.position.set(HULL.x + x, HULL.y + y, HULL.z + z);
+      dummy.scale.set(p.w, p.h, p.d);
+      dummy.lookAt(HULL.x + x * 2, HULL.y + y * 2, HULL.z + z * 2);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(i, dummy.matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    parent.add(mesh);
+  }
+}
+
+function pushPlate(buckets: Map<THREE.Material, PlateSpec[]>, material: THREE.Material, spec: PlateSpec) {
+  const list = buckets.get(material);
+  if (list) list.push(spec);
+  else buckets.set(material, [spec]);
 }
 
 function wrapPi(a: number) {
@@ -353,7 +365,7 @@ function buildTorso(torso: THREE.Group, m: TitanMats, detail: boolean) {
   core.position.set(HULL.x, HULL.y, HULL.z);
   core.castShadow = true;
   torso.add(core);
-  const hull = new THREE.Mesh(makePaneledHull(1.34, 28, 20, 10, 7), m.armorB);
+  const hull = new THREE.Mesh(makePaneledHull(1.34, detail ? 24 : 14, detail ? 16 : 10, 10, 7), m.armorB);
   hull.position.set(HULL.x, HULL.y, HULL.z);
   hull.castShadow = true;
   hull.receiveShadow = true;
@@ -379,52 +391,53 @@ function buildTorso(torso: THREE.Group, m: TitanMats, detail: boolean) {
         { pitch: -0.45, n: 8, w: 0.48, h: 0.32, r: 1.34 },
       ];
 
+  const softPlates = new Map<THREE.Material, PlateSpec[]>();
+  const hardPlates = new Map<THREE.Material, PlateSpec[]>();
   for (const band of bands) {
     const stagger = band.pitch * 1.7;
     for (let i = 0; i < band.n; i++) {
       const yaw = wrapPi((i / band.n) * Math.PI * 2 - Math.PI + stagger);
       if (Math.abs(yaw) < 0.5 && Math.abs(band.pitch) < 0.4) continue;
       const mat = skins[(i + Math.round(Math.abs(band.pitch) * 10)) % skins.length];
-      shellPlate(torso, geo.soft, mat, band.r, yaw, band.pitch, band.w, band.h, 0.09);
+      pushPlate(softPlates, mat, { r: band.r, yaw, pitch: band.pitch, w: band.w, h: band.h, d: 0.09 });
       if (detail && i % 3 === 0) {
-        shellPlate(torso, geo.hard, m.dark, band.r + 0.01, yaw + 0.03, band.pitch, band.w * 0.9, 0.03, 0.04);
+        pushPlate(hardPlates, m.dark, {
+          r: band.r + 0.01,
+          yaw: yaw + 0.03,
+          pitch: band.pitch,
+          w: band.w * 0.9,
+          h: 0.03,
+          d: 0.04,
+        });
       }
     }
   }
 
-  // Brow arch, cheeks, jaw — face frame around the cyclops well.
-  shellPlate(torso, geo.soft, m.armorC, 1.44, 0, 0.52, 1.05, 0.34, 0.16);
-  shellPlate(torso, geo.soft, m.plate, 1.46, -0.38, 0.48, 0.42, 0.22, 0.12);
-  shellPlate(torso, geo.soft, m.plate, 1.46, 0.38, 0.48, 0.42, 0.22, 0.12);
-  shellPlate(torso, geo.soft, m.armorB, 1.44, -0.78, 0.12, 0.5, 0.46, 0.14);
-  shellPlate(torso, geo.soft, m.armorB, 1.44, 0.78, 0.12, 0.5, 0.46, 0.14);
-  shellPlate(torso, geo.soft, m.armor, 1.42, 0, -0.48, 0.82, 0.3, 0.14);
+  pushPlate(softPlates, m.armorC, { r: 1.44, yaw: 0, pitch: 0.52, w: 1.05, h: 0.34, d: 0.16 });
+  pushPlate(softPlates, m.plate, { r: 1.46, yaw: -0.38, pitch: 0.48, w: 0.42, h: 0.22, d: 0.12 });
+  pushPlate(softPlates, m.plate, { r: 1.46, yaw: 0.38, pitch: 0.48, w: 0.42, h: 0.22, d: 0.12 });
+  pushPlate(softPlates, m.armorB, { r: 1.44, yaw: -0.78, pitch: 0.12, w: 0.5, h: 0.46, d: 0.14 });
+  pushPlate(softPlates, m.armorB, { r: 1.44, yaw: 0.78, pitch: 0.12, w: 0.5, h: 0.46, d: 0.14 });
+  pushPlate(softPlates, m.armor, { r: 1.42, yaw: 0, pitch: -0.48, w: 0.82, h: 0.3, d: 0.14 });
   add(torso, geo.box, m.emit, 0.045, 0.38, 0.05, 0, 0.82, 1.4);
 
-  // Side slat banks flush to the sphere.
   for (const side of [-1, 1]) {
-    shellPlate(torso, geo.soft, m.plate, 1.44, side * 1.52, 0.06, 0.38, 0.72, 0.12);
-    for (let v = 0; v < 5; v++) {
-      shellPlate(torso, geo.hard, m.trim, 1.46, side * 1.52, -0.2 + v * 0.12, 0.3, 0.045, 0.07);
+    pushPlate(softPlates, m.plate, { r: 1.44, yaw: side * 1.52, pitch: 0.06, w: 0.38, h: 0.72, d: 0.12 });
+    for (let v = 0; v < 4; v++) {
+      pushPlate(hardPlates, m.trim, {
+        r: 1.46,
+        yaw: side * 1.52,
+        pitch: -0.2 + v * 0.14,
+        w: 0.3,
+        h: 0.045,
+        d: 0.07,
+      });
     }
-    shellPlate(torso, geo.hard, m.emit, 1.47, side * 1.52, 0.06, 0.04, 0.58, 0.045);
+    pushPlate(hardPlates, m.emit, { r: 1.47, yaw: side * 1.52, pitch: 0.06, w: 0.04, h: 0.58, d: 0.045 });
   }
 
-  if (detail) {
-    for (const [yaw, pitch] of [
-      [-0.95, 0.62],
-      [0.95, 0.62],
-      [-1.35, 0.22],
-      [1.35, 0.22],
-      [-0.75, -0.38],
-      [0.75, -0.38],
-      [2.35, 0.32],
-      [-2.35, 0.32],
-      [3.05, -0.15],
-    ]) {
-      shellPlate(torso, geo.hex, m.trim, 1.48, yaw, pitch, 0.16, 0.16, 0.05);
-    }
-  }
+  flushPlates(torso, geo.soft, softPlates);
+  flushPlates(torso, geo.hard, hardPlates);
 
   buildCyclops(torso, m);
   buildCrown(torso, m);

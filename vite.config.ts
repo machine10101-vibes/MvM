@@ -28,4 +28,16 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 8080,
   },
+  build: {
+    target: "es2022",
+    cssCodeSplit: true,
+    modulePreload: { polyfill: false },
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/three")) return "three";
+        },
+      },
+    },
+  },
 });

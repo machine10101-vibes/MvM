@@ -1,12 +1,10 @@
 import * as THREE from "three";
-import { RectAreaLightUniformsLib } from "three/addons/lights/RectAreaLightUniformsLib.js";
 import { Sky } from "three/addons/objects/Sky.js";
 import { HALF, MAP_SIZE } from "./city";
 import { buildMech } from "./mech-mesh";
 import type { Quality } from "./postfx";
 import {
   makeAsphaltTextures,
-  makeConcreteTextures,
   makeFacadeTextures,
   makeFlameSprite,
   makeFlareSprite,
@@ -22,7 +20,7 @@ const CHASSIS_IDS: ChassisId[] = ["titan", "reaper", "colossus", "phantom"];
 export class World {
   group = new THREE.Group();
   hangar = new THREE.Group();
-  sky: Sky;
+  sky: Sky | null = null;
   sun: THREE.DirectionalLight;
   hemi: THREE.HemisphereLight;
   fill: THREE.DirectionalLight;
@@ -36,7 +34,11 @@ export class World {
   private sunDir = new THREE.Vector3();
   private _dummy = new THREE.Object3D();
   private ground: THREE.Mesh;
-  metal: ReturnType<typeof sharedMetal>;
+  metal!: ReturnType<typeof sharedMetal>;
+  private playReady = false;
+  private pendingCity: CityData;
+  private pendingQuality: Quality;
+  private pendingRenderer: THREE.WebGLRenderer;
 
   constructor(
     private scene: THREE.Scene,
@@ -44,68 +46,48 @@ export class World {
     city: CityData,
     quality: Quality,
   ) {
-    RectAreaLightUniformsLib.init();
-    const groundT = makeGroundTextures();
-    const asphaltT = makeAsphaltTextures();
-    const facade = makeFacadeTextures(false);
-    const facadeRuin = makeFacadeTextures(true);
-    const concrete = makeConcreteTextures();
-    this.metal = sharedMetal();
-    const flame = makeFlameSprite();
-    const smoke = makeSmokeSprite();
-    const flare = makeFlareSprite();
-    this.textures.push(
-      groundT.map,
-      groundT.normalMap,
-      groundT.roughnessMap,
-      asphaltT.map,
-      asphaltT.normalMap,
-      asphaltT.roughnessMap,
-      facade.map,
-      facade.normalMap,
-      facade.roughnessMap,
-      facade.emissiveMap,
-      facadeRuin.map,
-      facadeRuin.normalMap,
-      facadeRuin.roughnessMap,
-      facadeRuin.emissiveMap,
-      concrete.map,
-      concrete.normalMap,
-      concrete.roughnessMap,
-      this.metal.map,
-      this.metal.normalMap,
-      this.metal.roughnessMap,
-      this.metal.metalnessMap!,
-      flame,
-      smoke,
-      flare,
-    );
-
-    this.sky = new Sky();
-    this.sky.scale.setScalar(450);
-    const uniforms = this.sky.material.uniforms;
-    uniforms.turbidity.value = 6.5;
-    uniforms.rayleigh.value = 2.4;
-    uniforms.mieCoefficient.value = 0.0045;
-    uniforms.mieDirectionalG.value = 0.82;
-    uniforms.cloudCoverage.value = 0.48;
-    uniforms.cloudDensity.value = 0.38;
-    uniforms.cloudScale.value = 0.00022;
-    uniforms.cloudSpeed.value = 0.000018;
+    this.pendingCity = city;
+    this.pendingQuality = quality;
+    this.pendingRenderer = renderer;
     const phi = THREE.MathUtils.degToRad(90 - 11);
     const theta = THREE.MathUtils.degToRad(214);
     this.sunDir.setFromSphericalCoords(1, phi, theta);
-    uniforms.sunPosition.value.copy(this.sunDir);
 
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    const envScene = new THREE.Scene();
-    envScene.add(this.sky);
-    uniforms.showSunDisc.value = 0;
-    this.env = pmrem.fromScene(envScene, 0.02, 0.1, 300).texture;
-    uniforms.showSunDisc.value = 1;
-    scene.add(this.sky);
-    scene.environment = this.env;
-    scene.environmentIntensity = 0.78;
+    if (!quality.cheap) {
+      this.sky = new Sky();
+      this.sky.scale.setScalar(450);
+      const uniforms = this.sky.material.uniforms;
+      uniforms.turbidity.value = 6.5;
+      uniforms.rayleigh.value = 2.4;
+      uniforms.mieCoefficient.value = 0.0045;
+      uniforms.mieDirectionalG.value = 0.82;
+      uniforms.cloudCoverage.value = 0.48;
+      uniforms.cloudDensity.value = 0.38;
+      uniforms.cloudScale.value = 0.00022;
+      uniforms.cloudSpeed.value = 0.000018;
+      uniforms.sunPosition.value.copy(this.sunDir);
+
+      if (!quality.software && !quality.mobile) {
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        const envScene = new THREE.Scene();
+        envScene.add(this.sky);
+        uniforms.showSunDisc.value = 0;
+        this.env = pmrem.fromScene(envScene, 0.04, 0.2, 200).texture;
+        uniforms.showSunDisc.value = 1;
+        scene.environment = this.env;
+        scene.environmentIntensity = 0.78;
+        pmrem.dispose();
+      } else {
+        this.env = new THREE.Texture();
+        scene.environment = null;
+        scene.environmentIntensity = 0.2;
+      }
+      scene.add(this.sky);
+    } else {
+      this.env = new THREE.Texture();
+      scene.environment = null;
+      scene.environmentIntensity = 0.2;
+    }
     scene.fog = new THREE.FogExp2(0x2a221c, 0.0062);
     scene.background = new THREE.Color(0x121014);
 
@@ -139,48 +121,85 @@ export class World {
 
     this.ground = new THREE.Mesh(
       new THREE.PlaneGeometry(MAP_SIZE + 80, MAP_SIZE + 80, 1, 1),
-      new THREE.MeshStandardMaterial({
-        map: groundT.map,
-        normalMap: groundT.normalMap,
-        roughnessMap: groundT.roughnessMap,
-        roughness: 0.95,
-        metalness: 0.04,
-        color: 0x4e4c4a,
-        envMapIntensity: 0.28,
-      }),
+      new THREE.MeshLambertMaterial({ color: 0x2a2c30 }),
     );
     this.ground.rotation.x = -Math.PI / 2;
     this.ground.receiveShadow = true;
     this.group.add(this.ground);
 
+    this.buildHangar();
+  }
+
+  ensurePlayWorld() {
+    if (this.playReady) return;
+    this.playReady = true;
+    const city = this.pendingCity;
+    const quality = this.pendingQuality;
+    this.metal = sharedMetal();
+    const cheap = quality.cheap;
+    const groundT = makeGroundTextures(cheap);
+    const asphaltT = makeAsphaltTextures(cheap);
+    const facade = makeFacadeTextures(false, cheap);
+    const facadeRuin = makeFacadeTextures(true, cheap);
+    const flame = makeFlameSprite();
+    const smoke = makeSmokeSprite();
+    const flare = makeFlareSprite();
+    for (const t of [
+      groundT.map,
+      groundT.normalMap,
+      groundT.roughnessMap,
+      asphaltT.map,
+      asphaltT.normalMap,
+      asphaltT.roughnessMap,
+      facade.map,
+      facade.normalMap,
+      facade.roughnessMap,
+      facade.emissiveMap,
+      facadeRuin.map,
+      facadeRuin.normalMap,
+      facadeRuin.roughnessMap,
+      facadeRuin.emissiveMap,
+      flame,
+      smoke,
+      flare,
+    ]) {
+      if (t) this.textures.push(t);
+    }
+    const groundMat = this.ground.material as THREE.MeshLambertMaterial;
+    groundMat.map = groundT.map;
+    groundMat.color.set(0x4e4c4a);
+    groundMat.needsUpdate = true;
+
     const plaza = new THREE.Mesh(
-      new THREE.CircleGeometry(22, 48),
-      new THREE.MeshPhysicalMaterial({
-        color: 0x2a2c30,
-        metalness: 0.18,
-        roughness: 0.22,
-        clearcoat: 0.55,
-        clearcoatRoughness: 0.28,
-        envMapIntensity: 1.1,
-        map: asphaltT.map,
-        normalMap: asphaltT.normalMap,
-        roughnessMap: asphaltT.roughnessMap,
-      }),
+      new THREE.CircleGeometry(22, cheap ? 16 : 32),
+      cheap
+        ? new THREE.MeshLambertMaterial({ color: 0x2a2c30, map: asphaltT.map })
+        : new THREE.MeshStandardMaterial({
+            color: 0x2a2c30,
+            metalness: 0.12,
+            roughness: 0.4,
+            envMapIntensity: 0.7,
+            map: asphaltT.map,
+            normalMap: asphaltT.normalMap ?? undefined,
+            roughnessMap: asphaltT.roughnessMap ?? undefined,
+          }),
     );
     plaza.rotation.x = -Math.PI / 2;
     plaza.position.y = 0.03;
     plaza.receiveShadow = true;
     this.group.add(plaza);
 
-    const roadMat = new THREE.MeshStandardMaterial({
-      map: asphaltT.map,
-      normalMap: asphaltT.normalMap,
-      roughnessMap: asphaltT.roughnessMap,
-      roughness: 0.72,
-      metalness: 0.08,
-      color: 0x3c3e44,
-      envMapIntensity: 0.35,
-    });
+    const roadMat = cheap
+      ? new THREE.MeshLambertMaterial({ map: asphaltT.map, color: 0x3c3e44 })
+      : new THREE.MeshStandardMaterial({
+          map: asphaltT.map,
+          normalMap: asphaltT.normalMap ?? undefined,
+          roughnessMap: asphaltT.roughnessMap ?? undefined,
+          roughness: 0.72,
+          metalness: 0.08,
+          color: 0x3c3e44,
+          envMapIntensity: 0.35,
+        });
     for (let i = -2; i <= 2; i++) {
       const h = new THREE.Mesh(new THREE.BoxGeometry(MAP_SIZE, 0.06, 11), roadMat);
       h.position.set(0, 0.03, i * 36);
@@ -192,20 +211,21 @@ export class World {
       this.group.add(v);
     }
 
-    this.buildBuildings(city, facade, facadeRuin);
+    this.buildBuildings(city, facade, facadeRuin, quality);
     this.buildLamps(city, flare);
     this.buildCars(city);
-    this.buildDebris(city);
+    this.buildDebris(city, quality);
     this.buildFires(city, flame, smoke, quality);
-    this.buildWrecks(city);
-    this.buildHangar(concrete);
+    this.buildWrecks(city, quality);
     this.buildRim();
+    void this.pendingRenderer;
   }
 
   private buildBuildings(
     city: CityData,
     facade: ReturnType<typeof makeFacadeTextures>,
     ruin: ReturnType<typeof makeFacadeTextures>,
+    quality: Quality,
   ) {
     const boxes: { x: number; y: number; z: number; w: number; h: number; d: number; rot: number; ruined: boolean }[] =
       [];
@@ -223,7 +243,7 @@ export class World {
         rot: b.rot,
         ruined: b.ruined,
       });
-      if (!b.ruined && b.h > 22 && b.tier > 1) {
+      if (!quality.cheap && !b.ruined && b.h > 22 && b.tier > 1) {
         boxes.push({
           x: b.x,
           y: b.h + 3.2,
@@ -261,31 +281,41 @@ export class World {
     }
     const intact = boxes.filter((b) => !b.ruined);
     const ruined = boxes.filter((b) => b.ruined);
-    const wallMat = new THREE.MeshStandardMaterial({
-      map: facade.map,
-      normalMap: facade.normalMap,
-      roughnessMap: facade.roughnessMap,
-      emissiveMap: facade.emissiveMap,
-      emissive: 0xffe0c0,
-      emissiveIntensity: 0.85,
-      roughness: 0.72,
-      metalness: 0.08,
-      color: 0x6e7278,
-      envMapIntensity: 0.42,
-    });
+    const wallMat = quality.cheap
+      ? new THREE.MeshLambertMaterial({
+          map: facade.map,
+          emissiveMap: facade.emissiveMap,
+          emissive: 0xffe0c0,
+          emissiveIntensity: 0.7,
+          color: 0x6e7278,
+        })
+      : new THREE.MeshStandardMaterial({
+          map: facade.map,
+          normalMap: facade.normalMap ?? undefined,
+          roughnessMap: facade.roughnessMap ?? undefined,
+          emissiveMap: facade.emissiveMap,
+          emissive: 0xffe0c0,
+          emissiveIntensity: 0.85,
+          roughness: 0.72,
+          metalness: 0.08,
+          color: 0x6e7278,
+          envMapIntensity: 0.42,
+        });
     const ruinMat = wallMat.clone();
     ruinMat.map = ruin.map;
-    ruinMat.normalMap = ruin.normalMap;
-    ruinMat.roughnessMap = ruin.roughnessMap;
+    if ("normalMap" in ruinMat) ruinMat.normalMap = ruin.normalMap;
+    if ("roughnessMap" in ruinMat) ruinMat.roughnessMap = ruin.roughnessMap;
     ruinMat.emissiveMap = ruin.emissiveMap;
     ruinMat.emissiveIntensity = 0.4;
     ruinMat.color = new THREE.Color(0x6a6258);
-    const roofMat = new THREE.MeshStandardMaterial({
-      color: 0x2a2c30,
-      roughness: 0.82,
-      metalness: 0.22,
-      envMapIntensity: 0.4,
-    });
+    const roofMat = quality.cheap
+      ? new THREE.MeshLambertMaterial({ color: 0x2a2c30 })
+      : new THREE.MeshStandardMaterial({
+          color: 0x2a2c30,
+          roughness: 0.82,
+          metalness: 0.22,
+          envMapIntensity: 0.4,
+        });
     const geo = new THREE.BoxGeometry(1, 1, 1);
     this.placeInstances(geo, wallMat, intact);
     this.placeInstances(geo, ruinMat, ruined);
@@ -344,7 +374,7 @@ export class World {
     this.group.add(pole);
     this.group.add(heads);
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < (this.pendingQuality.cheap ? 2 : 4); i++) {
       const pl = new THREE.PointLight(0xffd4a0, 0, 22, 1.8);
       this.scene.add(pl);
       this.lampLights.push(pl);
@@ -359,43 +389,39 @@ export class World {
   lamps: CityData["lamps"] = [];
 
   private buildCars(city: CityData) {
-    const bodyMat = new THREE.MeshStandardMaterial({
-      color: 0x2a2c30,
-      metalness: 0.72,
-      roughness: 0.38,
-      envMapIntensity: 0.9,
+    if (!city.cars.length) return;
+    const bodyMat = new THREE.MeshLambertMaterial({ color: 0x2a2c30 });
+    const cabinMat = new THREE.MeshLambertMaterial({ color: 0x12151a });
+    const bodies = new THREE.InstancedMesh(new THREE.BoxGeometry(1.7, 0.55, 4.1), bodyMat, city.cars.length);
+    const cabins = new THREE.InstancedMesh(new THREE.BoxGeometry(1.5, 0.5, 1.6), cabinMat, city.cars.length);
+    city.cars.forEach((car, i) => {
+      this._dummy.position.set(car.x, 0.45, car.z);
+      this._dummy.rotation.set(0, car.yaw, 0.18);
+      this._dummy.scale.set(1, 1, 1);
+      this._dummy.updateMatrix();
+      bodies.setMatrixAt(i, this._dummy.matrix);
+      this._dummy.position.set(car.x, 0.9, car.z);
+      this._dummy.updateMatrix();
+      cabins.setMatrixAt(i, this._dummy.matrix);
     });
-    const cabinMat = new THREE.MeshStandardMaterial({
-      color: 0x12151a,
-      metalness: 0.2,
-      roughness: 0.12,
-      envMapIntensity: 1.2,
-    });
-    for (const car of city.cars) {
-      const g = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.55, 4.1), bodyMat);
-      body.position.y = 0.45;
-      body.castShadow = true;
-      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1.6), cabinMat);
-      cabin.position.set(0, 0.9, -0.3);
-      g.add(body, cabin);
-      g.position.set(car.x, 0, car.z);
-      g.rotation.y = car.yaw;
-      g.rotation.z = 0.18;
-      this.group.add(g);
-    }
+    bodies.instanceMatrix.needsUpdate = true;
+    cabins.instanceMatrix.needsUpdate = true;
+    bodies.castShadow = true;
+    this.group.add(bodies, cabins);
   }
 
-  private buildDebris(city: CityData) {
-    const mat = new THREE.MeshStandardMaterial({
-      map: this.metal.map,
-      normalMap: this.metal.normalMap,
-      roughnessMap: this.metal.roughnessMap,
-      metalnessMap: this.metal.metalnessMap,
-      color: 0x6a6e74,
-      metalness: 0.55,
-      roughness: 0.62,
-    });
+  private buildDebris(city: CityData, quality: Quality) {
+    const mat = quality.cheap
+      ? new THREE.MeshLambertMaterial({ map: this.metal.map, color: 0x6a6e74 })
+      : new THREE.MeshStandardMaterial({
+          map: this.metal.map,
+          normalMap: this.metal.normalMap,
+          roughnessMap: this.metal.roughnessMap,
+          metalnessMap: this.metal.metalnessMap,
+          color: 0x6a6e74,
+          metalness: 0.55,
+          roughness: 0.62,
+        });
     const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat, city.debris.length);
     city.debris.forEach((d, i) => {
       this._dummy.position.set(d.x, d.y, d.z);
@@ -426,7 +452,8 @@ export class World {
       opacity: 0.35,
       color: 0x4a453e,
     });
-    city.fires.forEach((f, i) => {
+    const fires = city.fires.slice(0, quality.cheap ? 5 : 10);
+    fires.forEach((f, i) => {
       const pit = new THREE.Mesh(pitGeo, pitMat);
       pit.position.set(f.x, 0.12, f.z);
       this.group.add(pit);
@@ -449,8 +476,9 @@ export class World {
     });
   }
 
-  private buildWrecks(city: CityData) {
-    city.wrecks.forEach((w) => {
+  private buildWrecks(city: CityData, quality: Quality) {
+    const n = quality.software || quality.mobile ? 3 : 5;
+    city.wrecks.slice(0, n).forEach((w) => {
       const rig = buildMech(CHASSIS_IDS[w.chassis] ?? "titan", true, true);
       rig.root.position.set(w.x, 0, w.z);
       rig.root.rotation.y = w.yaw;
@@ -458,24 +486,9 @@ export class World {
     });
   }
 
-  private buildHangar(concrete: ReturnType<typeof makeConcreteTextures>) {
-    const wallMat = new THREE.MeshStandardMaterial({
-      map: concrete.map,
-      normalMap: concrete.normalMap,
-      roughness: 0.86,
-      metalness: 0.08,
-      color: 0x8a8e94,
-    });
-    const metalMat = new THREE.MeshStandardMaterial({
-      map: this.metal.map,
-      normalMap: this.metal.normalMap,
-      roughnessMap: this.metal.roughnessMap,
-      metalnessMap: this.metal.metalnessMap,
-      color: 0x6a7078,
-      metalness: 0.82,
-      roughness: 0.32,
-      envMapIntensity: 1.1,
-    });
+  private buildHangar() {
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0x6a7078 });
+    const metalMat = new THREE.MeshLambertMaterial({ color: 0x4a5058 });
     const floor = new THREE.Mesh(
       new THREE.CircleGeometry(9.5, 48),
       new THREE.MeshStandardMaterial({
@@ -518,47 +531,28 @@ export class World {
     ceiling.position.set(0, 14.2, -0.6);
     this.hangar.add(ceiling);
 
-    for (let i = -2; i <= 2; i++) {
-      const strip = new THREE.Mesh(
-        new THREE.BoxGeometry(4.5, 0.08, 0.45),
-        new THREE.MeshStandardMaterial({
-          color: 0xf2efe8,
-          emissive: 0xffe8c8,
-          emissiveIntensity: 1.15,
-          roughness: 0.2,
-        }),
-      );
-      strip.position.set(i * 4.6, 13.85, -2);
-      this.hangar.add(strip);
-      const area = new THREE.RectAreaLight(0xfff1dc, 0.55, 4.5, 0.5);
-      area.position.copy(strip.position);
-      area.position.y -= 0.2;
-      area.lookAt(0, 0, 0);
-      this.hangar.add(area);
-    }
+    const strip = new THREE.Mesh(
+      new THREE.BoxGeometry(18, 0.08, 0.45),
+      new THREE.MeshStandardMaterial({
+        color: 0xf2efe8,
+        emissive: 0xffe8c8,
+        emissiveIntensity: 0.85,
+        roughness: 0.2,
+      }),
+    );
+    strip.position.set(0, 13.85, -2);
+    this.hangar.add(strip);
 
-    const key = new THREE.SpotLight(0xffe4d0, 12, 26, 0.5, 0.35, 1.1);
-    key.position.set(-3.2, 8.5, 9);
-    key.target.position.set(0, 3.2, 0.5);
-    this.hangar.add(key);
-    this.hangar.add(key.target);
-    const amb = new THREE.AmbientLight(0x7a828c, 0.7);
+    const amb = new THREE.AmbientLight(0x7a828c, 0.85);
     this.hangar.add(amb);
-    const chest = new THREE.DirectionalLight(0xfff0e4, 2.1);
+    const chest = new THREE.DirectionalLight(0xfff0e4, 1.8);
     chest.position.set(-4, 7, 10);
     chest.target.position.set(0, 3.1, 0.4);
     this.hangar.add(chest);
     this.hangar.add(chest.target);
-    const fill = new THREE.SpotLight(0xffc4a8, 3.2, 20, 0.75, 0.5, 1.2);
-    fill.position.set(5, 5.5, 8);
-    fill.target.position.set(0, 2.8, 0.2);
-    this.hangar.add(fill);
-    this.hangar.add(fill.target);
-    const rim = new THREE.SpotLight(0xff4428, 3.2, 18, 0.6, 0.5, 1.2);
+    const rim = new THREE.DirectionalLight(0xff5533, 0.55);
     rim.position.set(5, 8.2, -6.5);
-    rim.target.position.set(0, 3.2, 0);
     this.hangar.add(rim);
-    this.hangar.add(rim.target);
 
     const girderMat = metalMat;
     for (let i = -1; i <= 1; i++) {
@@ -587,7 +581,7 @@ export class World {
   setHangarMode(on: boolean) {
     this.hangar.visible = on;
     this.group.visible = !on;
-    this.sky.visible = !on;
+    if (this.sky) this.sky.visible = !on;
     if (on) {
       this.scene.fog = new THREE.FogExp2(0x08090c, 0.005);
       this.sun.intensity = 0.55;
@@ -603,28 +597,32 @@ export class World {
     }
   }
 
-  update(dt: number, time: number, px: number, pz: number) {
-    this.sky.material.uniforms.time.value = time * 0.001;
+  update(_dt: number, time: number, px: number, pz: number, hangar = false) {
+    if (hangar || !this.playReady) return;
+    if (this.sky) this.sky.material.uniforms.time.value = time * 0.001;
     this.sun.target.position.set(px, 0, pz);
     this.sun.position.set(px + this.sunDir.x * 80, this.sunDir.y * 80, pz + this.sunDir.z * 80);
     this.sun.target.updateMatrixWorld();
-    this.sun.shadow.camera.updateProjectionMatrix();
 
-    const scored = this.lamps
-      .map((l) => ({ l, d: (l.x - px) * (l.x - px) + (l.z - pz) * (l.z - pz) }))
-      .sort((a, b) => a.d - b.d);
-    this.lampLights.forEach((light, i) => {
-      const hit = scored[i];
-      if (!hit) {
-        light.intensity = 0;
-        return;
-      }
-      light.position.set(hit.l.x, 5.4, hit.l.z);
-      light.intensity = 2.1;
-      const spr = this.disposables[i] as THREE.Sprite | undefined;
-      if (spr?.isSprite) spr.position.set(hit.l.x, 5.5, hit.l.z);
-    });
+    const cheap = this.pendingQuality.cheap;
+    if (!cheap || ((time / 16) | 0) % 4 === 0) {
+      const scored = this.lamps
+        .map((l) => ({ l, d: (l.x - px) * (l.x - px) + (l.z - pz) * (l.z - pz) }))
+        .sort((a, b) => a.d - b.d);
+      this.lampLights.forEach((light, i) => {
+        const hit = scored[i];
+        if (!hit) {
+          light.intensity = 0;
+          return;
+        }
+        light.position.set(hit.l.x, 5.4, hit.l.z);
+        light.intensity = 2.1;
+        const spr = this.disposables[i] as THREE.Sprite | undefined;
+        if (spr?.isSprite) spr.position.set(hit.l.x, 5.5, hit.l.z);
+      });
+    }
 
+    if (cheap) return;
     for (const f of this.fireLights) {
       f.intensity = 2.0 + Math.sin(time * 0.011 + f.position.x) * 0.7 + Math.sin(time * 0.023) * 0.35;
     }

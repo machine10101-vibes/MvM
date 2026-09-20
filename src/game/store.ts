@@ -74,7 +74,25 @@ export const useGame = create<GameState>((set) => ({
     }
     set({ loadout });
   },
-  setHud: (hud) => set({ hud }),
+  setHud: (hud) =>
+    set((s) => {
+      const prev = s.hud;
+      if (
+        prev &&
+        prev.hp === hud.hp &&
+        prev.armor === hud.armor &&
+        prev.heat === hud.heat &&
+        prev.wave === hud.wave &&
+        prev.kills === hud.kills &&
+        prev.alive === hud.alive &&
+        prev.toast === hud.toast &&
+        prev.overheat === hud.overheat &&
+        prev.aliveEnemies === hud.aliveEnemies
+      ) {
+        return s;
+      }
+      return { hud };
+    }),
   setRoom: (roomCode) => set({ roomCode }),
   setMatchMode: (matchMode) => set({ matchMode }),
   setCallsign: (callsign) => set({ callsign }),
