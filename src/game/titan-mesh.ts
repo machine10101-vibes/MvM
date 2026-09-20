@@ -335,19 +335,25 @@ function buildTorso(torso: THREE.Group, m: TitanMats, detail: boolean) {
   add(torso, geo.sphere, m.emit, 0.2, 0.2, 0.18, 0, 1.32, 1.3);
   add(torso, geo.cyl, m.emit, 0.08, 0.08, 0.06, 0, 1.32, 1.36, Math.PI / 2, 0, 0);
 
-  // Hex crown — the signature top plate from the reference.
-  add(torso, geo.hex, m.plate, 1.95, 0.22, 1.95, 0, 2.42, -0.02);
-  add(torso, geo.hex, m.dark, 1.72, 0.1, 1.72, 0, 2.54, -0.02);
-  const crown = add(torso, geo.hex, m.hex, 1.58, 0.08, 1.58, 0, 2.6, -0.02);
-  crown.material = m.hex;
-  add(torso, geo.hex, m.emit, 1.62, 0.03, 1.62, 0, 2.52, -0.02);
-  add(torso, geo.hex, m.dark, 0.42, 0.06, 0.42, 0, 2.66, -0.02);
+  // Hex crown — honeycomb must sit on the TOP face (cylinder UVs wrap the side).
+  add(torso, geo.hex, m.plate, 2.05, 0.2, 2.05, 0, 2.4, -0.02);
+  add(torso, geo.hex, m.dark, 1.82, 0.1, 1.82, 0, 2.52, -0.02);
+  add(torso, geo.hex, m.emit, 1.7, 0.04, 1.7, 0, 2.56, -0.02);
+  const crown = new THREE.Mesh(new THREE.CircleGeometry(0.82, 6), m.hex);
+  crown.rotation.x = -Math.PI / 2;
+  crown.position.set(0, 2.62, -0.02);
+  crown.castShadow = true;
+  torso.add(crown);
+  const crownGlow = new THREE.Mesh(new THREE.CircleGeometry(0.86, 6), m.emit);
+  crownGlow.rotation.x = -Math.PI / 2;
+  crownGlow.position.set(0, 2.61, -0.02);
+  torso.add(crownGlow);
 }
 
 function buildMissilePod(torso: THREE.Group, side: number, m: TitanMats, detail: boolean) {
   const pod = new THREE.Group();
   // High and outboard, flush with the hex crown like the reference.
-  pod.position.set(side * 1.18, 2.48, -0.02);
+  pod.position.set(side * 1.42, 2.52, -0.02);
   torso.add(pod);
   add(pod, geo.soft, m.plate, 1.08, 0.52, 0.92, 0, 0, 0);
   add(pod, geo.soft, m.dark, 0.95, 0.18, 0.8, 0, 0.22, 0);
@@ -398,10 +404,10 @@ function attachRotary(
   exposed: boolean,
 ) {
   const g = new THREE.Group();
-  g.position.set(0, -0.38, 0.32);
+  g.position.set(0, -0.32, 0.38);
   arm.add(g);
-  add(g, geo.cyl, m.plate, 0.58, 0.58, 0.38, 0, 0.06, 0.02, Math.PI / 2, 0, 0);
-  add(g, geo.cyl, m.dark, exposed ? 0.4 : 0.46, exposed ? 0.4 : 0.46, 1.28, 0, 0.02, 0.68, Math.PI / 2, 0, 0);
+  add(g, geo.cyl, m.plate, 0.64, 0.64, 0.42, 0, 0.06, 0.02, Math.PI / 2, 0, 0);
+  add(g, geo.cyl, m.dark, exposed ? 0.44 : 0.5, exposed ? 0.44 : 0.5, 1.42, 0, 0.02, 0.76, Math.PI / 2, 0, 0);
   add(g, geo.cyl, m.trim, 0.5, 0.5, 0.12, 0, 0.02, 0.28, Math.PI / 2, 0, 0);
   add(g, geo.cyl, m.trim, 0.48, 0.48, 0.1, 0, 0.02, 1.22, Math.PI / 2, 0, 0);
   const barrels: THREE.Object3D[] = [];
