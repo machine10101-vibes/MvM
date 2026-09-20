@@ -889,8 +889,8 @@ export function poseMech(
   // +Y up, +Z forward. Hip/knee rotation.x: +X swings a downward limb FORWARD.
   // Humanoid knees must flex BACKWARD (negative X). Reverse-joint (Reaper)
   // knees flex FORWARD (positive X).
-  const stanceHip = reverse ? -0.22 : 0.1;
-  const stanceKnee = reverse ? 0.72 : -0.34;
+  const stanceHip = reverse ? -0.26 : 0.16;
+  const stanceKnee = reverse ? 0.82 : -0.52;
   const jumpHip = jumping ? 0.38 : boost ? 0.16 : 0;
   const jumpKnee = jumping ? (reverse ? 0.22 : -0.42) : 0;
 
