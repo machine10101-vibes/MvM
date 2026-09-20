@@ -88,7 +88,7 @@ export class Engine {
   setView(v: ViewMode) {
     this.view = v;
     this.world.setHangarMode(v === "hangar");
-    this.camera.fov = v === "hangar" ? 30 : v === "title" ? 50 : 58;
+    this.camera.fov = v === "hangar" ? 40 : v === "title" ? 50 : 58;
     this.camera.updateProjectionMatrix();
     if (v === "title") {
       this.sim.resetDemo();
@@ -174,8 +174,8 @@ export class Engine {
     if (!p) return;
     if (this.view === "hangar") {
       const t = time / 1000;
-      this.camera.position.set(Math.sin(t * 0.26) * 7.0, 3.85, Math.cos(t * 0.26) * 7.0);
-      this.camera.lookAt(p.x, 2.45, p.z);
+      this.camera.position.set(Math.sin(t * 0.22) * 10.4, 5.15, Math.cos(t * 0.22) * 10.4);
+      this.camera.lookAt(p.x, 2.05, p.z);
       p.x = 0;
       p.z = 0;
       p.yaw += dt * 0.18;
