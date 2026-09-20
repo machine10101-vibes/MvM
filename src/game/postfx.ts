@@ -71,7 +71,7 @@ export class PostFx {
     this.composer.setPixelRatio(quality.pixelRatio);
     this.composer.addPass(new RenderPass(scene, camera));
     if (quality.bloom) {
-      this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), quality.mobile ? 0.22 : 0.34, 0.48, 0.78);
+      this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), quality.mobile ? 0.14 : 0.22, 0.42, 0.84);
       this.composer.addPass(this.bloom);
     }
     if (quality.aa) {

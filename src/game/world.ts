@@ -534,19 +534,19 @@ export class World {
       );
       strip.position.set(i * 4.6, 13.85, -2);
       this.hangar.add(strip);
-      const area = new THREE.RectAreaLight(0xfff1dc, 4.5, 4.5, 0.5);
+      const area = new THREE.RectAreaLight(0xfff1dc, 1.8, 4.5, 0.5);
       area.position.copy(strip.position);
       area.position.y -= 0.2;
       area.lookAt(0, 0, 0);
       this.hangar.add(area);
     }
 
-    const key = new THREE.SpotLight(0xffe6c8, 22, 28, 0.52, 0.42, 1.35);
+    const key = new THREE.SpotLight(0xffe6c8, 9, 28, 0.52, 0.42, 1.35);
     key.position.set(-6, 11, 8);
     key.target.position.set(0, 2.4, 0);
     this.hangar.add(key);
     this.hangar.add(key.target);
-    const rim = new THREE.SpotLight(0xa8c4e0, 14, 24, 0.65, 0.48, 1.15);
+    const rim = new THREE.SpotLight(0xa8c4e0, 5.5, 24, 0.65, 0.48, 1.15);
     rim.position.set(8, 9, -6);
     rim.target.position.set(0, 3, 0);
     this.hangar.add(rim);
