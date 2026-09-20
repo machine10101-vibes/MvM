@@ -954,14 +954,15 @@ export function poseMech(
   const titan = rig.chassis === "titan";
   if (titan) {
     // Hang rotaries beside the spherical torso — matches the planted reference stance.
-    rig.rightShoulder.rotation.set(0.06 + aim * 0.36 - fire * 0.08 + R * swing * 0.3, 0.06, 0.16);
-    rig.leftShoulder.rotation.set(0.06 + aim * 0.36 - fire * 0.08 + L * swing * 0.3, -0.06, -0.16);
-    rig.rightArm.rotation.set(-1.18 + aim * 0.16 - fire * 0.04, 0.02, 0.08);
-    rig.leftArm.rotation.set(-1.18 + aim * 0.16 - fire * 0.04, -0.02, -0.08);
-    rig.rightFore.rotation.set(0.12 + fire * 0.03, 0, 0.03);
-    rig.leftFore.rotation.set(0.12 + fire * 0.03, 0, -0.03);
-    rig.rightGun.rotation.set(0.35, 0, 0);
-    rig.leftGun.rotation.set(0.35, 0, 0);
+    // Arms hang along -Y; rotaries sit on +Z so they aim forward, not up.
+    rig.rightShoulder.rotation.set(0.12 + aim * 0.28 - fire * 0.06 + R * swing * 0.25, 0.04, 0.1);
+    rig.leftShoulder.rotation.set(0.12 + aim * 0.28 - fire * 0.06 + L * swing * 0.25, -0.04, -0.1);
+    rig.rightArm.rotation.set(-0.18 + aim * 0.12 - fire * 0.04, 0.02, 0.06);
+    rig.leftArm.rotation.set(-0.18 + aim * 0.12 - fire * 0.04, -0.02, -0.06);
+    rig.rightFore.rotation.set(0.18 + fire * 0.03, 0, 0.02);
+    rig.leftFore.rotation.set(0.18 + fire * 0.03, 0, -0.02);
+    rig.rightGun.rotation.set(0.08, 0, 0);
+    rig.leftGun.rotation.set(0.08, 0, 0);
   } else {
     const raise = -1.22;
     const crook = 0.82;

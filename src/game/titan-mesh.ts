@@ -97,7 +97,7 @@ function mats(wrecked: boolean) {
       color: 0xffffff,
       emissive: glow,
       emissiveMap: hexMap,
-      emissiveIntensity: wrecked ? 0.25 : 2.6,
+      emissiveIntensity: wrecked ? 0.25 : 3.4,
       metalness: 0.15,
       roughness: 0.32,
     }),
@@ -339,14 +339,14 @@ function buildTorso(torso: THREE.Group, m: TitanMats, detail: boolean) {
   add(torso, geo.hex, m.plate, 2.05, 0.2, 2.05, 0, 2.4, -0.02);
   add(torso, geo.hex, m.dark, 1.82, 0.1, 1.82, 0, 2.52, -0.02);
   add(torso, geo.hex, m.emit, 1.7, 0.04, 1.7, 0, 2.56, -0.02);
-  const crown = new THREE.Mesh(new THREE.CircleGeometry(0.82, 6), m.hex);
-  crown.rotation.x = -Math.PI / 2;
-  crown.position.set(0, 2.62, -0.02);
+  const crown = new THREE.Mesh(new THREE.CircleGeometry(0.86, 6), m.hex);
+  crown.rotation.x = -Math.PI / 2 + 0.18;
+  crown.position.set(0, 2.6, 0.1);
   crown.castShadow = true;
   torso.add(crown);
-  const crownGlow = new THREE.Mesh(new THREE.CircleGeometry(0.86, 6), m.emit);
-  crownGlow.rotation.x = -Math.PI / 2;
-  crownGlow.position.set(0, 2.61, -0.02);
+  const crownGlow = new THREE.Mesh(new THREE.CircleGeometry(0.9, 6), m.emit);
+  crownGlow.rotation.x = -Math.PI / 2 + 0.18;
+  crownGlow.position.set(0, 2.59, 0.1);
   torso.add(crownGlow);
 }
 
