@@ -36,3 +36,14 @@ Publish `dist/` to the `gh-pages` branch root. Do not enable Jekyll (`.nojekyll`
 - **Guest / local only.** No OAuth, no Better Auth, no PGlite/Postgres. Hangar + last survival runs stay on the device.
 - **Multiplayer signaling is off** on GitHub Pages (static files only).
 - Built from the Grok App Builder TanStack Start workspace, adapted to a static SPA so Pages can serve it.
+
+
+---
+
+## Roblox MVM (Mech vs Mech)
+
+The full **Roblox** place + Rojo source (through **v1.7** graphics fidelity) lives on branch [`roblox-v1.7`](https://github.com/machine10101-vibes/MvM/tree/roblox-v1.7).
+
+- Browse source: https://github.com/machine10101-vibes/MvM/tree/roblox-v1.7
+- Tag: https://github.com/machine10101-vibes/MvM/releases/tag/v1.7-roblox
+- This `main` branch remains the Vite web prototype.
