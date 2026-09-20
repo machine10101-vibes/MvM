@@ -22,6 +22,7 @@ export function Hud() {
           <Meter label="Hull" value={hp} danger={hp < 0.3} />
           <Meter label="Plate" value={armor} />
           <Meter label="Heat" value={heat} heat />
+          {hud.special ? <Meter label="Dome" value={hud.shield} /> : null}
           <div className="grid grid-cols-2 gap-2">
             <Meter label="Boost" value={hud.boost} />
             <Meter label="Jets" value={hud.jump} />
@@ -78,12 +79,20 @@ export function Hud() {
           <Cooldown frac={hud.cdPrimary} />
         </div>
         <div className="hidden max-w-sm text-center font-mono text-[10px] tracking-widest text-muted uppercase sm:block">
-          WASD · Q/C strafe · R vent · LMB fire · RMB alt · shift boost · space jets
+          WASD · Q/C strafe · R vent · LMB rotary · RMB missiles · T core · G shield · shift boost · space jets
         </div>
         <div className="rounded-[var(--radius-md)] border border-border bg-bg/70 px-3 py-2 text-right backdrop-blur-sm">
           <p className="text-[10px] uppercase tracking-widest text-muted">Secondary</p>
           <p className="font-display text-sm">{secondary.name}</p>
           <Cooldown frac={hud.cdSecondary} />
+          {hud.special ? (
+            <>
+              <p className="mt-2 text-[10px] uppercase tracking-widest text-muted">Core</p>
+              <p className="font-display text-sm">{WEAPONS[hud.special].name}</p>
+              <Cooldown frac={hud.cdSpecial} />
+              {hud.shieldUp ? <p className="mt-1 text-[10px] uppercase tracking-widest text-ok">Dome up</p> : null}
+            </>
+          ) : null}
         </div>
       </div>
 

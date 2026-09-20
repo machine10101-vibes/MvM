@@ -11,6 +11,7 @@ import {
   sharedVisor,
 } from "./textures";
 import type { ChassisId, WeaponId } from "./types";
+import { buildTitanMech, poseTitanExtras } from "./titan-mesh";
 
 export interface MechRig {
   root: THREE.Group;
@@ -42,6 +43,9 @@ export interface MechRig {
   chassis: ChassisId;
   primary: WeaponId;
   secondary: WeaponId;
+  shieldMesh?: THREE.Mesh;
+  muzzleChest?: THREE.Object3D;
+  barrels?: THREE.Object3D[];
 }
 
 const segs = 14;
@@ -76,14 +80,14 @@ const visorT = sharedVisor();
 const hazardT = sharedHazard();
 
 const GLOW: Record<ChassisId, number> = {
-  vanguard: 0xb8d4ee,
+  titan: 0xff2a22,
   reaper: 0xffb060,
   colossus: 0xff7a3a,
   phantom: 0x66e7ff,
 };
 
 const MARK: Record<ChassisId, string> = {
-  vanguard: "V",
+  titan: "T",
   reaper: "R",
   colossus: "C",
   phantom: "P",
@@ -189,6 +193,7 @@ export function buildMech(
   const def = CHASSIS[chassis];
   const primary = weapons?.primary ?? def.primary;
   const secondary = weapons?.secondary ?? def.secondary;
+  if (chassis === "titan") return buildTitanMech(wrecked, lowDetail, { primary, secondary });
   const glow = GLOW[chassis];
   const detail = !wrecked && !lowDetail;
   const paintColor = wrecked ? 0x2a2a2c : def.paint;
@@ -640,7 +645,7 @@ function buildHead(
   add(head, geo.box, mats.armor, 0.82, 0.12, 0.7, 0, 0.54, -0.02);
 
   let antenna: THREE.Object3D | null = null;
-  if (chassis === "vanguard") {
+  if (chassis === "titan") {
     add(head, geo.cyl, mats.trim, 0.07, 0.07, 0.7, 0.26, 0.68, -0.04);
     const tip = add(head, geo.sphere, mats.emit, 0.12, 0.12, 0.12, 0.26, 1.02, -0.04);
     antenna = tip;
@@ -692,7 +697,7 @@ function buildPauldron(sh: THREE.Group, side: number, chassis: ChassisId, mats: 
   if (chassis === "phantom") {
     add(sh, geo.plate, mats.armor, 0.95, 0.22, 1.45, side * 0.04, 0.28, -0.12, 0.35);
   }
-  if (chassis === "vanguard" || chassis === "colossus") {
+  if (chassis === "titan" || chassis === "colossus") {
     add(sh, geo.cyl, mats.dark, 0.32, 0.32, 1.05, side * 0.1, 0.38, -0.28, Math.PI / 2, 0, 0);
     add(sh, geo.cone, mats.trim, 0.22, 0.28, 0.22, side * 0.1, 0.38, -0.8, Math.PI / 2, 0, 0);
   }
@@ -812,6 +817,21 @@ function attachWeapon(
     add(g, geo.hard, mats.accent, 0.03, 0.7, 1.7, 0, 0.08, 1.1);
     add(g, geo.box, mats.emit, 0.08, 0.08, 0.16, 0, 0.08, 0.42);
     muzzle.position.set(0, 0.08, 1.88);
+  } else if (id === "rotary") {
+    add(g, geo.cyl, mats.trim, 0.52, 0.52, 0.42, 0, 0, 0.08, Math.PI / 2, 0, 0);
+    add(g, geo.cyl, mats.dark, 0.38, 0.38, 1.15, 0, 0, 0.7, Math.PI / 2, 0, 0);
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      add(g, geo.cyl, mats.trim, 0.09, 0.09, 1.05, Math.cos(a) * 0.12, Math.sin(a) * 0.12, 0.78, Math.PI / 2, 0, 0);
+    }
+    add(g, geo.cyl, mats.emit, 0.08, 0.08, 0.08, 0, 0, 1.28, Math.PI / 2, 0, 0);
+    muzzle.position.set(0, 0, 1.38);
+  } else if (id === "core") {
+    add(g, geo.cyl, mats.dark, 0.42, 0.42, 0.55, 0, 0, 0.18, Math.PI / 2, 0, 0);
+    add(g, geo.torus, mats.emit, 0.38, 0.38, 0.38, 0, 0, 0.55, Math.PI / 2, 0, 0);
+    add(g, geo.sphere, mats.lens, 0.32, 0.32, 0.18, 0, 0, 0.72);
+    add(g, geo.sphere, mats.emit, 0.12, 0.12, 0.12, 0, 0, 0.82);
+    muzzle.position.set(0, 0, 0.95);
   } else if (id === "flak") {
     add(g, geo.plate, mats.armor, 0.64, 0.46, 1.02, 0, 0, 0.22);
     add(g, geo.cyl, mats.dark, 0.2, 0.2, 0.85, -0.16, 0.02, 0.76, Math.PI / 2, 0, 0);
@@ -873,6 +893,9 @@ export function poseMech(
   jumping = false,
   alt = 0,
   time = 0,
+  special = 0,
+  shieldUp = false,
+  shield = 0,
 ) {
   const reverse = rig.chassis === "reaper";
   const moving = Math.abs(speed) > 0.45;
@@ -928,26 +951,38 @@ export function poseMech(
   rig.head.rotation.z = 0;
 
   const swing = moving ? 0.08 : 0;
-  const raise = -1.22;
-  const crook = 0.82;
-  rig.rightShoulder.rotation.set(
-    -0.32 + aim * 0.42 - fire * 0.24 + R * swing,
-    0.06 + fire * 0.04,
-    0.1,
-  );
-  rig.leftShoulder.rotation.set(
-    -0.28 + aim * 0.3 - alt * 0.18 + L * swing,
-    -0.06 - alt * 0.04,
-    -0.1,
-  );
-  rig.rightArm.rotation.set(raise + aim * 0.2 - fire * 0.28 + R * swing * 0.35, 0.02, 0.08);
-  rig.leftArm.rotation.set(raise + 0.1 + aim * 0.1 - alt * 0.22 + L * swing * 0.35, -0.02, -0.08);
-  rig.rightFore.rotation.set(crook + fire * 0.16, 0, 0.04);
-  rig.leftFore.rotation.set(crook * 0.92 + alt * 0.12, 0, -0.04);
-  rig.rightGun.rotation.set(-fire * 0.72, 0, 0);
-  rig.leftGun.rotation.set(-alt * 0.72, 0, 0);
-  rig.rightGun.position.z = 0.22 - fire * 0.18;
-  rig.leftGun.position.z = 0.22 - alt * 0.18;
+  const titan = rig.chassis === "titan";
+  if (titan) {
+    rig.rightShoulder.rotation.set(-0.16 + aim * 0.48 - fire * 0.1 + R * swing * 0.4, 0.1, 0.22);
+    rig.leftShoulder.rotation.set(-0.16 + aim * 0.48 - fire * 0.1 + L * swing * 0.4, -0.1, -0.22);
+    rig.rightArm.rotation.set(-1.02 + aim * 0.22 - fire * 0.06, 0.02, 0.14);
+    rig.leftArm.rotation.set(-1.02 + aim * 0.22 - fire * 0.06, -0.02, -0.14);
+    rig.rightFore.rotation.set(0.48 + fire * 0.04, 0, 0.04);
+    rig.leftFore.rotation.set(0.48 + fire * 0.04, 0, -0.04);
+    rig.rightGun.rotation.set(0, 0, 0);
+    rig.leftGun.rotation.set(0, 0, 0);
+  } else {
+    const raise = -1.22;
+    const crook = 0.82;
+    rig.rightShoulder.rotation.set(
+      -0.32 + aim * 0.42 - fire * 0.24 + R * swing,
+      0.06 + fire * 0.04,
+      0.1,
+    );
+    rig.leftShoulder.rotation.set(
+      -0.28 + aim * 0.3 - alt * 0.18 + L * swing,
+      -0.06 - alt * 0.04,
+      -0.1,
+    );
+    rig.rightArm.rotation.set(raise + aim * 0.2 - fire * 0.28 + R * swing * 0.35, 0.02, 0.08);
+    rig.leftArm.rotation.set(raise + 0.1 + aim * 0.1 - alt * 0.22 + L * swing * 0.35, -0.02, -0.08);
+    rig.rightFore.rotation.set(crook + fire * 0.16, 0, 0.04);
+    rig.leftFore.rotation.set(crook * 0.92 + alt * 0.12, 0, -0.04);
+    rig.rightGun.rotation.set(-fire * 0.72, 0, 0);
+    rig.leftGun.rotation.set(-alt * 0.72, 0, 0);
+    rig.rightGun.position.z = 0.22 - fire * 0.18;
+    rig.leftGun.position.z = 0.22 - alt * 0.18;
+  }
 
   if (rig.antenna) rig.antenna.rotation.z = Math.sin((moving ? stride : time) * 0.7) * 0.12;
   const thrust = boost || jumping;
@@ -957,7 +992,7 @@ export function poseMech(
     t.scale.y = thrust ? 1.55 : 1;
   }
   for (let i = 0; i < rig.flashes.length; i++) {
-    const v = i < 2 ? fire : alt;
+    const v = titan ? (i < 2 ? fire : special) : i < 2 ? fire : alt;
     const f = rig.flashes[i];
     f.visible = v > 0.015;
     if (!f.visible) continue;
@@ -972,9 +1007,10 @@ export function poseMech(
     (f.material as THREE.SpriteMaterial).opacity = Math.min(1, 0.55 + v * 3);
   }
   for (let i = 0; i < rig.muzzleLights.length; i++) {
-    const v = i === 0 ? fire : alt;
+    const v = titan ? fire : i === 0 ? fire : alt;
     const on = v > 0.015;
     rig.muzzleLights[i].visible = on;
     rig.muzzleLights[i].intensity = on ? 8 + v * 28 : 0;
   }
+  if (titan) poseTitanExtras(rig, fire, special, shieldUp, shield, time);
 }

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CHASSIS_LIST } from "./catalog";
+import { CHASSIS, CHASSIS_LIST } from "./catalog";
 import { input } from "./input";
 import { buildMech, poseMech, type MechRig } from "./mech-mesh";
 import { detectQuality, PostFx } from "./postfx";
@@ -135,6 +135,7 @@ export class Engine {
     if (p.chassis !== loadout.chassis) this.sim.setHangarChassis(loadout.chassis);
     p.primary = loadout.primary;
     p.secondary = loadout.secondary;
+    p.special = CHASSIS[p.chassis].special ?? null;
     this.sim.applyLoadoutStats(p);
     this.syncRigs();
   }
@@ -174,8 +175,10 @@ export class Engine {
     if (!p) return;
     if (this.view === "hangar") {
       const t = time / 1000;
-      this.camera.position.set(Math.sin(t * 0.2) * 12.2, 3.55, Math.cos(t * 0.2) * 12.2);
-      this.camera.lookAt(p.x, 1.55, p.z);
+      const hulking = p.chassis === "titan";
+      const dist = hulking ? 14.4 : 12.2;
+      this.camera.position.set(Math.sin(t * 0.2) * dist, hulking ? 4.05 : 3.55, Math.cos(t * 0.2) * dist);
+      this.camera.lookAt(p.x, hulking ? 1.85 : 1.55, p.z);
       p.x = 0;
       p.z = 0;
       p.yaw += dt * 0.18;
@@ -246,6 +249,9 @@ export class Engine {
         m.y > 0.4,
         m.altFlash,
         this.last / 1000,
+        m.specialFlash,
+        m.shieldUp,
+        m.shield,
       );
       if (!m.alive) {
         rig.root.rotation.z = Math.min(1.1, (rig.root.rotation.z || 0) + 0.02);

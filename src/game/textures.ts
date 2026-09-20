@@ -536,3 +536,37 @@ export function makeSmokeSprite() {
 export function makeFlareSprite() {
   return glowSprite("rgba(255,236,210,1)", "rgba(255,180,80,0.4)", 64);
 }
+
+/** Red honeycomb used on the Titan crown — matches the reference hex cell panel. */
+export function makeHexCellMap() {
+  const size = 256;
+  const { c, ctx } = canvas(size);
+  ctx.fillStyle = "#12080a";
+  ctx.fillRect(0, 0, size, size);
+  const r = 14;
+  const h = r * Math.sqrt(3);
+  ctx.strokeStyle = "rgba(255,48,40,0.85)";
+  ctx.lineWidth = 1.6;
+  for (let row = -1; row < size / h + 2; row++) {
+    for (let col = -1; col < size / (r * 1.5) + 2; col++) {
+      const x = col * r * 1.5;
+      const y = row * h + (col % 2 === 0 ? 0 : h * 0.5);
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i;
+        const px = x + r * Math.cos(a);
+        const py = y + r * Math.sin(a);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      const glow = ((col * 17 + row * 31) % 7) === 0 ? 0.22 : 0.08;
+      ctx.fillStyle = `rgba(180,20,24,${glow})`;
+      ctx.fill();
+      ctx.stroke();
+    }
+  }
+  const t = tex(c, { repeat: 1, color: true, aniso: 4 });
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  return t;
+}

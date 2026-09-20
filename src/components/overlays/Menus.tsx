@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { CHASSIS, CHASSIS_LIST, WEAPON_LIST, WEAPONS } from "@/game/catalog";
+import { CHASSIS, CHASSIS_LIST, WEAPON_LIST, WEAPONS, resolveChassis } from "@/game/catalog";
 import { useGame } from "@/game/store";
 import { Button } from "@/components/ui/button";
 import { SignedIn, SignedOut, SignInGate, UserButton } from "@/lib/auth/gates";
@@ -35,7 +35,7 @@ export function TitleOverlay({ engine, onStart }: { engine: Engine | null; onSta
       </header>
       <div className="max-w-md space-y-4">
         <p className="max-w-sm text-sm leading-relaxed text-muted">
-          Helix is ash. Salvage weapons and plating from the wrecks. One chassis. Endless hostiles — or three friends.
+          Helix is ash. The Titan-class heavy assault frame is the first chassis off the line — dual rotaries, shoulder racks, chest lance, and a deployable shield dome.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button size="lg" onClick={onStart} disabled={!engine}>
@@ -49,7 +49,7 @@ export function TitleOverlay({ engine, onStart }: { engine: Engine | null; onSta
           </Button>
         </div>
         <p className="hidden text-xs text-subtle sm:block">
-          W/S throttle · A/D turn · Q/C strafe · mouse aim · LMB fire · RMB/E alt · R vent · Shift boost · Space jets
+          W/S throttle · A/D turn · Q/C strafe · LMB rotary · RMB/E missiles · T chest lance · G shield dome · R vent · Shift boost · Space jets
         </p>
       </div>
     </div>
@@ -59,7 +59,7 @@ export function TitleOverlay({ engine, onStart }: { engine: Engine | null; onSta
 export function HangarOverlay({ engine }: { engine: Engine | null }) {
   const { loadout, setChassis, setWeapons, setScreen, setLoadout } = useGame();
   const user = useCurrentUser();
-  const def = CHASSIS[loadout.chassis];
+  const def = CHASSIS[resolveChassis(loadout.chassis)];
   const [walk, setWalk] = useState(false);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export function HangarOverlay({ engine }: { engine: Engine | null }) {
     void getHangar()
       .then((row) => {
         if (!row) return;
-        const chassis = (row.chassis_id as ChassisId) || loadout.chassis;
+        const chassis = resolveChassis(row.chassis_id || loadout.chassis);
         setChassis(chassis);
         const stored = row.loadout;
         setLoadout({
@@ -163,7 +163,10 @@ export function HangarOverlay({ engine }: { engine: Engine | null }) {
               </select>
             </label>
           </div>
-          <p className="tabular text-xs text-muted">{def.hp} hull · {def.armor} plate · {def.speed} m/s</p>
+          <p className="tabular text-xs text-muted">
+            {def.hp} hull · {def.armor} plate · {def.speed} m/s
+            {def.special ? ` · ${WEAPONS[def.special].name} · shield dome` : ""}
+          </p>
           <div className="flex gap-2">
             <Button
               variant={walk ? "primary" : "secondary"}

@@ -17,7 +17,7 @@ import {
 import type { ChassisId } from "./types";
 import type { CityData } from "./city";
 
-const CHASSIS_IDS: ChassisId[] = ["vanguard", "reaper", "colossus", "phantom"];
+const CHASSIS_IDS: ChassisId[] = ["titan", "reaper", "colossus", "phantom"];
 
 export class World {
   group = new THREE.Group();
@@ -451,7 +451,7 @@ export class World {
 
   private buildWrecks(city: CityData) {
     city.wrecks.forEach((w) => {
-      const rig = buildMech(CHASSIS_IDS[w.chassis] ?? "vanguard", true, true);
+      const rig = buildMech(CHASSIS_IDS[w.chassis] ?? "titan", true, true);
       rig.root.position.set(w.x, 0, w.z);
       rig.root.rotation.y = w.yaw;
       this.group.add(rig.root);

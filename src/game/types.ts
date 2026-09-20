@@ -1,5 +1,6 @@
-export type ChassisId = "vanguard" | "reaper" | "colossus" | "phantom";
+export type ChassisId = "titan" | "reaper" | "colossus" | "phantom";
 export type WeaponId =
+  | "rotary"
   | "assault"
   | "rail"
   | "missiles"
@@ -7,6 +8,7 @@ export type WeaponId =
   | "cannon"
   | "flak"
   | "plasma"
+  | "core"
   | "blade";
 export type ItemKind = "weapon" | "armor" | "mod";
 export type GameMode = "demo" | "survival" | "ffa" | "tdm";
@@ -82,6 +84,11 @@ export interface Mech {
   walk: number;
   sidestep: number;
   venting: number;
+  special: WeaponId | null;
+  cdSpecial: number;
+  specialFlash: number;
+  shield: number;
+  shieldUp: boolean;
   kills: number;
   deaths: number;
   aimX: number;
@@ -102,7 +109,7 @@ export interface Projectile {
   life: number;
   dmg: number;
   splash: number;
-  kind: "missile" | "plasma" | "cannon" | "flak";
+  kind: "missile" | "plasma" | "cannon" | "flak" | "core";
   targetId: string | null;
   fresh?: boolean;
 }
@@ -163,6 +170,8 @@ export interface Actions {
   boost: boolean;
   jump: boolean;
   vent: boolean;
+  special: boolean;
+  shield: boolean;
   strafe: number;
   pause: boolean;
 }
@@ -182,6 +191,10 @@ export interface HudSnap {
   heatCap: number;
   boost: number;
   jump: number;
+  shield: number;
+  shieldUp: boolean;
+  special: WeaponId | null;
+  cdSpecial: number;
   speed: number;
   yaw: number;
   chassis: ChassisId;

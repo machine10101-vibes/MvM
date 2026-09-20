@@ -15,6 +15,7 @@ export interface ChassisDef {
   scale: number;
   primary: WeaponId;
   secondary: WeaponId;
+  special?: WeaponId;
   paint: number;
   accent: number;
   trim: number;
@@ -36,24 +37,26 @@ export interface WeaponDef {
 }
 
 export const CHASSIS: Record<ChassisId, ChassisDef> = {
-  vanguard: {
-    id: "vanguard",
-    name: "Vanguard",
-    role: "Assault",
-    blurb: "Frontline frame. Balanced plating, rifle, and shoulder racks.",
-    hp: 1080,
-    armor: 240,
-    speed: 18,
-    turn: 1.85,
-    boostMul: 1.48,
-    heatCap: 100,
-    mass: 1,
-    scale: 1,
-    primary: "assault",
+  titan: {
+    id: "titan",
+    name: "Titan",
+    role: "Heavy Assault",
+    blurb:
+      "Hulking frontline brawler. Dual rotary autocannons, shoulder missile pods, a chest plasma lance, and a deployable shield dome.",
+    hp: 1920,
+    armor: 680,
+    speed: 11.2,
+    turn: 1.02,
+    boostMul: 1.16,
+    heatCap: 148,
+    mass: 1.82,
+    scale: 1.24,
+    primary: "rotary",
     secondary: "missiles",
-    paint: 0x6e7682,
-    accent: 0xd0d6de,
-    trim: 0x8a93a0,
+    special: "core",
+    paint: 0x1a1c20,
+    accent: 0x4a1418,
+    trim: 0x2c3036,
   },
   reaper: {
     id: "reaper",
@@ -115,6 +118,20 @@ export const CHASSIS: Record<ChassisId, ChassisDef> = {
 };
 
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
+  rotary: {
+    id: "rotary",
+    name: "Twin Helix Rotary",
+    dmg: 7,
+    rpm: 1040,
+    spread: 0.03,
+    range: 82,
+    heat: 0.16,
+    speed: 0,
+    splash: 0,
+    hitscan: true,
+    lock: false,
+    pellets: 2,
+  },
   assault: {
     id: "assault",
     name: "Kestrel Rifle",
@@ -199,6 +216,20 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     lock: false,
     pellets: 8,
   },
+  core: {
+    id: "core",
+    name: "Sternum Lance",
+    dmg: 96,
+    rpm: 42,
+    spread: 0.006,
+    range: 120,
+    heat: 18,
+    speed: 58,
+    splash: 5.5,
+    hitscan: false,
+    lock: false,
+    pellets: 1,
+  },
   plasma: {
     id: "plasma",
     name: "Ion Lance",
@@ -232,7 +263,14 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
 export const CHASSIS_LIST = Object.values(CHASSIS);
 export const WEAPON_LIST = Object.values(WEAPONS);
 
+export function resolveChassis(id: unknown): ChassisId {
+  if (id === "titan" || id === "reaper" || id === "colossus" || id === "phantom") return id;
+  return "titan";
+}
+
 const LOOT_POOL: ItemDef[] = [
+  { id: "w-rotary", kind: "weapon", name: "Twin Helix Rotary", rarity: "rare", weaponId: "rotary" },
+  { id: "w-core", kind: "weapon", name: "Sternum Lance", rarity: "epic", weaponId: "core" },
   { id: "w-assault", kind: "weapon", name: "Kestrel Rifle", rarity: "common", weaponId: "assault" },
   { id: "w-smg", kind: "weapon", name: "Needler", rarity: "common", weaponId: "smg" },
   { id: "w-plasma", kind: "weapon", name: "Ion Lance", rarity: "rare", weaponId: "plasma", damage: 0.08 },
@@ -250,9 +288,18 @@ const LOOT_POOL: ItemDef[] = [
   { id: "m-servo", kind: "mod", name: "Gyro Servos", rarity: "common", speed: 1.2 },
 ];
 
-export function defaultLoadout(chassis: ChassisId = "vanguard"): Loadout {
+export function defaultLoadout(chassis: ChassisId = "titan"): Loadout {
   const c = CHASSIS[chassis];
   return { chassis, primary: c.primary, secondary: c.secondary, items: [] };
+}
+
+export function hydrateLoadout(raw: Partial<Loadout> | null | undefined): Loadout {
+  const chassis = resolveChassis(raw?.chassis);
+  const base = defaultLoadout(chassis);
+  if (raw?.chassis !== chassis) return base;
+  const primary = raw?.primary && raw.primary in WEAPONS ? raw.primary : base.primary;
+  const secondary = raw?.secondary && raw.secondary in WEAPONS ? raw.secondary : base.secondary;
+  return { chassis, primary, secondary, items: Array.isArray(raw?.items) ? raw.items : [] };
 }
 
 export function rollLoot(rng: () => number, wave = 1): ItemDef {

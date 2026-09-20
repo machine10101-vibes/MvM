@@ -1,4 +1,4 @@
-import { defaultLoadout } from "@/game/catalog";
+import { hydrateLoadout } from "@/game/catalog";
 import type { Loadout } from "@/game/types";
 
 const PROFILE_KEY = "mvm-profile-v1";
@@ -90,7 +90,7 @@ export async function getHangar(): Promise<HangarRow | null> {
   try {
     const raw = localStorage.getItem("mvm-hangar-v1");
     if (!raw) return null;
-    const loadout = { ...defaultLoadout("vanguard"), ...JSON.parse(raw) } as Loadout;
+    const loadout = hydrateLoadout(JSON.parse(raw));
     return { chassis_id: loadout.chassis, loadout };
   } catch {
     return null;

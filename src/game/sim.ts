@@ -74,6 +74,11 @@ function makeMech(
     walk: 0,
     sidestep: 0,
     venting: 0,
+    special: c.special ?? null,
+    cdSpecial: 0,
+    specialFlash: 0,
+    shield: c.special === "core" ? 1 : 0,
+    shieldUp: false,
     kills: 0,
     deaths: 0,
     aimX: -Math.sin(yaw),
@@ -114,7 +119,7 @@ export class Sim {
   constructor(seed = 0x51a7) {
     this.rng = mulberry32(seed);
     this.city = generateCity(seed);
-    this.loadout = defaultLoadout("vanguard");
+    this.loadout = defaultLoadout("titan");
     this.resetDemo();
   }
 
@@ -136,7 +141,7 @@ export class Sim {
       loadout: this.loadout,
     });
     this.mechs.push(hero);
-    const ids: ChassisId[] = ["reaper", "colossus", "phantom", "vanguard"];
+    const ids: ChassisId[] = ["reaper", "colossus", "phantom", "titan"];
     for (let i = 0; i < 3; i++) {
       const s = this.city.spawns[(i + 2) % this.city.spawns.length];
       this.mechs.push(
@@ -284,6 +289,10 @@ export class Sim {
     if (Math.abs(m.sidestep - wantSide) < 0.35 && a.strafe !== 0) m.sidestep = wantSide;
     if (Math.abs(m.sidestep) < 0.2 && a.strafe === 0) m.sidestep = 0;
     m.sidestep = clamp(m.sidestep, -topLat, topLat);
+    if (a.shield && m.shield > 0.04) {
+      m.shieldUp = true;
+      m.speed = clamp(m.speed, -top * 0.4, top * 0.72);
+    } else m.shieldUp = false;
 
     if (a.vent && m.venting <= 0 && m.heat > 8) {
       m.venting = 1.15;
@@ -314,8 +323,9 @@ export class Sim {
     this.updateLock(m, dt);
     const overheat = m.heat >= m.heatCap || m.venting > 0;
     if (!overheat) {
-      if (a.fire) this.tryFire(m, m.primary, false);
-      if (a.alt) this.tryFire(m, m.secondary, true);
+      if (a.fire) this.tryFire(m, m.primary, "primary");
+      if (a.alt) this.tryFire(m, m.secondary, "secondary");
+      if (a.special && m.special) this.tryFire(m, m.special, "special");
     }
     audio.setEngine(m.speed, a.boost);
   }
@@ -339,8 +349,22 @@ export class Sim {
     m.walk += (Math.abs(m.speed) + Math.abs(m.sidestep) * 0.85) * dt * 1.7;
     m.cdPrimary = Math.max(0, m.cdPrimary - dt);
     m.cdSecondary = Math.max(0, m.cdSecondary - dt);
+    m.cdSpecial = Math.max(0, m.cdSpecial - dt);
     m.fireFlash = Math.max(0, m.fireFlash - dt);
     m.altFlash = Math.max(0, m.altFlash - dt);
+    m.specialFlash = Math.max(0, m.specialFlash - dt);
+    if (m.shieldUp && m.shield > 0) {
+      m.shield = Math.max(0, m.shield - dt * 0.2);
+      if (m.shield <= 0) {
+        m.shieldUp = false;
+        if (m.isLocal) {
+          this.toast = "SHIELD DOWN";
+          this.toastT = 0.8;
+        }
+      }
+    } else if (m.special === "core") {
+      m.shield = Math.min(1, m.shield + dt * 0.085);
+    }
     m.heat = Math.max(0, m.heat - dt * 12);
     if (this.time - m.lastHitAt > 4) m.armor = Math.min(m.maxArmor, m.armor + dt * 12);
     if (!m.alive) {
@@ -384,17 +408,21 @@ export class Sim {
     }
   }
 
-  private tryFire(m: Mech, weaponId: Mech["primary"], alt: boolean) {
-    const cd = alt ? m.cdSecondary : m.cdPrimary;
+  private tryFire(m: Mech, weaponId: Mech["primary"], slot: "primary" | "secondary" | "special") {
+    const cd = slot === "special" ? m.cdSpecial : slot === "secondary" ? m.cdSecondary : m.cdPrimary;
     if (cd > 0) return;
     const w = WEAPONS[weaponId];
     if (w.lock && m.lock < 1) return;
     const interval = 60 / w.rpm;
-    if (alt) m.cdSecondary = interval;
+    if (slot === "special") m.cdSpecial = interval;
+    else if (slot === "secondary") m.cdSecondary = interval;
     else m.cdPrimary = interval;
     m.heat = Math.min(m.heatCap + 5, m.heat + w.heat);
-    if (alt) m.altFlash = weaponId === "rail" || weaponId === "cannon" || weaponId === "blade" ? 0.32 : 0.2;
-    else m.fireFlash = weaponId === "rail" || weaponId === "cannon" || weaponId === "blade" ? 0.32 : 0.2;
+    const punch = weaponId === "rail" || weaponId === "cannon" || weaponId === "blade" || weaponId === "core" ? 0.32 : 0.2;
+    if (slot === "special") m.specialFlash = punch;
+    else if (slot === "secondary") m.altFlash = punch;
+    else m.fireFlash = punch;
+    const alt = slot === "secondary";
 
     const originY = 3.15 + m.y;
     const ox = m.x + m.aimX * 2.6;
@@ -477,7 +505,16 @@ export class Sim {
           life: w.range / w.speed,
           dmg,
           splash: w.splash,
-          kind: weaponId === "missiles" ? "missile" : weaponId === "plasma" ? "plasma" : weaponId === "flak" ? "flak" : "cannon",
+          kind:
+            weaponId === "missiles"
+              ? "missile"
+              : weaponId === "core"
+                ? "core"
+                : weaponId === "plasma"
+                  ? "plasma"
+                  : weaponId === "flak"
+                    ? "flak"
+                    : "cannon",
           targetId: w.lock ? m.lockId : null,
           fresh: true,
         });
@@ -611,6 +648,21 @@ export class Sim {
 
   damage(m: Mech, amount: number, src: Mech | null) {
     if (!m.alive || amount <= 0) return;
+    if (m.shieldUp && m.shield > 0) {
+      const pool = m.shield * 760;
+      const soak = Math.min(pool, amount * 0.88);
+      m.shield = Math.max(0, (pool - soak) / 760);
+      amount -= soak;
+      if (m.shield <= 0.01) {
+        m.shield = 0;
+        m.shieldUp = false;
+        if (m.isLocal) {
+          this.toast = "SHIELD DOWN";
+          this.toastT = 0.8;
+        }
+      }
+    }
+    if (amount <= 0) return;
     const absorbed = Math.min(m.armor, amount * 0.58);
     m.armor -= absorbed;
     m.hp -= amount - absorbed;
@@ -659,6 +711,8 @@ export class Sim {
     m.hp = m.maxHp;
     m.armor = m.maxArmor;
     m.heat = 0;
+    m.shield = m.special === "core" ? 1 : 0;
+    m.shieldUp = false;
     m.x = s.x;
     m.z = s.z;
     m.y = 0;
@@ -739,7 +793,7 @@ export class Sim {
   private spawnWave() {
     this.wave += 1;
     const n = Math.min(2 + this.wave, 8);
-    const types: ChassisId[] = ["vanguard", "reaper", "phantom"];
+    const types: ChassisId[] = ["titan", "reaper", "phantom"];
     if (this.wave >= 3) types.push("colossus");
     for (let i = 0; i < n; i++) {
       const s = this.city.spawns[(i + this.wave) % this.city.spawns.length];
@@ -764,7 +818,7 @@ export class Sim {
     const ai = this.mechs.filter((m) => m.isAi && m.alive);
     if (ai.length < 3) {
       const s = this.city.spawns[Math.floor(this.rng() * this.city.spawns.length)];
-      const ids: ChassisId[] = ["vanguard", "reaper", "colossus", "phantom"];
+      const ids: ChassisId[] = ["titan", "reaper", "colossus", "phantom"];
       this.mechs.push(
         makeMech(uid("ai"), "Hostile", ids[Math.floor(this.rng() * 4)], s.x, s.z, this.rng() * 6, {
           isAi: true,
@@ -795,7 +849,7 @@ export class Sim {
     const wantYaw = Math.atan2(-dx, -dz);
     m.yaw += angleDiff(m.yaw, wantYaw) * dt * 1.6;
     m.torso += angleDiff(m.yaw + m.torso, wantYaw) * dt * 2.2;
-    const ideal = m.chassis === "colossus" ? 28 : 22;
+    const ideal = m.chassis === "titan" ? 16 : m.chassis === "colossus" ? 28 : 22;
     const c = CHASSIS[m.chassis];
     const top = m.topSpeed || c.speed;
     if (dist > ideal + 8) m.speed = Math.min(top * 0.9, m.speed + 20 * dt);
@@ -812,9 +866,11 @@ export class Sim {
       m.sidestep += (this.rng() > 0.5 ? 1 : -1) * 10 * dt;
       m.yaw += (this.rng() - 0.5) * dt * 3;
     } else {
-      if (dist < 90 && this.rng() < skill * dt * 3) this.tryFire(m, m.primary, false);
-      if (dist < 70 && this.rng() < skill * dt) this.tryFire(m, m.secondary, true);
+      if (dist < 90 && this.rng() < skill * dt * 3) this.tryFire(m, m.primary, "primary");
+      if (dist < 70 && this.rng() < skill * dt) this.tryFire(m, m.secondary, "secondary");
+      if (m.special && dist < 80 && this.rng() < skill * dt * 0.45) this.tryFire(m, m.special, "special");
     }
+    if (m.chassis === "titan" && m.hp < m.maxHp * 0.55 && m.shield > 0.12) m.shieldUp = true;
     if (dist < 18 && this.rng() < dt * 0.4) m.yaw += (this.rng() - 0.5) * 2;
     if (dist > 40 && this.rng() < dt * 0.35) m.boost = Math.max(0.2, m.boost);
     if (m.heat > m.heatCap * 0.85 && this.rng() < dt * 2) {
@@ -895,9 +951,13 @@ export class Sim {
       jump: m?.jump ?? 0,
       speed: Math.abs(m?.speed ?? 0),
       yaw: m?.yaw ?? 0,
-      chassis: m?.chassis ?? "vanguard",
-      primary: m?.primary ?? "assault",
+      chassis: m?.chassis ?? "titan",
+      primary: m?.primary ?? "rotary",
       secondary: m?.secondary ?? "missiles",
+      shield: m?.shield ?? 0,
+      shieldUp: m?.shieldUp ?? false,
+      special: m?.special ?? null,
+      cdSpecial: m?.cdSpecial ?? 0,
       lock: m?.lock ?? 0,
       lockName: lockMech?.name ?? null,
       wave: this.wave,

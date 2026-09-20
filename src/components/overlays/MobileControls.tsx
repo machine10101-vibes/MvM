@@ -7,6 +7,8 @@ export function MobileControls() {
       <Stick side="left" />
       <Stick side="right" />
       <div className="pointer-events-auto absolute right-4 bottom-[max(1.25rem,env(safe-area-inset-bottom))] flex gap-3">
+        <HoldButton label="Dome" on="shield" />
+        <HoldButton label="Core" on="special" />
         <HoldButton label="Jets" on="jump" />
         <HoldButton label="Boost" on="boost" />
         <HoldButton label="Alt" on="alt" />
@@ -22,7 +24,7 @@ function HoldButton({
   primary,
 }: {
   label: string;
-  on: "fire" | "alt" | "boost" | "jump";
+  on: "fire" | "alt" | "boost" | "jump" | "special" | "shield";
   primary?: boolean;
 }) {
   return (
