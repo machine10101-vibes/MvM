@@ -115,6 +115,27 @@ export const CHASSIS: Record<ChassisId, ChassisDef> = {
     accent: 0xb8e4f2,
     trim: 0x6a7888,
   },
+  valkyrie: {
+    id: "valkyrie",
+    name: "Valkyrie",
+    role: "Aerial Interceptor",
+    blurb:
+      "Fast aerial superiority fighter. Foldable wings, vectoring thrusters, wing pulse lasers, under-wing racks, a chin gatling, and a light deflection field.",
+    hp: 820,
+    armor: 140,
+    speed: 28.5,
+    turn: 2.55,
+    boostMul: 1.85,
+    heatCap: 88,
+    mass: 0.68,
+    scale: 0.98,
+    primary: "pulse",
+    secondary: "racks",
+    special: "gatling",
+    paint: 0xd8dee8,
+    accent: 0x1a2744,
+    trim: 0xc4b078,
+  },
 };
 
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
@@ -258,13 +279,59 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     lock: false,
     pellets: 1,
   },
+  pulse: {
+    id: "pulse",
+    name: "Wing Pulse Lasers",
+    dmg: 11,
+    rpm: 780,
+    spread: 0.012,
+    range: 140,
+    heat: 0.22,
+    speed: 0,
+    splash: 0,
+    hitscan: true,
+    lock: false,
+    pellets: 2,
+  },
+  racks: {
+    id: "racks",
+    name: "Underwing Racks",
+    dmg: 78,
+    rpm: 88,
+    spread: 0.018,
+    range: 170,
+    heat: 11,
+    speed: 78,
+    splash: 5.5,
+    hitscan: false,
+    lock: true,
+    pellets: 1,
+  },
+  gatling: {
+    id: "gatling",
+    name: "Chin Gatling",
+    dmg: 5,
+    rpm: 1400,
+    spread: 0.028,
+    range: 90,
+    heat: 0.12,
+    speed: 0,
+    splash: 0,
+    hitscan: true,
+    lock: false,
+    pellets: 1,
+  },
 };
+
+export function hasEnergyField(id: ChassisId) {
+  return id === "titan" || id === "valkyrie";
+}
 
 export const CHASSIS_LIST = Object.values(CHASSIS);
 export const WEAPON_LIST = Object.values(WEAPONS);
 
 export function resolveChassis(id: unknown): ChassisId {
-  if (id === "titan" || id === "reaper" || id === "colossus" || id === "phantom") return id;
+  if (id === "titan" || id === "reaper" || id === "colossus" || id === "phantom" || id === "valkyrie") return id;
   return "titan";
 }
 
@@ -279,6 +346,9 @@ const LOOT_POOL: ItemDef[] = [
   { id: "w-missiles", kind: "weapon", name: "Hydra Racks", rarity: "rare", weaponId: "missiles" },
   { id: "w-flak", kind: "weapon", name: "Shrapnel Gate", rarity: "rare", weaponId: "flak" },
   { id: "w-blade", kind: "weapon", name: "Cinder Edge", rarity: "legend", weaponId: "blade" },
+  { id: "w-pulse", kind: "weapon", name: "Wing Pulse Lasers", rarity: "rare", weaponId: "pulse" },
+  { id: "w-racks", kind: "weapon", name: "Underwing Racks", rarity: "rare", weaponId: "racks" },
+  { id: "w-gatling", kind: "weapon", name: "Chin Gatling", rarity: "epic", weaponId: "gatling" },
   { id: "a-plate", kind: "armor", name: "Ablative Plate", rarity: "common", hp: 80, armor: 40 },
   { id: "a-reactive", kind: "armor", name: "Reactive Weave", rarity: "rare", hp: 140, armor: 90 },
   { id: "a-aegis", kind: "armor", name: "Aegis Shell", rarity: "epic", hp: 220, armor: 160 },

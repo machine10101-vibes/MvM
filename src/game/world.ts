@@ -15,7 +15,7 @@ import {
 import type { ChassisId } from "./types";
 import type { CityData } from "./city";
 
-const CHASSIS_IDS: ChassisId[] = ["titan", "reaper", "colossus", "phantom"];
+const CHASSIS_IDS: ChassisId[] = ["titan", "reaper", "colossus", "phantom", "valkyrie"];
 
 export class World {
   group = new THREE.Group();

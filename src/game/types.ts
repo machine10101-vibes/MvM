@@ -1,4 +1,4 @@
-export type ChassisId = "titan" | "reaper" | "colossus" | "phantom";
+export type ChassisId = "titan" | "reaper" | "colossus" | "phantom" | "valkyrie";
 export type WeaponId =
   | "rotary"
   | "assault"
@@ -9,7 +9,10 @@ export type WeaponId =
   | "flak"
   | "plasma"
   | "core"
-  | "blade";
+  | "blade"
+  | "pulse"
+  | "racks"
+  | "gatling";
 export type ItemKind = "weapon" | "armor" | "mod";
 export type GameMode = "demo" | "survival" | "ffa" | "tdm";
 export type ViewMode = "title" | "hangar" | "play";

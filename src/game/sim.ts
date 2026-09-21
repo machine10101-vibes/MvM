@@ -1,5 +1,5 @@
 import { angleDiff, clamp, mulberry32, uid } from "@/lib/utils";
-import { applyItems, CHASSIS, defaultLoadout, rollLoot, WEAPONS } from "./catalog";
+import { applyItems, CHASSIS, defaultLoadout, hasEnergyField, rollLoot, WEAPONS } from "./catalog";
 import { generateCity, rayHitsBuilding, resolveBuildings, type CityData } from "./city";
 import { audio } from "./audio";
 import type {
@@ -77,7 +77,7 @@ function makeMech(
     special: c.special ?? null,
     cdSpecial: 0,
     specialFlash: 0,
-    shield: c.special === "core" ? 1 : 0,
+    shield: hasEnergyField(chassis) ? 1 : 0,
     shieldUp: false,
     kills: 0,
     deaths: 0,
@@ -141,7 +141,7 @@ export class Sim {
       loadout: this.loadout,
     });
     this.mechs.push(hero);
-    const ids: ChassisId[] = ["reaper", "colossus", "phantom", "titan"];
+    const ids: ChassisId[] = ["reaper", "colossus", "phantom", "titan", "valkyrie"];
     for (let i = 0; i < 3; i++) {
       const s = this.city.spawns[(i + 2) % this.city.spawns.length];
       this.mechs.push(
@@ -303,17 +303,19 @@ export class Sim {
     }
     m.venting = Math.max(0, m.venting - dt);
 
+    const aerial = m.chassis === "valkyrie";
     if (a.boost && m.boost > 0) {
-      m.boost = Math.max(0, m.boost - dt * 0.28);
+      m.boost = Math.max(0, m.boost - dt * (aerial ? 0.34 : 0.28));
       const bx = Math.sin(m.yaw);
       const bz = Math.cos(m.yaw);
-      this.sparks.push({ x: m.x, y: 1.2, z: m.z, vx: bx * 9, vy: 0.5, vz: bz * 9, life: 0.18, maxLife: 0.18, kind: "boost" });
-    } else m.boost = Math.min(1, m.boost + dt * 0.12);
+      this.sparks.push({ x: m.x, y: 1.2 + m.y, z: m.z, vx: bx * 9, vy: aerial ? 2.2 : 0.5, vz: bz * 9, life: 0.18, maxLife: 0.18, kind: "boost" });
+      if (aerial) m.vy += 10 * dt;
+    } else m.boost = Math.min(1, m.boost + dt * (aerial ? 0.16 : 0.12));
 
-    if (a.jump && m.jump > 0.12 && m.y < 8) {
-      m.vy += 18 * dt;
-      m.jump = Math.max(0, m.jump - dt * 0.55);
-    } else m.jump = Math.min(1, m.jump + dt * 0.18);
+    if (a.jump && m.jump > 0.12 && m.y < (aerial ? 20 : 8)) {
+      m.vy += (aerial ? 28 : 18) * dt;
+      m.jump = Math.max(0, m.jump - dt * (aerial ? 0.42 : 0.55));
+    } else m.jump = Math.min(1, m.jump + dt * (aerial ? 0.22 : 0.18));
 
     const look = m.yaw + m.torso;
     m.aimX = -Math.sin(look) * Math.cos(m.pitch);
@@ -337,7 +339,7 @@ export class Sim {
     const rz = Math.sin(m.yaw);
     m.x += fx * m.speed * dt + rx * m.sidestep * dt;
     m.z += fz * m.speed * dt + rz * m.sidestep * dt;
-    m.vy -= 22 * dt;
+    m.vy -= (m.chassis === "valkyrie" ? 11 : 22) * dt;
     m.y += m.vy * dt;
     if (m.y < 0) {
       m.y = 0;
@@ -358,12 +360,12 @@ export class Sim {
       if (m.shield <= 0) {
         m.shieldUp = false;
         if (m.isLocal) {
-          this.toast = "SHIELD DOWN";
+          this.toast = m.chassis === "valkyrie" ? "FIELD DOWN" : "SHIELD DOWN";
           this.toastT = 0.8;
         }
       }
-    } else if (m.special === "core") {
-      m.shield = Math.min(1, m.shield + dt * 0.085);
+    } else if (hasEnergyField(m.chassis)) {
+      m.shield = Math.min(1, m.shield + dt * (m.chassis === "valkyrie" ? 0.12 : 0.085));
     }
     m.heat = Math.max(0, m.heat - dt * 12);
     if (this.time - m.lastHitAt > 4) m.armor = Math.min(m.maxArmor, m.armor + dt * 12);
@@ -479,7 +481,14 @@ export class Sim {
           z1: oz + (dz / len) * hitDist,
           life: weaponId === "rail" ? 0.34 : weaponId === "blade" ? 0.18 : 0.14,
           maxLife: weaponId === "rail" ? 0.34 : weaponId === "blade" ? 0.18 : 0.14,
-          kind: weaponId === "rail" ? "rail" : weaponId === "blade" ? "blade" : "bullet",
+          kind:
+            weaponId === "rail"
+              ? "rail"
+              : weaponId === "blade"
+                ? "blade"
+                : weaponId === "pulse" || weaponId === "gatling" || weaponId === "plasma"
+                  ? "plasma"
+                  : "bullet",
           owner: m.id,
           alt,
         });
@@ -506,7 +515,7 @@ export class Sim {
           dmg,
           splash: w.splash,
           kind:
-            weaponId === "missiles"
+            weaponId === "missiles" || weaponId === "racks"
               ? "missile"
               : weaponId === "core"
                 ? "core"
@@ -530,7 +539,7 @@ export class Sim {
           kind: "muzzle",
         });
       }
-      audio.fire(weaponId === "missiles" ? "missile" : "plasma");
+      audio.fire(weaponId === "missiles" || weaponId === "racks" ? "missile" : "plasma");
     }
     this.onFire?.(m.id, weaponId);
   }
@@ -649,15 +658,15 @@ export class Sim {
   damage(m: Mech, amount: number, src: Mech | null) {
     if (!m.alive || amount <= 0) return;
     if (m.shieldUp && m.shield > 0) {
-      const pool = m.shield * 760;
+      const pool = m.shield * (m.chassis === "valkyrie" ? 420 : 760);
       const soak = Math.min(pool, amount * 0.88);
-      m.shield = Math.max(0, (pool - soak) / 760);
+      m.shield = Math.max(0, (pool - soak) / (m.chassis === "valkyrie" ? 420 : 760));
       amount -= soak;
       if (m.shield <= 0.01) {
         m.shield = 0;
         m.shieldUp = false;
         if (m.isLocal) {
-          this.toast = "SHIELD DOWN";
+          this.toast = m.chassis === "valkyrie" ? "FIELD DOWN" : "SHIELD DOWN";
           this.toastT = 0.8;
         }
       }
@@ -711,7 +720,7 @@ export class Sim {
     m.hp = m.maxHp;
     m.armor = m.maxArmor;
     m.heat = 0;
-    m.shield = m.special === "core" ? 1 : 0;
+    m.shield = hasEnergyField(m.chassis) ? 1 : 0;
     m.shieldUp = false;
     m.x = s.x;
     m.z = s.z;
@@ -793,7 +802,7 @@ export class Sim {
   private spawnWave() {
     this.wave += 1;
     const n = Math.min(2 + this.wave, 8);
-    const types: ChassisId[] = ["titan", "reaper", "phantom"];
+    const types: ChassisId[] = ["titan", "reaper", "phantom", "valkyrie"];
     if (this.wave >= 3) types.push("colossus");
     for (let i = 0; i < n; i++) {
       const s = this.city.spawns[(i + this.wave) % this.city.spawns.length];
@@ -818,9 +827,9 @@ export class Sim {
     const ai = this.mechs.filter((m) => m.isAi && m.alive);
     if (ai.length < 3) {
       const s = this.city.spawns[Math.floor(this.rng() * this.city.spawns.length)];
-      const ids: ChassisId[] = ["titan", "reaper", "colossus", "phantom"];
+      const ids: ChassisId[] = ["titan", "reaper", "colossus", "phantom", "valkyrie"];
       this.mechs.push(
-        makeMech(uid("ai"), "Hostile", ids[Math.floor(this.rng() * 4)], s.x, s.z, this.rng() * 6, {
+        makeMech(uid("ai"), "Hostile", ids[Math.floor(this.rng() * ids.length)], s.x, s.z, this.rng() * 6, {
           isAi: true,
           team: 1,
         }),
@@ -849,7 +858,7 @@ export class Sim {
     const wantYaw = Math.atan2(-dx, -dz);
     m.yaw += angleDiff(m.yaw, wantYaw) * dt * 1.6;
     m.torso += angleDiff(m.yaw + m.torso, wantYaw) * dt * 2.2;
-    const ideal = m.chassis === "titan" ? 16 : m.chassis === "colossus" ? 28 : 22;
+    const ideal = m.chassis === "titan" ? 16 : m.chassis === "colossus" ? 28 : m.chassis === "valkyrie" ? 34 : 22;
     const c = CHASSIS[m.chassis];
     const top = m.topSpeed || c.speed;
     if (dist > ideal + 8) m.speed = Math.min(top * 0.9, m.speed + 20 * dt);
@@ -870,7 +879,8 @@ export class Sim {
       if (dist < 70 && this.rng() < skill * dt) this.tryFire(m, m.secondary, "secondary");
       if (m.special && dist < 80 && this.rng() < skill * dt * 0.45) this.tryFire(m, m.special, "special");
     }
-    if (m.chassis === "titan" && m.hp < m.maxHp * 0.55 && m.shield > 0.12) m.shieldUp = true;
+    if (hasEnergyField(m.chassis) && m.hp < m.maxHp * 0.55 && m.shield > 0.12) m.shieldUp = true;
+    if (m.chassis === "valkyrie" && m.y < 7 && m.jump > 0.28) m.vy += 14 * dt;
     if (dist < 18 && this.rng() < dt * 0.4) m.yaw += (this.rng() - 0.5) * 2;
     if (dist > 40 && this.rng() < dt * 0.35) m.boost = Math.max(0.2, m.boost);
     if (m.heat > m.heatCap * 0.85 && this.rng() < dt * 2) {

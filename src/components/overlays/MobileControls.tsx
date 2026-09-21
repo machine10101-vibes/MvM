@@ -1,14 +1,17 @@
 import { useEffect, useRef } from "react";
 import { input } from "@/game/input";
+import { useGame } from "@/game/store";
 
 export function MobileControls() {
+  const chassis = useGame((s) => s.hud?.chassis ?? s.loadout.chassis);
+  const aerial = chassis === "valkyrie";
   return (
     <div className="pointer-events-none absolute inset-0 z-20 md:hidden">
       <Stick side="left" />
       <Stick side="right" />
       <div className="pointer-events-auto absolute right-4 bottom-[max(1.25rem,env(safe-area-inset-bottom))] flex gap-3">
-        <HoldButton label="Dome" on="shield" />
-        <HoldButton label="Core" on="special" />
+        <HoldButton label={aerial ? "Field" : "Dome"} on="shield" />
+        <HoldButton label={aerial ? "Chin" : "Core"} on="special" />
         <HoldButton label="Jets" on="jump" />
         <HoldButton label="Boost" on="boost" />
         <HoldButton label="Alt" on="alt" />

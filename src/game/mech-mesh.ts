@@ -12,6 +12,7 @@ import {
 } from "./textures";
 import type { ChassisId, WeaponId } from "./types";
 import { buildTitanMech, poseTitanExtras } from "./titan-mesh";
+import { buildValkyrieMech, poseValkyrieExtras } from "./valkyrie-mesh";
 
 export interface MechRig {
   root: THREE.Group;
@@ -46,6 +47,8 @@ export interface MechRig {
   shieldMesh?: THREE.Mesh;
   muzzleChest?: THREE.Object3D;
   barrels?: THREE.Object3D[];
+  wings?: THREE.Group[];
+  pdTurrets?: THREE.Object3D[];
 }
 
 const segs = 14;
@@ -84,6 +87,7 @@ const GLOW: Record<ChassisId, number> = {
   reaper: 0xffb060,
   colossus: 0xff7a3a,
   phantom: 0x66e7ff,
+  valkyrie: 0x3aa8ff,
 };
 
 const MARK: Record<ChassisId, string> = {
@@ -91,6 +95,7 @@ const MARK: Record<ChassisId, string> = {
   reaper: "R",
   colossus: "C",
   phantom: "P",
+  valkyrie: "V",
 };
 
 interface Mats {
@@ -194,6 +199,7 @@ export function buildMech(
   const primary = weapons?.primary ?? def.primary;
   const secondary = weapons?.secondary ?? def.secondary;
   if (chassis === "titan") return buildTitanMech(wrecked, lowDetail, { primary, secondary });
+  if (chassis === "valkyrie") return buildValkyrieMech(wrecked, lowDetail, { primary, secondary });
   const glow = GLOW[chassis];
   const detail = !wrecked && !lowDetail;
   const paintColor = wrecked ? 0x2a2a2c : def.paint;
@@ -952,6 +958,7 @@ export function poseMech(
 
   const swing = moving ? 0.08 : 0;
   const titan = rig.chassis === "titan";
+  const valk = rig.chassis === "valkyrie";
   if (titan) {
     // Hang rotaries beside the spherical torso — matches the planted reference stance.
     // Arms hang along -Y; rotaries sit on +Z so they aim forward, not up.
@@ -963,6 +970,16 @@ export function poseMech(
     rig.leftFore.rotation.set(0.18 + fire * 0.03, 0, -0.02);
     rig.rightGun.rotation.set(0.08, 0, 0);
     rig.leftGun.rotation.set(0.08, 0, 0);
+  } else if (valk) {
+    // Planted interceptor: arms out a little, guns along +Z like the reference.
+    rig.rightShoulder.rotation.set(0.06 + aim * 0.32 - fire * 0.05 + R * swing * 0.2, 0.06, 0.18);
+    rig.leftShoulder.rotation.set(0.06 + aim * 0.32 - fire * 0.05 + L * swing * 0.2, -0.06, -0.18);
+    rig.rightArm.rotation.set(-0.22 + aim * 0.14 - fire * 0.05, 0.04, 0.08);
+    rig.leftArm.rotation.set(-0.22 + aim * 0.14 - fire * 0.05, -0.04, -0.08);
+    rig.rightFore.rotation.set(0.16 + fire * 0.04, 0, 0.03);
+    rig.leftFore.rotation.set(0.16 + fire * 0.04, 0, -0.03);
+    rig.rightGun.rotation.set(0.06, 0, 0);
+    rig.leftGun.rotation.set(0.06, 0, 0);
   } else {
     const raise = -1.22;
     const crook = 0.82;
@@ -994,7 +1011,7 @@ export function poseMech(
     t.scale.y = thrust ? 1.55 : 1;
   }
   for (let i = 0; i < rig.flashes.length; i++) {
-    const v = titan ? (i < 2 ? fire : special) : i < 2 ? fire : alt;
+    const v = titan || valk ? (i < 2 ? fire : special) : i < 2 ? fire : alt;
     const f = rig.flashes[i];
     f.visible = v > 0.015;
     if (!f.visible) continue;
@@ -1009,10 +1026,11 @@ export function poseMech(
     (f.material as THREE.SpriteMaterial).opacity = Math.min(1, 0.55 + v * 3);
   }
   for (let i = 0; i < rig.muzzleLights.length; i++) {
-    const v = titan ? fire : i === 0 ? fire : alt;
+    const v = titan || valk ? fire : i === 0 ? fire : alt;
     const on = v > 0.015;
     rig.muzzleLights[i].visible = on;
     rig.muzzleLights[i].intensity = on ? 8 + v * 28 : 0;
   }
   if (titan) poseTitanExtras(rig, fire, special, shieldUp, shield, time);
+  if (valk) poseValkyrieExtras(rig, fire, special, alt, boost, jumping, shieldUp, shield, time);
 }

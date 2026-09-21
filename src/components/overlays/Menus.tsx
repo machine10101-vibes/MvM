@@ -35,7 +35,7 @@ export function TitleOverlay({ engine, onStart }: { engine: Engine | null; onSta
       </header>
       <div className="max-w-md space-y-4">
         <p className="max-w-sm text-sm leading-relaxed text-muted">
-          Helix is ash. The Titan-class heavy assault frame is the first chassis off the line — dual rotaries, shoulder racks, chest lance, and a deployable shield dome.
+          Helix is ash. Titan holds the line. Valkyrie-class interceptors own the sky — foldable wings, pulse lasers, under-wing racks, and a chin gatling.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button size="lg" onClick={onStart} disabled={!engine}>
@@ -49,7 +49,7 @@ export function TitleOverlay({ engine, onStart }: { engine: Engine | null; onSta
           </Button>
         </div>
         <p className="hidden text-xs text-subtle sm:block">
-          W/S throttle · A/D turn · Q/C strafe · LMB rotary · RMB/E missiles · T chest lance · G shield dome · R vent · Shift boost · Space jets
+          W/S throttle · A/D turn · Q/C strafe · LMB fire · RMB alt · T special · G field · R vent · Shift boost · Space jets
         </p>
       </div>
     </div>
@@ -165,7 +165,7 @@ export function HangarOverlay({ engine }: { engine: Engine | null }) {
           </div>
           <p className="tabular text-xs text-muted">
             {def.hp} hull · {def.armor} plate · {def.speed} m/s
-            {def.special ? ` · ${WEAPONS[def.special].name} · shield dome` : ""}
+            {def.special ? ` · ${WEAPONS[def.special].name}${def.id === "valkyrie" ? " · deflection field" : " · shield dome"}` : ""}
           </p>
           <div className="flex gap-2">
             <Button
