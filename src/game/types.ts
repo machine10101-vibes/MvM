@@ -12,7 +12,10 @@ export type WeaponId =
   | "blade"
   | "pulse"
   | "racks"
-  | "gatling";
+  | "gatling"
+  | "sniper"
+  | "emp"
+  | "drones";
 export type ItemKind = "weapon" | "armor" | "mod";
 export type GameMode = "demo" | "survival" | "ffa" | "tdm";
 export type ViewMode = "title" | "hangar" | "play";

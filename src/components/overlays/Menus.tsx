@@ -35,7 +35,7 @@ export function TitleOverlay({ engine, onStart }: { engine: Engine | null; onSta
       </header>
       <div className="max-w-md space-y-4">
         <p className="max-w-sm text-sm leading-relaxed text-muted">
-          Helix is ash. Titan holds the line. Valkyrie-class interceptors own the sky — foldable wings, pulse lasers, under-wing racks, and a chin gatling.
+          Helix is ash. Titan holds the line. Phantom hunts from the dark — a slim rail, EMP pulse, shade drones, and optical cloak. Valkyrie-class interceptors own the sky.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button size="lg" onClick={onStart} disabled={!engine}>
@@ -165,7 +165,11 @@ export function HangarOverlay({ engine }: { engine: Engine | null }) {
           </div>
           <p className="tabular text-xs text-muted">
             {def.hp} hull · {def.armor} plate · {def.speed} m/s
-            {def.special ? ` · ${WEAPONS[def.special].name}${def.id === "valkyrie" ? " · deflection field" : " · shield dome"}` : ""}
+            {def.special
+              ? ` · ${WEAPONS[def.special].name}${
+                  def.id === "valkyrie" ? " · deflection field" : def.id === "phantom" ? " · optical cloak" : " · shield dome"
+                }`
+              : ""}
           </p>
           <div className="flex gap-2">
             <Button

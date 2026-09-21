@@ -99,21 +99,23 @@ export const CHASSIS: Record<ChassisId, ChassisDef> = {
   phantom: {
     id: "phantom",
     name: "Phantom",
-    role: "Striker",
-    blurb: "Angular interceptor. Plasma lances and a short-range cutter.",
-    hp: 860,
-    armor: 150,
-    speed: 22.4,
-    turn: 2.15,
-    boostMul: 1.6,
-    heatCap: 94,
-    mass: 0.84,
-    scale: 0.96,
-    primary: "plasma",
-    secondary: "blade",
-    paint: 0x3e4654,
-    accent: 0xb8e4f2,
-    trim: 0x6a7888,
+    role: "Stealth Recon",
+    blurb:
+      "Slim angular hunter. A right-arm sniper rail, left-arm EMP and drone launcher, optical camouflage, and chaff to break locks.",
+    hp: 780,
+    armor: 190,
+    speed: 24.8,
+    turn: 2.38,
+    boostMul: 1.7,
+    heatCap: 90,
+    mass: 0.74,
+    scale: 0.95,
+    primary: "sniper",
+    secondary: "emp",
+    special: "drones",
+    paint: 0x2a2e34,
+    accent: 0x4ad4e8,
+    trim: 0x3a4248,
   },
   valkyrie: {
     id: "valkyrie",
@@ -321,10 +323,60 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     lock: false,
     pellets: 1,
   },
+  sniper: {
+    id: "sniper",
+    name: "Wraith Rail",
+    dmg: 230,
+    rpm: 26,
+    spread: 0.001,
+    range: 280,
+    heat: 22,
+    speed: 0,
+    splash: 0,
+    hitscan: true,
+    lock: false,
+    pellets: 1,
+  },
+  emp: {
+    id: "emp",
+    name: "EMP Pulse",
+    dmg: 34,
+    rpm: 68,
+    spread: 0.02,
+    range: 58,
+    heat: 10,
+    speed: 0,
+    splash: 7,
+    hitscan: true,
+    lock: false,
+    pellets: 1,
+  },
+  drones: {
+    id: "drones",
+    name: "Shade Drones",
+    dmg: 38,
+    rpm: 96,
+    spread: 0.03,
+    range: 150,
+    heat: 8,
+    speed: 52,
+    splash: 3.4,
+    hitscan: false,
+    lock: true,
+    pellets: 2,
+  },
 };
 
 export function hasEnergyField(id: ChassisId) {
-  return id === "titan" || id === "valkyrie";
+  return id === "titan" || id === "valkyrie" || id === "phantom";
+}
+
+export function fieldPool(id: ChassisId) {
+  return id === "valkyrie" ? 420 : id === "phantom" ? 380 : 760;
+}
+
+export function fieldToast(id: ChassisId) {
+  return id === "phantom" ? "CLOAK DOWN" : id === "valkyrie" ? "FIELD DOWN" : "SHIELD DOWN";
 }
 
 export const CHASSIS_LIST = Object.values(CHASSIS);
@@ -349,6 +401,9 @@ const LOOT_POOL: ItemDef[] = [
   { id: "w-pulse", kind: "weapon", name: "Wing Pulse Lasers", rarity: "rare", weaponId: "pulse" },
   { id: "w-racks", kind: "weapon", name: "Underwing Racks", rarity: "rare", weaponId: "racks" },
   { id: "w-gatling", kind: "weapon", name: "Chin Gatling", rarity: "epic", weaponId: "gatling" },
+  { id: "w-sniper", kind: "weapon", name: "Wraith Rail", rarity: "epic", weaponId: "sniper" },
+  { id: "w-emp", kind: "weapon", name: "EMP Pulse", rarity: "rare", weaponId: "emp" },
+  { id: "w-drones", kind: "weapon", name: "Shade Drones", rarity: "rare", weaponId: "drones" },
   { id: "a-plate", kind: "armor", name: "Ablative Plate", rarity: "common", hp: 80, armor: 40 },
   { id: "a-reactive", kind: "armor", name: "Reactive Weave", rarity: "rare", hp: 140, armor: 90 },
   { id: "a-aegis", kind: "armor", name: "Aegis Shell", rarity: "epic", hp: 220, armor: 160 },

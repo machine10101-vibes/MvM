@@ -1,5 +1,5 @@
 import { angleDiff, clamp, mulberry32, uid } from "@/lib/utils";
-import { applyItems, CHASSIS, defaultLoadout, hasEnergyField, rollLoot, WEAPONS } from "./catalog";
+import { applyItems, CHASSIS, defaultLoadout, fieldPool, fieldToast, hasEnergyField, rollLoot, WEAPONS } from "./catalog";
 import { generateCity, rayHitsBuilding, resolveBuildings, type CityData } from "./city";
 import { audio } from "./audio";
 import type {
@@ -14,6 +14,7 @@ import type {
   Projectile,
   Spark,
   Tracer,
+  WeaponId,
 } from "./types";
 
 const RADIUS = 2.15;
@@ -291,7 +292,7 @@ export class Sim {
     m.sidestep = clamp(m.sidestep, -topLat, topLat);
     if (a.shield && m.shield > 0.04) {
       m.shieldUp = true;
-      m.speed = clamp(m.speed, -top * 0.4, top * 0.72);
+      if (m.chassis !== "phantom") m.speed = clamp(m.speed, -top * 0.4, top * 0.72);
     } else m.shieldUp = false;
 
     if (a.vent && m.venting <= 0 && m.heat > 8) {
@@ -356,16 +357,30 @@ export class Sim {
     m.altFlash = Math.max(0, m.altFlash - dt);
     m.specialFlash = Math.max(0, m.specialFlash - dt);
     if (m.shieldUp && m.shield > 0) {
-      m.shield = Math.max(0, m.shield - dt * 0.2);
+      const cloak = m.chassis === "phantom";
+      m.shield = Math.max(0, m.shield - dt * (cloak ? 0.28 : 0.2));
+      if (cloak && this.rng() < dt * 8) {
+        this.sparks.push({
+          x: m.x + (this.rng() - 0.5) * 1.8,
+          y: m.y + 1.2 + this.rng() * 2.2,
+          z: m.z + (this.rng() - 0.5) * 1.8,
+          vx: (this.rng() - 0.5) * 4,
+          vy: 1.4 + this.rng() * 3,
+          vz: (this.rng() - 0.5) * 4,
+          life: 0.22,
+          maxLife: 0.28,
+          kind: "ember",
+        });
+      }
       if (m.shield <= 0) {
         m.shieldUp = false;
         if (m.isLocal) {
-          this.toast = m.chassis === "valkyrie" ? "FIELD DOWN" : "SHIELD DOWN";
+          this.toast = fieldToast(m.chassis);
           this.toastT = 0.8;
         }
       }
     } else if (hasEnergyField(m.chassis)) {
-      m.shield = Math.min(1, m.shield + dt * (m.chassis === "valkyrie" ? 0.12 : 0.085));
+      m.shield = Math.min(1, m.shield + dt * (m.chassis === "phantom" ? 0.1 : m.chassis === "valkyrie" ? 0.12 : 0.085));
     }
     m.heat = Math.max(0, m.heat - dt * 12);
     if (this.time - m.lastHitAt > 4) m.armor = Math.min(m.maxArmor, m.armor + dt * 12);
@@ -376,8 +391,8 @@ export class Sim {
   }
 
   private updateLock(m: Mech, dt: number) {
-    const w = WEAPONS[m.secondary];
-    if (!w.lock) {
+    const lockW = [m.special, m.secondary, m.primary].find((id) => id && WEAPONS[id].lock);
+    if (!lockW) {
       m.lock = 0;
       m.lockId = null;
       return;
@@ -386,6 +401,7 @@ export class Sim {
     let bestDot = 0.82;
     for (const o of this.mechs) {
       if (o === m || !o.alive || o.team === m.team) continue;
+      if (o.chassis === "phantom" && o.shieldUp) continue;
       const dx = o.x - m.x;
       const dz = o.z - m.z;
       const dist = Math.hypot(dx, dz);
@@ -420,7 +436,7 @@ export class Sim {
     else if (slot === "secondary") m.cdSecondary = interval;
     else m.cdPrimary = interval;
     m.heat = Math.min(m.heatCap + 5, m.heat + w.heat);
-    const punch = weaponId === "rail" || weaponId === "cannon" || weaponId === "blade" || weaponId === "core" ? 0.32 : 0.2;
+    const punch = weaponId === "rail" || weaponId === "sniper" || weaponId === "cannon" || weaponId === "blade" || weaponId === "core" ? 0.32 : 0.2;
     if (slot === "special") m.specialFlash = punch;
     else if (slot === "secondary") m.altFlash = punch;
     else m.fireFlash = punch;
@@ -438,7 +454,7 @@ export class Sim {
         const dx = m.aimX + sx;
         const dz = m.aimZ + sz;
         const len = Math.hypot(dx, dz) || 1;
-        const hitDist = this.hitscan(m, ox, originY, oz, dx / len, m.aimY, dz / len, w.range, dmg);
+        const hitDist = this.hitscan(m, ox, originY, oz, dx / len, m.aimY, dz / len, w.range, dmg, weaponId);
         this.sparks.push({
           x: ox,
           y: originY,
@@ -479,21 +495,21 @@ export class Sim {
           x1: ox + (dx / len) * hitDist,
           y1: originY + m.aimY * hitDist,
           z1: oz + (dz / len) * hitDist,
-          life: weaponId === "rail" ? 0.34 : weaponId === "blade" ? 0.18 : 0.14,
-          maxLife: weaponId === "rail" ? 0.34 : weaponId === "blade" ? 0.18 : 0.14,
+          life: weaponId === "rail" || weaponId === "sniper" ? 0.34 : weaponId === "blade" ? 0.18 : 0.14,
+          maxLife: weaponId === "rail" || weaponId === "sniper" ? 0.34 : weaponId === "blade" ? 0.18 : 0.14,
           kind:
-            weaponId === "rail"
+            weaponId === "rail" || weaponId === "sniper"
               ? "rail"
               : weaponId === "blade"
                 ? "blade"
-                : weaponId === "pulse" || weaponId === "gatling" || weaponId === "plasma"
+                : weaponId === "pulse" || weaponId === "gatling" || weaponId === "plasma" || weaponId === "emp"
                   ? "plasma"
                   : "bullet",
           owner: m.id,
           alt,
         });
       }
-      audio.fire(weaponId === "rail" || weaponId === "blade" ? "heavy" : "hitscan");
+      audio.fire(weaponId === "rail" || weaponId === "sniper" || weaponId === "blade" ? "heavy" : "hitscan");
     } else {
       for (let p = 0; p < w.pellets; p++) {
         const sx = (this.rng() - 0.5) * w.spread * 4;
@@ -515,7 +531,7 @@ export class Sim {
           dmg,
           splash: w.splash,
           kind:
-            weaponId === "missiles" || weaponId === "racks"
+            weaponId === "missiles" || weaponId === "racks" || weaponId === "drones"
               ? "missile"
               : weaponId === "core"
                 ? "core"
@@ -539,7 +555,7 @@ export class Sim {
           kind: "muzzle",
         });
       }
-      audio.fire(weaponId === "missiles" || weaponId === "racks" ? "missile" : "plasma");
+      audio.fire(weaponId === "missiles" || weaponId === "racks" || weaponId === "drones" ? "missile" : "plasma");
     }
     this.onFire?.(m.id, weaponId);
   }
@@ -554,6 +570,7 @@ export class Sim {
     dz: number,
     range: number,
     dmg: number,
+    weaponId?: WeaponId,
   ) {
     const wall = rayHitsBuilding(ox, oz, dx, dz, range, this.city.buildings);
     let best = wall;
@@ -569,13 +586,16 @@ export class Sim {
       const px = ox + dx * t - o.x;
       const pz = oz + dz * t - o.z;
       const py = oy + dy * t - (o.y + 3);
-      if (px * px + pz * pz + py * py * 0.45 < 6.5) {
+      const cloaked = o.chassis === "phantom" && o.shieldUp;
+      const hitR = cloaked ? 2.2 : 6.5;
+      if (px * px + pz * pz + py * py * 0.45 < hitR) {
         best = t;
         target = o;
       }
     }
     if (target) {
       this.damage(target, dmg, owner);
+      if (weaponId === "emp") this.empStun(target, owner);
       this.sparks.push({
         x: target.x + (this.rng() - 0.5) * 1.4,
         y: target.y + 2.4 + this.rng(),
@@ -598,7 +618,7 @@ export class Sim {
     for (const p of this.projectiles) {
       if (p.targetId) {
         const t = this.mechs.find((m) => m.id === p.targetId && m.alive);
-        if (t) {
+        if (t && !(t.chassis === "phantom" && t.shieldUp)) {
           const dx = t.x - p.x;
           const dy = t.y + 3 - p.y;
           const dz = t.z - p.z;
@@ -655,18 +675,42 @@ export class Sim {
     }
   }
 
+  private empStun(target: Mech, owner: Mech | null) {
+    target.venting = Math.max(target.venting, 1.4);
+    target.heat = Math.min(target.heatCap, target.heat + 28);
+    target.lock = 0;
+    target.lockId = null;
+    target.shieldUp = false;
+    if (owner?.isLocal) {
+      this.toast = "EMP";
+      this.toastT = 0.55;
+    }
+    const r = 7;
+    for (const o of this.mechs) {
+      if (o === target || !o.alive || o === owner) continue;
+      if (this.mode === "tdm" && owner && o.team === owner.team) continue;
+      if (Math.hypot(o.x - target.x, o.z - target.z) < r) {
+        o.venting = Math.max(o.venting, 0.9);
+        o.heat = Math.min(o.heatCap, o.heat + 16);
+        o.lock = 0;
+        o.lockId = null;
+      }
+    }
+  }
+
   damage(m: Mech, amount: number, src: Mech | null) {
     if (!m.alive || amount <= 0) return;
     if (m.shieldUp && m.shield > 0) {
-      const pool = m.shield * (m.chassis === "valkyrie" ? 420 : 760);
-      const soak = Math.min(pool, amount * 0.88);
-      m.shield = Math.max(0, (pool - soak) / (m.chassis === "valkyrie" ? 420 : 760));
+      const max = fieldPool(m.chassis);
+      const pool = m.shield * max;
+      const soak = Math.min(pool, amount * (m.chassis === "phantom" ? 0.55 : 0.88));
+      m.shield = Math.max(0, (pool - soak) / max);
       amount -= soak;
       if (m.shield <= 0.01) {
         m.shield = 0;
         m.shieldUp = false;
         if (m.isLocal) {
-          this.toast = m.chassis === "valkyrie" ? "FIELD DOWN" : "SHIELD DOWN";
+          this.toast = fieldToast(m.chassis);
           this.toastT = 0.8;
         }
       }
@@ -858,7 +902,7 @@ export class Sim {
     const wantYaw = Math.atan2(-dx, -dz);
     m.yaw += angleDiff(m.yaw, wantYaw) * dt * 1.6;
     m.torso += angleDiff(m.yaw + m.torso, wantYaw) * dt * 2.2;
-    const ideal = m.chassis === "titan" ? 16 : m.chassis === "colossus" ? 28 : m.chassis === "valkyrie" ? 34 : 22;
+    const ideal = m.chassis === "titan" ? 16 : m.chassis === "colossus" ? 28 : m.chassis === "valkyrie" ? 34 : m.chassis === "phantom" ? 38 : 22;
     const c = CHASSIS[m.chassis];
     const top = m.topSpeed || c.speed;
     if (dist > ideal + 8) m.speed = Math.min(top * 0.9, m.speed + 20 * dt);
@@ -879,7 +923,7 @@ export class Sim {
       if (dist < 70 && this.rng() < skill * dt) this.tryFire(m, m.secondary, "secondary");
       if (m.special && dist < 80 && this.rng() < skill * dt * 0.45) this.tryFire(m, m.special, "special");
     }
-    if (hasEnergyField(m.chassis) && m.hp < m.maxHp * 0.55 && m.shield > 0.12) m.shieldUp = true;
+    if (hasEnergyField(m.chassis) && m.hp < m.maxHp * (m.chassis === "phantom" ? 0.7 : 0.55) && m.shield > 0.12) m.shieldUp = true;
     if (m.chassis === "valkyrie" && m.y < 7 && m.jump > 0.28) m.vy += 14 * dt;
     if (dist < 18 && this.rng() < dt * 0.4) m.yaw += (this.rng() - 0.5) * 2;
     if (dist > 40 && this.rng() < dt * 0.35) m.boost = Math.max(0.2, m.boost);
