@@ -247,76 +247,83 @@ export function buildValkyrieMech(
 type ValkMats = ReturnType<typeof mats>;
 
 function buildChest(torso: THREE.Group, m: ValkMats, detail: boolean) {
-  add(torso, geo.soft, m.navy, 0.92, 1.18, 0.62, 0, 0.92, 0.02);
-  add(torso, geo.soft, m.armor, 1.08, 0.72, 0.7, 0, 1.22, 0.08);
-  add(torso, geo.soft, m.armor, 0.82, 0.52, 0.58, 0, 0.62, 0.1);
-  add(torso, geo.soft, m.plate, 0.55, 0.42, 0.22, 0, 1.18, 0.38);
-  add(torso, geo.box, m.gold, 0.06, 0.62, 0.04, 0, 1.05, 0.46);
-  add(torso, geo.soft, m.navy, 0.28, 0.18, 0.16, 0, 0.86, 0.42);
-  add(torso, geo.box, m.emit, 0.16, 0.03, 0.05, 0, 0.86, 0.5);
+  add(torso, geo.soft, m.navy, 0.78, 1.22, 0.52, 0, 0.88, -0.02);
+  add(torso, geo.soft, m.armor, 1.18, 0.62, 0.68, 0, 1.28, 0.1);
+  add(torso, geo.soft, m.armor, 0.52, 0.48, 0.36, -0.38, 1.32, 0.22, 0, 0.18, 0.12);
+  add(torso, geo.soft, m.armor, 0.52, 0.48, 0.36, 0.38, 1.32, 0.22, 0, -0.18, -0.12);
+  add(torso, geo.soft, m.armor, 0.72, 0.48, 0.5, 0, 0.62, 0.12);
+  add(torso, geo.soft, m.plate, 0.42, 0.38, 0.2, 0, 1.16, 0.42);
+  add(torso, geo.box, m.gold, 0.05, 0.7, 0.04, 0, 1.02, 0.48);
+  add(torso, geo.soft, m.navy, 0.26, 0.16, 0.14, 0, 0.88, 0.44);
+  add(torso, geo.box, m.emit, 0.18, 0.04, 0.06, 0, 0.88, 0.52);
+  add(torso, geo.soft, m.navy, 0.62, 0.22, 0.28, 0, 0.38, 0.06);
   if (detail) {
-    add(torso, geo.soft, m.armor, 0.34, 0.28, 0.22, -0.42, 1.28, 0.22);
-    add(torso, geo.soft, m.armor, 0.34, 0.28, 0.22, 0.42, 1.28, 0.22);
-    add(torso, geo.box, m.gold, 0.04, 0.22, 0.18, -0.52, 1.18, 0.16);
-    add(torso, geo.box, m.gold, 0.04, 0.22, 0.18, 0.52, 1.18, 0.16);
+    add(torso, geo.box, m.gold, 0.04, 0.28, 0.2, -0.58, 1.22, 0.18);
+    add(torso, geo.box, m.gold, 0.04, 0.28, 0.2, 0.58, 1.22, 0.18);
+    add(torso, geo.soft, m.plate, 0.2, 0.16, 0.12, -0.22, 0.7, 0.34);
+    add(torso, geo.soft, m.plate, 0.2, 0.16, 0.12, 0.22, 0.7, 0.34);
   }
-  add(torso, geo.soft, m.navy, 0.7, 0.38, 0.36, 0, 1.42, -0.22);
 }
 
 function buildHead(head: THREE.Group, m: ValkMats, detail: boolean) {
-  add(head, geo.soft, m.armor, 0.42, 0.36, 0.46, 0, 0.08, 0.04);
-  add(head, geo.soft, m.navy, 0.34, 0.16, 0.28, 0, -0.04, 0.08);
-  add(head, geo.soft, m.visor, 0.3, 0.08, 0.18, 0, 0.08, 0.24);
-  add(head, geo.hard, m.dark, 0.22, 0.03, 0.16, 0, 0.08, 0.28);
-  const fin = add(head, geo.soft, m.armor, 0.08, 0.42, 0.22, 0, 0.32, -0.02, 0.35, 0, 0);
-  add(head, geo.soft, m.navy, 0.05, 0.28, 0.12, 0, 0.34, -0.04, 0.35, 0, 0);
+  add(head, geo.soft, m.armor, 0.46, 0.4, 0.52, 0, 0.1, 0.06);
+  add(head, geo.soft, m.navy, 0.36, 0.16, 0.3, 0, -0.06, 0.1);
+  add(head, geo.soft, m.visor, 0.34, 0.1, 0.22, 0, 0.1, 0.28);
+  add(head, geo.hard, m.dark, 0.24, 0.03, 0.18, 0, 0.1, 0.32);
+  const fin = add(head, geo.soft, m.armor, 0.1, 0.58, 0.28, 0, 0.42, -0.02, 0.42, 0, 0);
+  add(head, geo.soft, m.navy, 0.06, 0.4, 0.16, 0, 0.44, -0.04, 0.42, 0, 0);
+  add(head, geo.soft, m.armor, 0.18, 0.12, 0.2, 0, 0.28, 0.18, 0.2, 0, 0);
   if (detail) {
-    add(head, geo.box, m.gold, 0.03, 0.12, 0.08, -0.16, 0.18, 0.12);
-    add(head, geo.box, m.gold, 0.03, 0.12, 0.08, 0.16, 0.18, 0.12);
+    add(head, geo.box, m.gold, 0.03, 0.14, 0.1, -0.18, 0.2, 0.14);
+    add(head, geo.box, m.gold, 0.03, 0.14, 0.1, 0.18, 0.2, 0.14);
   }
   return fin;
 }
 
 function buildBackpack(pack: THREE.Group, m: ValkMats, detail: boolean) {
-  add(pack, geo.soft, m.navy, 0.82, 0.72, 0.48, 0, 0.08, 0);
-  add(pack, geo.soft, m.armor, 0.62, 0.42, 0.28, 0, 0.18, 0.08);
+  add(pack, geo.soft, m.navy, 0.88, 0.78, 0.52, 0, 0.12, -0.04);
+  add(pack, geo.soft, m.armor, 0.68, 0.48, 0.32, 0, 0.22, 0.06);
   const thrusters: THREE.Mesh[] = [];
   const wings: THREE.Group[] = [];
 
   for (const side of [-1, 1]) {
     const pod = new THREE.Group();
-    pod.position.set(side * 0.48, 0.42, 0.12);
+    pod.position.set(side * 0.58, 0.62, 0.22);
     pack.add(pod);
-    add(pod, geo.cyl, m.armor, 0.42, 0.22, 0.42, 0, 0, 0, Math.PI / 2, 0, 0);
-    add(pod, geo.torus, m.navy, 0.46, 0.46, 0.46, 0, 0, 0.06);
-    add(pod, geo.disk, m.emit, 0.28, 0.28, 0.28, 0, 0, 0.12);
-    const bell = add(pod, geo.cylR, m.emit, 0.22, 0.28, 0.22, 0, 0, -0.22, Math.PI / 2, 0, 0);
+    add(pod, geo.cyl, m.armor, 0.58, 0.26, 0.58, 0, 0, 0, Math.PI / 2, 0, 0);
+    add(pod, geo.torus, m.navy, 0.62, 0.62, 0.62, 0, 0, 0.08);
+    add(pod, geo.disk, m.emit, 0.4, 0.4, 0.4, 0, 0, 0.14);
+    const bell = add(pod, geo.cylR, m.emit, 0.28, 0.34, 0.28, 0, 0, -0.26, Math.PI / 2, 0, 0);
     thrusters.push(bell);
-    if (detail) add(pod, geo.box, m.gold, 0.04, 0.18, 0.08, side * 0.18, 0.12, 0);
+    add(pod, geo.box, m.emit, 0.06, 0.06, 0.06, side * 0.22, 0.16, 0.18);
+    if (detail) add(pod, geo.box, m.gold, 0.04, 0.2, 0.1, side * 0.22, 0.14, 0.02);
 
     const wing = new THREE.Group();
-    wing.position.set(side * 0.62, 0.38, -0.04);
+    wing.position.set(side * 0.4, 0.4, -0.02);
     pack.add(wing);
-    add(wing, geo.soft, m.armor, 0.18, 1.55, 0.72, side * 0.55, 0.72, -0.12, 0.18, 0, side * -0.55);
-    add(wing, geo.soft, m.navy, 0.08, 1.42, 0.58, side * 0.48, 0.68, -0.16, 0.18, 0, side * -0.55);
-    add(wing, geo.soft, m.armor, 0.12, 0.55, 0.95, side * 0.92, 1.18, -0.22, 0.28, 0, side * -0.72);
-    add(wing, geo.box, m.emit, 0.06, 0.08, 0.08, side * 0.38, 0.22, 0.22);
+    // Binder fins sweep up and out from the pack — the reference silhouette.
+    add(wing, geo.soft, m.armor, 0.22, 2.05, 0.78, side * 0.62, 1.05, -0.1, 0.22, 0, side * -0.52);
+    add(wing, geo.soft, m.navy, 0.1, 1.9, 0.62, side * 0.54, 1.0, -0.14, 0.22, 0, side * -0.52);
+    add(wing, geo.soft, m.armor, 0.16, 1.05, 1.05, side * 1.18, 1.82, -0.22, 0.55, 0, side * -0.72);
+    add(wing, geo.soft, m.navy, 0.08, 0.85, 0.85, side * 1.12, 1.72, -0.26, 0.55, 0, side * -0.72);
+    add(wing, geo.soft, m.armor, 0.18, 0.55, 0.42, side * 0.32, 0.32, 0.04, 0.08, 0, side * -0.18);
+    add(wing, geo.box, m.emit, 0.08, 0.08, 0.08, side * 0.48, 0.22, 0.28);
     if (detail) {
-      add(wing, geo.box, m.gold, 0.03, 1.1, 0.04, side * 0.42, 0.7, 0.18, 0.18, 0, side * -0.55);
+      add(wing, geo.box, m.gold, 0.04, 1.4, 0.04, side * 0.68, 1.1, 0.18, 0.22, 0, side * -0.52);
     }
     const rack = new THREE.Group();
-    rack.position.set(side * 0.42, 0.12, 0.18);
+    rack.position.set(side * 0.55, 0.1, 0.24);
     wing.add(rack);
-    add(rack, geo.hard, m.dark, 0.22, 0.16, 0.62, 0, 0, 0);
+    add(rack, geo.hard, m.dark, 0.28, 0.16, 0.7, 0, 0, 0);
     for (let i = 0; i < 3; i++) {
-      add(rack, geo.cyl, m.navy, 0.07, 0.42, 0.07, side * 0.02, -0.02, -0.18 + i * 0.18, 0, 0, Math.PI / 2);
+      add(rack, geo.cyl, m.navy, 0.08, 0.48, 0.08, 0, -0.02, -0.2 + i * 0.2, 0, 0, Math.PI / 2);
     }
-    const pulse = add(wing, geo.cyl, m.dark, 0.1, 0.55, 0.1, side * 0.22, 0.05, 0.42, Math.PI / 2, 0, 0);
-    add(pulse, geo.cyl, m.emit, 0.06, 0.12, 0.06, 0, 0.28, 0);
+    const pulse = add(wing, geo.cyl, m.dark, 0.12, 0.7, 0.12, side * 0.38, 0.02, 0.48, Math.PI / 2, 0, 0);
+    add(pulse, geo.cyl, m.emit, 0.07, 0.14, 0.07, 0, 0.36, 0);
     wings.push(wing);
   }
 
-  const vent = add(pack, geo.cylR, m.emit, 0.2, 0.32, 0.2, 0, -0.12, -0.18, Math.PI / 2, 0, 0);
+  const vent = add(pack, geo.cylR, m.emit, 0.22, 0.36, 0.22, 0, -0.08, -0.22, Math.PI / 2, 0, 0);
   thrusters.push(vent);
   return { wings, thrusters };
 }
@@ -366,8 +373,8 @@ function buildLeg(hip: THREE.Group, side: number, m: ValkMats, detail: boolean) 
 }
 
 function buildChinGatling(chin: THREE.Group, m: ValkMats, detail: boolean) {
-  add(chin, geo.soft, m.navy, 0.22, 0.16, 0.28, 0, 0, 0);
-  add(chin, geo.cyl, m.dark, 0.14, 0.55, 0.14, 0, -0.08, 0.28, Math.PI / 2, 0, 0);
+  add(chin, geo.soft, m.navy, 0.28, 0.2, 0.34, 0, 0, 0);
+  add(chin, geo.cyl, m.dark, 0.18, 0.72, 0.18, 0, -0.1, 0.36, Math.PI / 2, 0, 0);
   if (detail) {
     for (const x of [-0.04, 0.04]) {
       add(chin, geo.cyl, m.dark, 0.04, 0.42, 0.04, x, -0.08, 0.3, Math.PI / 2, 0, 0);
@@ -477,10 +484,10 @@ export function poseValkyrieExtras(
   shield: number,
   time: number,
 ) {
-  const flare = boost || jumping ? 0.42 : 0.12;
+  const flare = boost || jumping ? 0.22 : 0.04;
   if (rig.wings) {
-    rig.wings[0]?.rotation.set(0.06, 0.08, -0.18 - flare);
-    rig.wings[1]?.rotation.set(0.06, -0.08, 0.18 + flare);
+    rig.wings[0]?.rotation.set(0.02, 0.04, -flare);
+    rig.wings[1]?.rotation.set(0.02, -0.04, flare);
   }
   if (rig.barrels) {
     for (const b of rig.barrels) b.rotation.z += (fire + special) * 2.2;
