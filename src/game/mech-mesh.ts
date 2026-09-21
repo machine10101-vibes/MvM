@@ -920,8 +920,8 @@ export function poseMech(
   // +Y up, +Z forward. A limb hanging along -Y: +rotation.x sends the foot
   // toward -Z (BACK). Humanoid knees therefore flex with +X. Reverse-joint
   // (Reaper) knees flex toward +Z with -X. Prior signs were inverted.
-  const stanceHip = reverse ? 0.22 : valk ? -0.08 : titan ? -0.14 : -0.12;
-  const stanceKnee = reverse ? -0.7 : valk ? 0.2 : titan ? 0.4 : 0.34;
+  const stanceHip = reverse ? 0.22 : valk ? -0.16 : titan ? -0.14 : -0.12;
+  const stanceKnee = reverse ? -0.7 : valk ? 0.42 : titan ? 0.4 : 0.34;
   const jumpHip = jumping ? -0.32 : boost ? -0.1 : 0;
   const jumpKnee = jumping ? (reverse ? -0.2 : 0.36) : 0;
   const hipZ = reverse ? 0.06 : valk ? 0.09 : 0.04;

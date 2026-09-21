@@ -506,10 +506,11 @@ function buildLeg(hip: THREE.Group, side: number, m: ValkMats, detail: boolean) 
   knee.position.set(0, -0.98, 0.04);
   hip.add(knee);
   // Forward kneecap — the cap lives on +Z so a +X flex reads as a humanoid knee.
-  add(knee, geo.soft, m.armor, 0.44, 0.3, 0.4, 0, 0.02, 0.1);
-  add(knee, geo.soft, m.white, 0.34, 0.2, 0.24, 0, 0.04, 0.28);
-  add(knee, geo.cone, m.armor, 0.28, 0.24, 0.2, 0, 0.0, 0.36, Math.PI / 2, 0, 0);
-  add(knee, geo.box, m.gold, 0.2, 0.03, 0.04, 0, 0.08, 0.4);
+  add(knee, geo.soft, m.armor, 0.46, 0.32, 0.44, 0, 0.02, 0.12);
+  add(knee, geo.soft, m.white, 0.36, 0.22, 0.28, 0, 0.05, 0.32);
+  add(knee, geo.cone, m.armor, 0.3, 0.28, 0.22, 0, 0.0, 0.42, Math.PI / 2, 0, 0);
+  add(knee, geo.soft, m.navy, 0.22, 0.16, 0.16, 0, -0.04, 0.3);
+  add(knee, geo.box, m.gold, 0.22, 0.03, 0.045, 0, 0.1, 0.46);
   // Shin sits slightly aft of the cap so the planted bend is calf-back.
   add(knee, geo.soft, m.navy, 0.36, 1.08, 0.36, 0, -0.6, -0.04);
   add(knee, geo.soft, m.armor, 0.3, 0.74, 0.28, 0, -0.62, 0.12);
