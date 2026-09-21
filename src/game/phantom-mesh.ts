@@ -56,10 +56,10 @@ function mats(wrecked: boolean) {
       emissiveIntensity: emitI,
     });
   return {
-    armor: lam(wrecked ? 0x2a2c30 : 0x3a4048, hullMap, wrecked ? 0x08090c : 0x101418, wrecked ? 0.04 : 0.12),
-    plate: lam(wrecked ? 0x222428 : 0x2c3238, hullMap, 0x0c1014, 0.1),
-    dark: lam(0x121418, undefined, 0x060708, 0.05),
-    trim: lam(wrecked ? 0x2a2e32 : 0x4a5258, undefined, 0x121618, 0.08),
+    armor: lam(wrecked ? 0x3a3c40 : 0x6a727a, hullMap, wrecked ? 0x101214 : 0x1c2228, wrecked ? 0.05 : 0.18),
+    plate: lam(wrecked ? 0x323438 : 0x5a626a, hullMap, 0x161c22, 0.14),
+    dark: lam(0x2a2e32, undefined, 0x101214, 0.08),
+    trim: lam(wrecked ? 0x3a3e42 : 0x8a9298, undefined, 0x1a2024, 0.1),
     emit: new THREE.MeshStandardMaterial({
       color: glow,
       emissive: glow,
@@ -97,17 +97,17 @@ export function buildPhantomMech(
   const hips = new THREE.Group();
   hips.position.y = 2.08;
   body.add(hips);
-  add(hips, geo.soft, m.dark, 0.72, 0.28, 0.48, 0, 0.04, 0.02);
-  add(hips, geo.soft, m.armor, 0.98, 0.26, 0.56, 0, 0.22, 0.06);
+  add(hips, geo.soft, m.dark, 0.86, 0.32, 0.56, 0, 0.04, 0.02);
+  add(hips, geo.soft, m.armor, 1.12, 0.3, 0.64, 0, 0.22, 0.06);
   add(hips, geo.hex, m.plate, 0.22, 0.06, 0.22, -0.32, 0.32, 0.22, Math.PI / 2, 0, 0);
   add(hips, geo.hex, m.plate, 0.22, 0.06, 0.22, 0.32, 0.32, 0.22, Math.PI / 2, 0, 0);
   add(hips, geo.box, m.emit, 0.12, 0.02, 0.04, 0, 0.34, 0.26);
 
   const leftHip = new THREE.Group();
-  leftHip.position.set(-0.38, 0.02, 0.04);
+  leftHip.position.set(-0.46, 0.02, 0.04);
   hips.add(leftHip);
   const rightHip = new THREE.Group();
-  rightHip.position.set(0.38, 0.02, 0.04);
+  rightHip.position.set(0.46, 0.02, 0.04);
   hips.add(rightHip);
   const L = buildLeg(leftHip, -1, m, detail);
   const R = buildLeg(rightHip, 1, m, detail);
@@ -122,10 +122,10 @@ export function buildPhantomMech(
   torso.add(head);
 
   const lShoulder = new THREE.Group();
-  lShoulder.position.set(-0.78, 1.38, 0.04);
+  lShoulder.position.set(-0.92, 1.42, 0.04);
   torso.add(lShoulder);
   const rShoulder = new THREE.Group();
-  rShoulder.position.set(0.78, 1.38, 0.04);
+  rShoulder.position.set(0.92, 1.42, 0.04);
   torso.add(rShoulder);
   buildShoulder(lShoulder, -1, m, detail);
   buildShoulder(rShoulder, 1, m, detail);
@@ -166,7 +166,7 @@ export function buildPhantomMech(
 
   const lights: THREE.PointLight[] = [];
   if (!wrecked) {
-    const visor = new THREE.PointLight(m.glow, 2.2, 7);
+    const visor = new THREE.PointLight(m.glow, 3.4, 8);
     visor.position.set(0, 1.62, 0.72);
     torso.add(visor);
     lights.push(visor);
@@ -177,7 +177,7 @@ export function buildPhantomMech(
     leftArm.rotation.x = 0.7;
   }
 
-  root.scale.setScalar(1.02);
+  root.scale.setScalar(1.08);
   root.traverse((o) => {
     if ((o as THREE.Mesh).isMesh) {
       (o as THREE.Mesh).castShadow = true;
@@ -223,11 +223,11 @@ type PhantomMats = ReturnType<typeof mats>;
 
 function buildTorso(torso: THREE.Group, m: PhantomMats, detail: boolean) {
   // Fused faceted helmet-body — no neck, one graphene ovoid.
-  add(torso, geo.soft, m.dark, 0.88, 1.48, 0.68, 0, 0.9, 0);
-  add(torso, geo.sphere, m.plate, 1.36, 1.28, 1.12, 0, 1.22, 0.04);
-  add(torso, geo.sphere, m.armor, 1.18, 0.92, 0.92, 0, 1.48, 0.1);
-  add(torso, geo.soft, m.armor, 1.08, 0.58, 0.78, 0, 0.82, 0.1);
-  add(torso, geo.soft, m.plate, 0.7, 0.32, 0.48, 0, 0.42, 0.06);
+  add(torso, geo.soft, m.dark, 1.02, 1.55, 0.78, 0, 0.9, 0);
+  add(torso, geo.sphere, m.plate, 1.58, 1.42, 1.28, 0, 1.22, 0.06);
+  add(torso, geo.sphere, m.armor, 1.36, 1.02, 1.05, 0, 1.5, 0.12);
+  add(torso, geo.soft, m.armor, 1.22, 0.64, 0.88, 0, 0.82, 0.12);
+  add(torso, geo.soft, m.plate, 0.82, 0.36, 0.56, 0, 0.42, 0.08);
   // Hex graphene pecs and crown.
   add(torso, geo.hex, m.armor, 0.48, 0.07, 0.48, -0.3, 1.32, 0.44, Math.PI / 2, 0.18, 0.12);
   add(torso, geo.hex, m.armor, 0.48, 0.07, 0.48, 0.3, 1.32, 0.44, Math.PI / 2, -0.18, -0.12);
@@ -236,11 +236,11 @@ function buildTorso(torso: THREE.Group, m: PhantomMats, detail: boolean) {
   add(torso, geo.hex, m.armor, 0.36, 0.06, 0.36, 0, 1.78, 0.22, Math.PI / 2, 0, 0);
   add(torso, geo.hex, m.plate, 0.22, 0.05, 0.22, 0, 1.86, 0.08, Math.PI / 2, 0, 0);
   // Thin cyan visor slit across the face.
-  add(torso, geo.soft, m.dark, 0.72, 0.16, 0.14, 0, 1.56, 0.58);
-  add(torso, geo.soft, m.visor, 0.58, 0.055, 0.08, 0, 1.56, 0.66);
-  add(torso, geo.hard, m.dark, 0.42, 0.016, 0.05, 0, 1.56, 0.72);
-  add(torso, geo.box, m.emit, 0.38, 0.014, 0.035, 0, 1.56, 0.74);
-  add(torso, geo.box, m.emit, 0.06, 0.06, 0.03, 0, 1.16, 0.58);
+  add(torso, geo.soft, m.dark, 0.86, 0.2, 0.18, 0, 1.58, 0.62);
+  add(torso, geo.soft, m.visor, 0.72, 0.07, 0.1, 0, 1.58, 0.7);
+  add(torso, geo.hard, m.dark, 0.52, 0.02, 0.06, 0, 1.58, 0.76);
+  add(torso, geo.box, m.emit, 0.48, 0.018, 0.045, 0, 1.58, 0.78);
+  add(torso, geo.box, m.emit, 0.08, 0.08, 0.04, 0, 1.18, 0.62);
   // Back chaff / flare pack.
   add(torso, geo.soft, m.dark, 0.42, 0.36, 0.22, 0, 1.18, -0.42);
   add(torso, geo.cyl, m.plate, 0.08, 0.22, 0.08, -0.1, 1.36, -0.48, 0.4, 0, 0);
@@ -257,16 +257,16 @@ function buildTorso(torso: THREE.Group, m: PhantomMats, detail: boolean) {
 }
 
 function buildShoulder(sh: THREE.Group, side: number, m: PhantomMats, detail: boolean) {
-  add(sh, geo.soft, m.armor, 0.62, 0.36, 0.56, side * 0.16, 0.1, 0);
-  add(sh, geo.soft, m.plate, 0.42, 0.2, 0.38, side * 0.2, 0.22, -0.02);
-  add(sh, geo.soft, m.dark, 0.28, 0.16, 0.28, side * 0.2, 0.02, -0.06);
+  add(sh, geo.soft, m.armor, 0.78, 0.44, 0.68, side * 0.18, 0.12, 0);
+  add(sh, geo.soft, m.plate, 0.52, 0.24, 0.46, side * 0.22, 0.26, -0.02);
+  add(sh, geo.soft, m.dark, 0.34, 0.18, 0.32, side * 0.22, 0.02, -0.06);
   // Triple tubes point up-back like the reference clusters.
   for (let i = 0; i < 3; i++) {
-    const x = side * (0.06 + (i % 2) * 0.14);
-    const z = -0.18 - Math.floor(i / 2) * 0.14;
-    add(sh, geo.cyl, m.plate, 0.11, 0.72, 0.11, x, 0.48, z, 0.85, 0, side * 0.1);
-    add(sh, geo.cyl, m.dark, 0.075, 0.18, 0.075, x, 0.78, z - 0.18, 0.85, 0, side * 0.1);
-    if (detail) add(sh, geo.cyl, m.emit, 0.035, 0.06, 0.035, x, 0.86, z - 0.22, 0.85, 0, side * 0.1);
+    const x = side * (0.08 + (i % 2) * 0.16);
+    const z = -0.2 - Math.floor(i / 2) * 0.16;
+    add(sh, geo.cyl, m.plate, 0.16, 0.88, 0.16, x, 0.55, z, 0.85, 0, side * 0.1);
+    add(sh, geo.cyl, m.dark, 0.1, 0.22, 0.1, x, 0.9, z - 0.22, 0.85, 0, side * 0.1);
+    if (detail) add(sh, geo.cyl, m.emit, 0.05, 0.08, 0.05, x, 1.0, z - 0.26, 0.85, 0, side * 0.1);
   }
   if (detail) {
     add(sh, geo.box, m.emit, 0.035, 0.035, 0.035, side * 0.24, 0.16, 0.22);
@@ -275,44 +275,44 @@ function buildShoulder(sh: THREE.Group, side: number, m: PhantomMats, detail: bo
 }
 
 function buildArm(arm: THREE.Group, side: number, m: PhantomMats, detail: boolean) {
-  add(arm, geo.soft, m.armor, 0.24, 0.68, 0.24, 0, -0.34, 0.02);
-  add(arm, geo.soft, m.plate, 0.18, 0.28, 0.18, 0, -0.2, 0.08);
-  add(arm, geo.cyl, m.dark, 0.18, 0.12, 0.18, 0, -0.68, 0.02);
-  if (detail) add(arm, geo.box, m.emit, 0.04, 0.04, 0.04, side * 0.08, -0.28, 0.12);
+  add(arm, geo.soft, m.armor, 0.36, 0.78, 0.36, 0, -0.38, 0.02);
+  add(arm, geo.soft, m.plate, 0.28, 0.34, 0.28, 0, -0.22, 0.1);
+  add(arm, geo.cyl, m.dark, 0.26, 0.14, 0.26, 0, -0.76, 0.02);
+  if (detail) add(arm, geo.box, m.emit, 0.05, 0.05, 0.05, side * 0.12, -0.3, 0.16);
   const fore = new THREE.Group();
-  fore.position.set(0, -0.74, 0.02);
+  fore.position.set(0, -0.84, 0.02);
   arm.add(fore);
-  add(fore, geo.soft, m.armor, 0.22, 0.56, 0.22, 0, -0.24, 0.02);
-  add(fore, geo.soft, m.dark, 0.18, 0.18, 0.18, 0, -0.48, 0.04);
-  add(fore, geo.soft, m.plate, 0.16, 0.2, 0.14, side * 0.06, -0.18, 0.1);
+  add(fore, geo.soft, m.armor, 0.32, 0.64, 0.32, 0, -0.28, 0.02);
+  add(fore, geo.soft, m.dark, 0.26, 0.22, 0.26, 0, -0.54, 0.04);
+  add(fore, geo.soft, m.plate, 0.24, 0.26, 0.2, side * 0.08, -0.2, 0.12);
   return fore;
 }
 
 function buildLeg(hip: THREE.Group, side: number, m: PhantomMats, detail: boolean) {
-  add(hip, geo.soft, m.armor, 0.42, 0.88, 0.4, 0, -0.44, 0.04);
-  add(hip, geo.soft, m.plate, 0.3, 0.36, 0.24, 0, -0.28, 0.16);
-  add(hip, geo.soft, m.dark, 0.16, 0.5, 0.22, side * 0.16, -0.42, 0);
-  add(hip, geo.hex, m.plate, 0.2, 0.05, 0.2, 0, -0.2, 0.22, Math.PI / 2, 0, 0);
-  add(hip, geo.box, m.emit, 0.06, 0.02, 0.03, 0, -0.22, 0.26);
+  add(hip, geo.soft, m.armor, 0.56, 1.02, 0.52, 0, -0.5, 0.04);
+  add(hip, geo.soft, m.plate, 0.4, 0.42, 0.32, 0, -0.3, 0.2);
+  add(hip, geo.soft, m.dark, 0.2, 0.58, 0.28, side * 0.2, -0.48, 0);
+  add(hip, geo.hex, m.plate, 0.24, 0.06, 0.24, 0, -0.22, 0.26, Math.PI / 2, 0, 0);
+  add(hip, geo.box, m.emit, 0.08, 0.025, 0.04, 0, -0.24, 0.3);
   const knee = new THREE.Group();
-  knee.position.set(0, -0.94, 0.04);
+  knee.position.set(0, -1.05, 0.04);
   hip.add(knee);
-  add(knee, geo.soft, m.armor, 0.38, 0.26, 0.36, 0, 0.02, 0.1);
-  add(knee, geo.soft, m.plate, 0.28, 0.16, 0.22, 0, 0.04, 0.24);
-  add(knee, geo.cone, m.armor, 0.2, 0.16, 0.14, 0, 0.0, 0.3, Math.PI / 2, 0, 0);
-  add(knee, geo.soft, m.dark, 0.3, 0.98, 0.3, 0, -0.56, -0.02);
-  add(knee, geo.soft, m.armor, 0.26, 0.66, 0.24, 0, -0.58, 0.12);
-  add(knee, geo.soft, m.plate, 0.18, 0.36, 0.16, 0, -0.68, 0.2);
-  add(knee, geo.box, m.emit, 0.06, 0.02, 0.03, 0, -0.36, 0.24);
-  if (detail) add(knee, geo.hex, m.trim, 0.12, 0.04, 0.12, side * 0.12, -0.42, 0.14, Math.PI / 2, 0, 0);
+  add(knee, geo.soft, m.armor, 0.5, 0.32, 0.46, 0, 0.02, 0.12);
+  add(knee, geo.soft, m.plate, 0.36, 0.2, 0.28, 0, 0.04, 0.28);
+  add(knee, geo.cone, m.armor, 0.26, 0.2, 0.18, 0, 0.0, 0.36, Math.PI / 2, 0, 0);
+  add(knee, geo.soft, m.dark, 0.4, 1.08, 0.38, 0, -0.62, -0.02);
+  add(knee, geo.soft, m.armor, 0.34, 0.74, 0.3, 0, -0.64, 0.14);
+  add(knee, geo.soft, m.plate, 0.24, 0.4, 0.2, 0, -0.74, 0.24);
+  add(knee, geo.box, m.emit, 0.08, 0.025, 0.04, 0, -0.4, 0.28);
+  if (detail) add(knee, geo.hex, m.trim, 0.14, 0.045, 0.14, side * 0.14, -0.46, 0.16, Math.PI / 2, 0, 0);
   const foot = new THREE.Group();
-  foot.position.set(0, -1.12, 0.02);
+  foot.position.set(0, -1.22, 0.02);
   knee.add(foot);
-  add(foot, geo.soft, m.dark, 0.32, 0.12, 0.48, 0, 0.06, 0.06);
-  add(foot, geo.soft, m.armor, 0.38, 0.1, 0.58, 0, 0.13, 0.12);
-  add(foot, geo.soft, m.armor, 0.14, 0.09, 0.32, -0.1, 0.12, 0.46);
-  add(foot, geo.soft, m.armor, 0.14, 0.09, 0.32, 0.1, 0.12, 0.46);
-  add(foot, geo.box, m.emit, 0.06, 0.02, 0.03, 0, 0.18, 0.22);
+  add(foot, geo.soft, m.dark, 0.42, 0.14, 0.58, 0, 0.06, 0.08);
+  add(foot, geo.soft, m.armor, 0.5, 0.12, 0.7, 0, 0.14, 0.14);
+  add(foot, geo.soft, m.armor, 0.18, 0.1, 0.38, -0.14, 0.13, 0.54);
+  add(foot, geo.soft, m.armor, 0.18, 0.1, 0.38, 0.14, 0.13, 0.54);
+  add(foot, geo.box, m.emit, 0.08, 0.025, 0.04, 0, 0.2, 0.26);
   return { knee, foot };
 }
 
@@ -326,13 +326,13 @@ function attachRail(
   const g = new THREE.Group();
   g.position.set(0.06, -0.52, 0.28);
   fore.add(g);
-  add(g, geo.soft, m.dark, 0.24, 0.2, 0.4, 0, 0.04, 0);
-  add(g, geo.soft, m.armor, 0.18, 0.14, 1.85, 0, 0.02, 0.92);
-  add(g, geo.hard, m.dark, 0.1, 0.08, 1.62, 0, 0.02, 0.98);
-  add(g, geo.cyl, m.plate, 0.1, 0.22, 0.1, 0, 0.02, 0.22, Math.PI / 2, 0, 0);
-  add(g, geo.box, m.emit, 0.035, 0.035, 1.15, 0, 0.1, 0.95);
-  add(g, geo.cyl, m.emit, 0.045, 0.08, 0.045, 0, 0.02, 1.86, Math.PI / 2, 0, 0);
-  muzzle.position.set(0, 0.02, 1.96);
+  add(g, geo.soft, m.dark, 0.32, 0.26, 0.48, 0, 0.04, 0);
+  add(g, geo.soft, m.trim, 0.26, 0.2, 2.15, 0, 0.02, 1.05);
+  add(g, geo.hard, m.dark, 0.16, 0.12, 1.92, 0, 0.02, 1.1);
+  add(g, geo.cyl, m.plate, 0.14, 0.28, 0.14, 0, 0.02, 0.24, Math.PI / 2, 0, 0);
+  add(g, geo.box, m.emit, 0.05, 0.05, 1.55, 0, 0.14, 1.1);
+  add(g, geo.cyl, m.emit, 0.07, 0.1, 0.07, 0, 0.02, 2.14, Math.PI / 2, 0, 0);
+  muzzle.position.set(0, 0.02, 2.26);
   g.add(muzzle);
   addFlash(g, muzzle, flashes, lights, m.glow);
   return g;
@@ -349,11 +349,11 @@ function attachEmp(
   const g = new THREE.Group();
   g.position.set(-0.06, -0.52, 0.24);
   fore.add(g);
-  add(g, geo.soft, m.dark, 0.24, 0.2, 0.3, 0, 0.04, 0);
-  add(g, geo.cyl, m.armor, 0.18, 0.42, 0.18, 0, 0.02, 0.28, Math.PI / 2, 0, 0);
-  add(g, geo.cyl, m.dark, 0.14, 0.22, 0.14, 0, 0.02, 0.42, Math.PI / 2, 0, 0);
-  add(g, geo.disk, m.emit, 0.14, 0.14, 0.14, 0, 0.02, 0.54);
-  add(g, geo.cyl, m.emit, 0.06, 0.08, 0.06, 0, 0.02, 0.56, Math.PI / 2, 0, 0);
+  add(g, geo.soft, m.dark, 0.34, 0.28, 0.4, 0, 0.04, 0);
+  add(g, geo.cyl, m.armor, 0.28, 0.52, 0.28, 0, 0.02, 0.32, Math.PI / 2, 0, 0);
+  add(g, geo.cyl, m.dark, 0.2, 0.26, 0.2, 0, 0.02, 0.5, Math.PI / 2, 0, 0);
+  add(g, geo.disk, m.emit, 0.22, 0.22, 0.22, 0, 0.02, 0.64);
+  add(g, geo.cyl, m.emit, 0.09, 0.1, 0.09, 0, 0.02, 0.66, Math.PI / 2, 0, 0);
   // Small drone cells under the emitter.
   add(g, geo.hard, m.dark, 0.22, 0.12, 0.28, 0, -0.1, 0.08);
   for (const z of [-0.06, 0.08]) {

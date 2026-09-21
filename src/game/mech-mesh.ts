@@ -977,14 +977,14 @@ export function poseMech(
     rig.leftGun.rotation.set(0.06, 0, 0);
   } else if (phantom) {
     // Slim hunter: arms hang along -Y, rail and EMP sit on +Z.
-    rig.rightShoulder.rotation.set(0.1 + aim * 0.3 - fire * 0.05 + R * swing * 0.22, 0.05, 0.12);
-    rig.leftShoulder.rotation.set(0.1 + aim * 0.3 - alt * 0.05 + L * swing * 0.22, -0.05, -0.12);
-    rig.rightArm.rotation.set(-0.2 + aim * 0.12 - fire * 0.04, 0.03, 0.07);
-    rig.leftArm.rotation.set(-0.2 + aim * 0.12 - alt * 0.04, -0.03, -0.07);
-    rig.rightFore.rotation.set(0.16 + fire * 0.03, 0, 0.02);
-    rig.leftFore.rotation.set(0.16 + alt * 0.03, 0, -0.02);
-    rig.rightGun.rotation.set(0.08, 0, 0);
-    rig.leftGun.rotation.set(0.08, 0, 0);
+    rig.rightShoulder.rotation.set(0.08 + aim * 0.3 - fire * 0.05 + R * swing * 0.22, 0.08, 0.16);
+    rig.leftShoulder.rotation.set(0.08 + aim * 0.3 - alt * 0.05 + L * swing * 0.22, -0.08, -0.16);
+    rig.rightArm.rotation.set(-0.16 + aim * 0.12 - fire * 0.04, 0.04, 0.1);
+    rig.leftArm.rotation.set(-0.16 + aim * 0.12 - alt * 0.04, -0.04, -0.1);
+    rig.rightFore.rotation.set(0.14 + fire * 0.03, 0, 0.03);
+    rig.leftFore.rotation.set(0.14 + alt * 0.03, 0, -0.03);
+    rig.rightGun.rotation.set(0.05, 0, 0);
+    rig.leftGun.rotation.set(0.05, 0, 0);
   } else {
     const raise = -1.22;
     const crook = 0.82;

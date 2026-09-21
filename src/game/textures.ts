@@ -687,11 +687,11 @@ export function makeValkyrieHullMap() {
   return tex(c, { repeat: 2, color: true, aniso: 4 });
 }
 
-/** Dark graphene hex cells so Phantom armor reads without IBL. */
+/** Mid-grey graphene hex cells — dark cells vanished into a black blob. */
 export function makePhantomHullMap() {
   const size = 256;
   const { c, ctx } = canvas(size);
-  ctx.fillStyle = "#0c0e10";
+  ctx.fillStyle = "#14181c";
   ctx.fillRect(0, 0, size, size);
   const r = 16;
   const h = r * Math.sqrt(3);
@@ -701,28 +701,28 @@ export function makePhantomHullMap() {
     for (let x = -r; x < size + r; x += r * 1.74) {
       const cx = x + ox;
       const n = ((Math.floor(x) + Math.floor(y)) % 5 + 5) % 5;
-      const shade = 46 + n * 10;
-      ctx.fillStyle = `rgb(${shade + 6},${shade + 4},${shade})`;
+      const shade = 108 + n * 14;
+      ctx.fillStyle = `rgb(${shade + 8},${shade + 6},${shade})`;
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
         const a = (Math.PI / 3) * i + Math.PI / 6;
-        const px = cx + Math.cos(a) * (r - 1.6);
-        const py = y + Math.sin(a) * (r - 1.6);
+        const px = cx + Math.cos(a) * (r - 1.4);
+        const py = y + Math.sin(a) * (r - 1.4);
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
       }
       ctx.closePath();
       ctx.fill();
-      ctx.strokeStyle = "rgba(6,8,10,0.85)";
-      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = "rgba(10,12,14,0.9)";
+      ctx.lineWidth = 2.2;
       ctx.stroke();
       if (n === 0) {
-        ctx.fillStyle = "rgba(74,212,232,0.22)";
+        ctx.fillStyle = "rgba(74,212,232,0.35)";
         ctx.beginPath();
-        ctx.arc(cx, y, 1.4, 0, Math.PI * 2);
+        ctx.arc(cx, y, 1.6, 0, Math.PI * 2);
         ctx.fill();
       }
     }
   }
-  return tex(c, { repeat: 3, color: true, aniso: 4 });
+  return tex(c, { repeat: 2, color: true, aniso: 4 });
 }
