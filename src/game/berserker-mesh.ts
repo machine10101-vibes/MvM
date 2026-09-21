@@ -56,8 +56,8 @@ function mats(wrecked: boolean) {
       emissiveIntensity: emitI,
     });
   return {
-    armor: lam(wrecked ? 0x4a3228 : 0xd46828, hullMap, wrecked ? 0x180c08 : 0x3a1608, wrecked ? 0.06 : 0.22),
-    plate: lam(wrecked ? 0x3a2a22 : 0xb85018, hullMap, 0x2a1008, 0.16),
+    armor: lam(wrecked ? 0x4a3228 : 0xe07830, hullMap, wrecked ? 0x180c08 : 0x4a1c08, wrecked ? 0.06 : 0.2),
+    plate: lam(wrecked ? 0x3a2a22 : 0xc85c20, hullMap, 0x3a1408, 0.14),
     dark: lam(0x1a1614, undefined, 0x0c0a08, 0.06),
     trim: lam(wrecked ? 0x3a3632 : 0x5a5450, undefined, 0x181614, 0.08),
     metal: lam(0x2c2a28, undefined, 0x10100e, 0.06),
@@ -130,10 +130,10 @@ export function buildBerserkerMech(
   torso.add(head);
 
   const lShoulder = new THREE.Group();
-  lShoulder.position.set(-1.28, 1.32, 0.08);
+  lShoulder.position.set(-1.42, 1.36, 0.08);
   torso.add(lShoulder);
   const rShoulder = new THREE.Group();
-  rShoulder.position.set(1.28, 1.32, 0.08);
+  rShoulder.position.set(1.42, 1.36, 0.08);
   torso.add(rShoulder);
   buildPauldron(lShoulder, -1, m, detail);
   buildPauldron(rShoulder, 1, m, detail);
@@ -238,11 +238,13 @@ export function buildBerserkerMech(
 type BerMats = ReturnType<typeof mats>;
 
 function buildTorso(torso: THREE.Group, m: BerMats, detail: boolean) {
-  add(torso, geo.soft, m.dark, 1.35, 1.62, 1.05, 0, 0.95, 0);
-  add(torso, geo.sphere, m.armor, 1.95, 1.72, 1.62, 0, 1.18, 0.06);
-  add(torso, geo.sphere, m.plate, 1.62, 1.28, 1.28, 0, 1.42, 0.14);
-  add(torso, geo.soft, m.armor, 1.48, 0.72, 1.12, 0, 0.72, 0.12);
-  add(torso, geo.soft, m.plate, 1.05, 0.4, 0.72, 0, 0.38, 0.08);
+  add(torso, geo.soft, m.dark, 1.48, 1.72, 1.18, 0, 0.95, 0);
+  add(torso, geo.sphere, m.armor, 2.22, 1.92, 1.82, 0, 1.2, 0.08);
+  add(torso, geo.sphere, m.plate, 1.82, 1.42, 1.42, 0, 1.48, 0.16);
+  add(torso, geo.soft, m.armor, 1.68, 0.78, 1.22, 0, 0.7, 0.14);
+  add(torso, geo.soft, m.plate, 1.18, 0.44, 0.8, 0, 0.36, 0.1);
+  add(torso, geo.soft, m.armor, 0.72, 0.52, 0.42, -0.48, 1.18, 0.62);
+  add(torso, geo.soft, m.armor, 0.72, 0.52, 0.42, 0.48, 1.18, 0.62);
   // Twin orange visor slits.
   add(torso, geo.soft, m.dark, 0.82, 0.2, 0.16, 0, 1.58, 0.78);
   add(torso, geo.soft, m.visor, 0.22, 0.055, 0.08, -0.16, 1.58, 0.86);
@@ -260,9 +262,9 @@ function buildTorso(torso: THREE.Group, m: BerMats, detail: boolean) {
 }
 
 function buildPauldron(sh: THREE.Group, side: number, m: BerMats, detail: boolean) {
-  add(sh, geo.soft, m.armor, 0.92, 0.58, 0.82, side * 0.18, 0.12, 0);
-  add(sh, geo.soft, m.plate, 0.62, 0.32, 0.56, side * 0.22, 0.28, -0.02);
-  add(sh, geo.soft, m.dark, 0.4, 0.22, 0.36, side * 0.2, 0.02, -0.04);
+  add(sh, geo.soft, m.armor, 1.12, 0.7, 0.98, side * 0.22, 0.14, 0);
+  add(sh, geo.soft, m.plate, 0.78, 0.4, 0.68, side * 0.26, 0.32, -0.02);
+  add(sh, geo.soft, m.dark, 0.48, 0.26, 0.42, side * 0.22, 0.02, -0.04);
   add(sh, geo.cyl, m.metal, 0.22, 0.18, 0.22, side * 0.08, -0.18, 0.02);
   if (detail) {
     add(sh, geo.box, m.emit, 0.05, 0.05, 0.22, side * 0.28, 0.18, 0.28);
@@ -271,17 +273,17 @@ function buildPauldron(sh: THREE.Group, side: number, m: BerMats, detail: boolea
 }
 
 function buildArm(arm: THREE.Group, side: number, m: BerMats, detail: boolean) {
-  add(arm, geo.soft, m.armor, 0.52, 0.92, 0.5, 0, -0.44, 0.02);
-  add(arm, geo.soft, m.plate, 0.4, 0.38, 0.36, 0, -0.24, 0.1);
-  add(arm, geo.cyl, m.metal, 0.28, 0.16, 0.28, 0, -0.88, 0.02);
-  add(arm, geo.cyl, m.dark, 0.18, 0.42, 0.18, side * 0.16, -0.46, 0);
-  if (detail) add(arm, geo.box, m.emit, 0.05, 0.22, 0.04, side * 0.18, -0.36, 0.18);
+  add(arm, geo.soft, m.armor, 0.66, 1.02, 0.62, 0, -0.48, 0.02);
+  add(arm, geo.soft, m.plate, 0.5, 0.44, 0.44, 0, -0.26, 0.12);
+  add(arm, geo.cyl, m.metal, 0.34, 0.18, 0.34, 0, -0.96, 0.02);
+  add(arm, geo.cyl, m.dark, 0.22, 0.48, 0.22, side * 0.2, -0.5, 0);
+  if (detail) add(arm, geo.box, m.emit, 0.06, 0.28, 0.05, side * 0.22, -0.4, 0.2);
   const fore = new THREE.Group();
-  fore.position.set(0, -0.98, 0.02);
+  fore.position.set(0, -1.08, 0.02);
   arm.add(fore);
-  add(fore, geo.soft, m.armor, 0.48, 0.72, 0.46, 0, -0.32, 0.02);
-  add(fore, geo.soft, m.plate, 0.36, 0.28, 0.32, 0, -0.18, 0.12);
-  add(fore, geo.soft, m.dark, 0.32, 0.2, 0.3, 0, -0.62, 0.04);
+  add(fore, geo.soft, m.armor, 0.6, 0.82, 0.56, 0, -0.36, 0.02);
+  add(fore, geo.soft, m.plate, 0.46, 0.34, 0.4, 0, -0.2, 0.14);
+  add(fore, geo.soft, m.dark, 0.4, 0.24, 0.36, 0, -0.7, 0.04);
   return fore;
 }
 
@@ -323,13 +325,13 @@ function attachFist(
   const g = new THREE.Group();
   g.position.set(side * 0.04, -0.72, 0.08);
   fore.add(g);
-  add(g, geo.soft, m.metal, 0.46, 0.42, 0.52, 0, 0.04, 0);
-  add(g, geo.soft, m.armor, 0.52, 0.38, 0.58, 0, -0.02, 0.06);
-  add(g, geo.sphere, m.dark, 0.28, 0.24, 0.28, 0, -0.12, 0.18);
-  add(g, geo.cyl, m.emit, 0.1, 0.08, 0.1, 0, -0.14, 0.28, Math.PI / 2, 0, 0);
+  add(g, geo.soft, m.metal, 0.62, 0.52, 0.68, 0, 0.06, 0);
+  add(g, geo.sphere, m.armor, 0.72, 0.58, 0.72, 0, -0.04, 0.08);
+  add(g, geo.sphere, m.dark, 0.38, 0.3, 0.38, 0, -0.14, 0.22);
+  add(g, geo.cyl, m.emit, 0.14, 0.1, 0.14, 0, -0.16, 0.34, Math.PI / 2, 0, 0);
   // Plasma cutter / chain blade hanging down like the reference.
-  add(g, geo.cone, m.blade, 0.22, 0.72, 0.1, 0, -0.52, 0.16, 0, 0, 0);
-  add(g, geo.cone, m.emit, 0.08, 0.62, 0.04, 0, -0.48, 0.16);
+  add(g, geo.cone, m.blade, 0.32, 0.98, 0.14, 0, -0.68, 0.18, 0, 0, 0);
+  add(g, geo.cone, m.emit, 0.12, 0.86, 0.06, 0, -0.62, 0.18);
   if (detail) {
     add(g, geo.box, m.emit, 0.04, 0.04, 0.04, -0.14, 0.08, 0.22);
     add(g, geo.box, m.emit, 0.04, 0.04, 0.04, 0.14, 0.08, 0.22);
@@ -337,7 +339,7 @@ function attachFist(
   const disc = add(g, geo.torus, m.blade, 0.42, 0.42, 0.42, 0, -0.02, 0.1, Math.PI / 2, 0, 0);
   disc.visible = false;
   gauntlets.push(disc);
-  muzzle.position.set(0, -0.78, 0.16);
+  muzzle.position.set(0, -1.02, 0.18);
   g.add(muzzle);
   addFlash(g, muzzle, flashes, lights, m.glow);
   return g;
@@ -354,17 +356,17 @@ function buildBackTubes(
   const pack = new THREE.Group();
   pack.position.set(0, 1.62, -0.62);
   torso.add(pack);
-  add(pack, geo.soft, m.dark, 0.72, 0.42, 0.36, 0, 0.08, 0);
+  add(pack, geo.soft, m.dark, 0.92, 0.5, 0.44, 0, 0.1, 0);
   const tubes: [number, number, number][] = [
-    [-0.42, 0.18, 0.06],
-    [0, 0.42, 0.12],
-    [0.42, 0.18, 0.06],
+    [-0.58, 0.22, 0.08],
+    [0, 0.55, 0.16],
+    [0.58, 0.22, 0.08],
   ];
   for (const [x, y, z] of tubes) {
-    add(pack, geo.cyl, m.metal, 0.28, 0.92, 0.28, x, y, z, 0.95, 0, x * 0.15);
-    add(pack, geo.cyl, m.dark, 0.2, 0.22, 0.2, x, y + 0.42, z - 0.28, 0.95, 0, x * 0.15);
-    add(pack, geo.cyl, m.emit, 0.12, 0.1, 0.12, x, y + 0.52, z - 0.36, 0.95, 0, x * 0.15);
-    if (detail) add(pack, geo.cyl, m.trim, 0.3, 0.08, 0.3, x, y + 0.08, z - 0.04, 0.95, 0, x * 0.15);
+    add(pack, geo.cyl, m.metal, 0.38, 1.18, 0.38, x, y, z, 1.05, 0, x * 0.12);
+    add(pack, geo.cyl, m.dark, 0.26, 0.28, 0.26, x, y + 0.52, z - 0.38, 1.05, 0, x * 0.12);
+    add(pack, geo.cyl, m.emit, 0.16, 0.14, 0.16, x, y + 0.66, z - 0.48, 1.05, 0, x * 0.12);
+    if (detail) add(pack, geo.cyl, m.trim, 0.4, 0.1, 0.4, x, y + 0.1, z - 0.06, 1.05, 0, x * 0.12);
   }
   muzzle.position.set(0, 0.92, -0.28);
   pack.add(muzzle);

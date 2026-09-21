@@ -731,33 +731,27 @@ export function makePhantomHullMap() {
 export function makeBerserkerHullMap() {
   const size = 256;
   const { c, ctx } = canvas(size);
-  ctx.fillStyle = "#3a2214";
+  ctx.fillStyle = "#d46a28";
   ctx.fillRect(0, 0, size, size);
-  const pw = 44;
-  const ph = 34;
+  for (let i = 0; i < 28; i++) {
+    const x = (i * 47) % size;
+    const y = (i * 73) % size;
+    const n = i % 3;
+    ctx.fillStyle = n === 0 ? "rgba(90,42,18,0.35)" : "rgba(232,130,52,0.22)";
+    ctx.beginPath();
+    ctx.ellipse(x, y, 18 + (i % 5) * 3, 10 + (i % 4) * 2, i * 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const pw = 72;
+  const ph = 56;
   for (let y = 0; y < size; y += ph) {
     const stagger = (Math.floor(y / ph) % 2) * (pw / 2);
     for (let x = -pw; x < size + pw; x += pw) {
       const px = x + stagger;
-      const n = ((x / pw + y / ph) % 4 + 4) % 4;
-      const r = 176 + n * 14;
-      const g = 72 + n * 6;
-      const b = 22 + n * 4;
-      ctx.fillStyle = `rgb(${r},${g},${b})`;
-      ctx.fillRect(px + 5, y + 5, pw - 10, ph - 10);
-      ctx.strokeStyle = "#1a100c";
-      ctx.lineWidth = 5;
-      ctx.strokeRect(px + 3, y + 3, pw - 6, ph - 6);
-      ctx.strokeStyle = "rgba(255,120,36,0.28)";
-      ctx.lineWidth = 1.4;
-      ctx.strokeRect(px + 10, y + 9, pw - 20, ph - 18);
-      if (n === 1) {
-        ctx.fillStyle = "rgba(28,16,10,0.55)";
-        ctx.beginPath();
-        ctx.ellipse(px + 18, y + 14, 6, 3.5, 0.4, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      ctx.strokeStyle = "rgba(42,22,12,0.28)";
+      ctx.lineWidth = 1.6;
+      ctx.strokeRect(px + 8, y + 7, pw - 16, ph - 14);
     }
   }
-  return tex(c, { repeat: 2, color: true, aniso: 4 });
+  return tex(c, { repeat: 1, color: true, aniso: 4 });
 }
