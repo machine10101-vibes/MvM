@@ -327,7 +327,7 @@ function attachRail(
   g.position.set(0.06, -0.52, 0.28);
   fore.add(g);
   add(g, geo.soft, m.dark, 0.32, 0.26, 0.48, 0, 0.04, 0);
-  add(g, geo.soft, m.trim, 0.26, 0.2, 2.15, 0, 0.02, 1.05);
+  add(g, geo.soft, m.armor, 0.26, 0.2, 2.15, 0, 0.02, 1.05);
   add(g, geo.hard, m.dark, 0.16, 0.12, 1.92, 0, 0.02, 1.1);
   add(g, geo.cyl, m.plate, 0.14, 0.28, 0.14, 0, 0.02, 0.24, Math.PI / 2, 0, 0);
   add(g, geo.box, m.emit, 0.05, 0.05, 1.55, 0, 0.14, 1.1);
