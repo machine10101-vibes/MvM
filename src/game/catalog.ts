@@ -15,6 +15,7 @@ export interface ChassisDef {
   scale: number;
   primary: WeaponId;
   secondary: WeaponId;
+  special?: WeaponId;
   paint: number;
   accent: number;
   trim: number;
@@ -36,24 +37,26 @@ export interface WeaponDef {
 }
 
 export const CHASSIS: Record<ChassisId, ChassisDef> = {
-  vanguard: {
-    id: "vanguard",
-    name: "Vanguard",
-    role: "Assault",
-    blurb: "Frontline frame. Balanced plating, rifle, and shoulder racks.",
-    hp: 1080,
-    armor: 240,
-    speed: 18,
-    turn: 1.85,
-    boostMul: 1.48,
-    heatCap: 100,
-    mass: 1,
-    scale: 1,
-    primary: "assault",
+  titan: {
+    id: "titan",
+    name: "Titan",
+    role: "Heavy Assault",
+    blurb:
+      "Hulking frontline brawler. Dual rotary autocannons, shoulder missile pods, a chest plasma lance, and a deployable shield dome.",
+    hp: 1920,
+    armor: 680,
+    speed: 11.2,
+    turn: 1.02,
+    boostMul: 1.16,
+    heatCap: 148,
+    mass: 1.82,
+    scale: 1.24,
+    primary: "rotary",
     secondary: "missiles",
-    paint: 0x6e7682,
-    accent: 0xd0d6de,
-    trim: 0x8a93a0,
+    special: "core",
+    paint: 0x1a1c20,
+    accent: 0x4a1418,
+    trim: 0x2c3036,
   },
   reaper: {
     id: "reaper",
@@ -96,25 +99,83 @@ export const CHASSIS: Record<ChassisId, ChassisDef> = {
   phantom: {
     id: "phantom",
     name: "Phantom",
-    role: "Striker",
-    blurb: "Angular interceptor. Plasma lances and a short-range cutter.",
-    hp: 860,
-    armor: 150,
-    speed: 22.4,
-    turn: 2.15,
-    boostMul: 1.6,
-    heatCap: 94,
-    mass: 0.84,
-    scale: 0.96,
-    primary: "plasma",
-    secondary: "blade",
-    paint: 0x3e4654,
-    accent: 0xb8e4f2,
-    trim: 0x6a7888,
+    role: "Stealth Recon",
+    blurb:
+      "Slim angular hunter. A right-arm sniper rail, left-arm EMP and drone launcher, optical camouflage, and chaff to break locks.",
+    hp: 780,
+    armor: 190,
+    speed: 24.8,
+    turn: 2.38,
+    boostMul: 1.7,
+    heatCap: 90,
+    mass: 0.74,
+    scale: 0.95,
+    primary: "sniper",
+    secondary: "emp",
+    special: "drones",
+    paint: 0x2a2e34,
+    accent: 0x4ad4e8,
+    trim: 0x3a4248,
+  },
+  valkyrie: {
+    id: "valkyrie",
+    name: "Valkyrie",
+    role: "Aerial Interceptor",
+    blurb:
+      "Fast aerial superiority fighter. Foldable wings, vectoring thrusters, wing pulse lasers, under-wing racks, a chin gatling, and a light deflection field.",
+    hp: 820,
+    armor: 140,
+    speed: 28.5,
+    turn: 2.55,
+    boostMul: 1.85,
+    heatCap: 88,
+    mass: 0.68,
+    scale: 0.98,
+    primary: "pulse",
+    secondary: "racks",
+    special: "gatling",
+    paint: 0xd8dee8,
+    accent: 0x1a2744,
+    trim: 0xc4b078,
+  },
+  berserker: {
+    id: "berserker",
+    name: "Berserker",
+    role: "Close Combat",
+    blurb:
+      "Brutal melee specialist. Hydraulic fists with plasma cutters and chain blades, shoulder incendiary pods, a spine flamethrower, and gauntlet barriers.",
+    hp: 1680,
+    armor: 620,
+    speed: 16.4,
+    turn: 1.28,
+    boostMul: 1.42,
+    heatCap: 132,
+    mass: 1.62,
+    scale: 1.16,
+    primary: "cutters",
+    secondary: "incendiary",
+    special: "flamer",
+    paint: 0xc45a1e,
+    accent: 0xff6a18,
+    trim: 0x2a2c30,
   },
 };
 
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
+  rotary: {
+    id: "rotary",
+    name: "Twin Helix Rotary",
+    dmg: 7,
+    rpm: 1040,
+    spread: 0.03,
+    range: 82,
+    heat: 0.16,
+    speed: 0,
+    splash: 0,
+    hitscan: true,
+    lock: false,
+    pellets: 2,
+  },
   assault: {
     id: "assault",
     name: "Kestrel Rifle",
@@ -199,6 +260,20 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     lock: false,
     pellets: 8,
   },
+  core: {
+    id: "core",
+    name: "Sternum Lance",
+    dmg: 96,
+    rpm: 42,
+    spread: 0.006,
+    range: 120,
+    heat: 18,
+    speed: 58,
+    splash: 5.5,
+    hitscan: false,
+    lock: false,
+    pellets: 1,
+  },
   plasma: {
     id: "plasma",
     name: "Ion Lance",
@@ -227,12 +302,171 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     lock: false,
     pellets: 1,
   },
+  pulse: {
+    id: "pulse",
+    name: "Wing Pulse Lasers",
+    dmg: 11,
+    rpm: 780,
+    spread: 0.012,
+    range: 140,
+    heat: 0.22,
+    speed: 0,
+    splash: 0,
+    hitscan: true,
+    lock: false,
+    pellets: 2,
+  },
+  racks: {
+    id: "racks",
+    name: "Underwing Racks",
+    dmg: 78,
+    rpm: 88,
+    spread: 0.018,
+    range: 170,
+    heat: 11,
+    speed: 78,
+    splash: 5.5,
+    hitscan: false,
+    lock: true,
+    pellets: 1,
+  },
+  gatling: {
+    id: "gatling",
+    name: "Chin Gatling",
+    dmg: 5,
+    rpm: 1400,
+    spread: 0.028,
+    range: 90,
+    heat: 0.12,
+    speed: 0,
+    splash: 0,
+    hitscan: true,
+    lock: false,
+    pellets: 1,
+  },
+  sniper: {
+    id: "sniper",
+    name: "Wraith Rail",
+    dmg: 230,
+    rpm: 26,
+    spread: 0.001,
+    range: 280,
+    heat: 22,
+    speed: 0,
+    splash: 0,
+    hitscan: true,
+    lock: false,
+    pellets: 1,
+  },
+  emp: {
+    id: "emp",
+    name: "EMP Pulse",
+    dmg: 34,
+    rpm: 68,
+    spread: 0.02,
+    range: 58,
+    heat: 10,
+    speed: 0,
+    splash: 7,
+    hitscan: true,
+    lock: false,
+    pellets: 1,
+  },
+  drones: {
+    id: "drones",
+    name: "Shade Drones",
+    dmg: 38,
+    rpm: 96,
+    spread: 0.03,
+    range: 150,
+    heat: 8,
+    speed: 52,
+    splash: 3.4,
+    hitscan: false,
+    lock: true,
+    pellets: 2,
+  },
+  cutters: {
+    id: "cutters",
+    name: "Plasma Cutters",
+    dmg: 88,
+    rpm: 105,
+    spread: 0.05,
+    range: 16,
+    heat: 7,
+    speed: 0,
+    splash: 2.4,
+    hitscan: true,
+    lock: false,
+    pellets: 2,
+  },
+  incendiary: {
+    id: "incendiary",
+    name: "Incendiary Pods",
+    dmg: 52,
+    rpm: 48,
+    spread: 0.05,
+    range: 72,
+    heat: 11,
+    speed: 36,
+    splash: 8.5,
+    hitscan: false,
+    lock: false,
+    pellets: 2,
+  },
+  flamer: {
+    id: "flamer",
+    name: "Spine Flamer",
+    dmg: 7,
+    rpm: 860,
+    spread: 0.1,
+    range: 24,
+    heat: 0.2,
+    speed: 0,
+    splash: 1.2,
+    hitscan: true,
+    lock: false,
+    pellets: 3,
+  },
 };
+
+export function hasEnergyField(id: ChassisId) {
+  return id === "titan" || id === "valkyrie" || id === "phantom" || id === "berserker";
+}
+
+export function fieldPool(id: ChassisId) {
+  return id === "valkyrie" ? 420 : id === "phantom" ? 380 : id === "berserker" ? 640 : 760;
+}
+
+export function fieldToast(id: ChassisId) {
+  return id === "phantom"
+    ? "CLOAK DOWN"
+    : id === "valkyrie"
+      ? "FIELD DOWN"
+      : id === "berserker"
+        ? "BARRIER DOWN"
+        : "SHIELD DOWN";
+}
 
 export const CHASSIS_LIST = Object.values(CHASSIS);
 export const WEAPON_LIST = Object.values(WEAPONS);
 
+export function resolveChassis(id: unknown): ChassisId {
+  if (
+    id === "titan" ||
+    id === "reaper" ||
+    id === "colossus" ||
+    id === "phantom" ||
+    id === "valkyrie" ||
+    id === "berserker"
+  )
+    return id;
+  return "titan";
+}
+
 const LOOT_POOL: ItemDef[] = [
+  { id: "w-rotary", kind: "weapon", name: "Twin Helix Rotary", rarity: "rare", weaponId: "rotary" },
+  { id: "w-core", kind: "weapon", name: "Sternum Lance", rarity: "epic", weaponId: "core" },
   { id: "w-assault", kind: "weapon", name: "Kestrel Rifle", rarity: "common", weaponId: "assault" },
   { id: "w-smg", kind: "weapon", name: "Needler", rarity: "common", weaponId: "smg" },
   { id: "w-plasma", kind: "weapon", name: "Ion Lance", rarity: "rare", weaponId: "plasma", damage: 0.08 },
@@ -241,6 +475,15 @@ const LOOT_POOL: ItemDef[] = [
   { id: "w-missiles", kind: "weapon", name: "Hydra Racks", rarity: "rare", weaponId: "missiles" },
   { id: "w-flak", kind: "weapon", name: "Shrapnel Gate", rarity: "rare", weaponId: "flak" },
   { id: "w-blade", kind: "weapon", name: "Cinder Edge", rarity: "legend", weaponId: "blade" },
+  { id: "w-pulse", kind: "weapon", name: "Wing Pulse Lasers", rarity: "rare", weaponId: "pulse" },
+  { id: "w-racks", kind: "weapon", name: "Underwing Racks", rarity: "rare", weaponId: "racks" },
+  { id: "w-gatling", kind: "weapon", name: "Chin Gatling", rarity: "epic", weaponId: "gatling" },
+  { id: "w-sniper", kind: "weapon", name: "Wraith Rail", rarity: "epic", weaponId: "sniper" },
+  { id: "w-emp", kind: "weapon", name: "EMP Pulse", rarity: "rare", weaponId: "emp" },
+  { id: "w-drones", kind: "weapon", name: "Shade Drones", rarity: "rare", weaponId: "drones" },
+  { id: "w-cutters", kind: "weapon", name: "Plasma Cutters", rarity: "epic", weaponId: "cutters" },
+  { id: "w-incendiary", kind: "weapon", name: "Incendiary Pods", rarity: "rare", weaponId: "incendiary" },
+  { id: "w-flamer", kind: "weapon", name: "Spine Flamer", rarity: "rare", weaponId: "flamer" },
   { id: "a-plate", kind: "armor", name: "Ablative Plate", rarity: "common", hp: 80, armor: 40 },
   { id: "a-reactive", kind: "armor", name: "Reactive Weave", rarity: "rare", hp: 140, armor: 90 },
   { id: "a-aegis", kind: "armor", name: "Aegis Shell", rarity: "epic", hp: 220, armor: 160 },
@@ -250,9 +493,18 @@ const LOOT_POOL: ItemDef[] = [
   { id: "m-servo", kind: "mod", name: "Gyro Servos", rarity: "common", speed: 1.2 },
 ];
 
-export function defaultLoadout(chassis: ChassisId = "vanguard"): Loadout {
+export function defaultLoadout(chassis: ChassisId = "titan"): Loadout {
   const c = CHASSIS[chassis];
   return { chassis, primary: c.primary, secondary: c.secondary, items: [] };
+}
+
+export function hydrateLoadout(raw: Partial<Loadout> | null | undefined): Loadout {
+  const chassis = resolveChassis(raw?.chassis);
+  const base = defaultLoadout(chassis);
+  if (raw?.chassis !== chassis) return base;
+  const primary = raw?.primary && raw.primary in WEAPONS ? raw.primary : base.primary;
+  const secondary = raw?.secondary && raw.secondary in WEAPONS ? raw.secondary : base.secondary;
+  return { chassis, primary, secondary, items: Array.isArray(raw?.items) ? raw.items : [] };
 }
 
 export function rollLoot(rng: () => number, wave = 1): ItemDef {

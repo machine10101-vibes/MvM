@@ -20,6 +20,7 @@ export default function GameApp() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Engine | null>(null);
   const [engine, setEngine] = useState<Engine | null>(null);
+  const [booted, setBooted] = useState(false);
   const [session, setSession] = useState<{ room: string; mode: MatchMode } | null>(null);
   const screen = useGame((s) => s.screen);
   const setScreen = useGame((s) => s.setScreen);
@@ -41,6 +42,7 @@ export default function GameApp() {
       eng = new mod.Engine(canvas);
       engineRef.current = eng;
       setEngine(eng);
+      eng.onReady(() => setBooted(true));
       eng.setView("title");
       eng.start();
       off = eng.onHud((h) => {
@@ -101,6 +103,11 @@ export default function GameApp() {
           if (screen === "play") engineRef.current && inputLock();
         }}
       />
+      {!booted ? (
+        <div className="absolute inset-0 z-30 grid place-items-center bg-bg">
+          <p className="font-display text-sm tracking-[0.28em] uppercase text-muted">MVM</p>
+        </div>
+      ) : null}
       {screen === "title" ? <TitleOverlay engine={engine} onStart={startSurvival} /> : null}
       {screen === "hangar" ? <HangarOverlay engine={engine} /> : null}
       {screen === "lobby" && !session ? (

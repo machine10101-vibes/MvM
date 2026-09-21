@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { CHASSIS, defaultLoadout } from "./catalog";
+import { CHASSIS, defaultLoadout, hydrateLoadout } from "./catalog";
 import type { ChassisId, HudSnap, Loadout, MatchMode, Screen, WeaponId } from "./types";
 
 const SAVE_KEY = "mvm-hangar-v1";
@@ -7,10 +7,10 @@ const SAVE_KEY = "mvm-hangar-v1";
 function loadSaved(): Loadout {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return defaultLoadout("vanguard");
-    return { ...defaultLoadout("vanguard"), ...JSON.parse(raw) };
+    if (!raw) return defaultLoadout("titan");
+    return hydrateLoadout(JSON.parse(raw));
   } catch {
-    return defaultLoadout("vanguard");
+    return defaultLoadout("titan");
   }
 }
 
@@ -37,7 +37,7 @@ export interface GameState {
 
 export const useGame = create<GameState>((set) => ({
   screen: "title",
-  loadout: typeof window === "undefined" ? defaultLoadout("vanguard") : loadSaved(),
+  loadout: typeof window === "undefined" ? defaultLoadout("titan") : loadSaved(),
   hud: null,
   roomCode: "",
   matchMode: "ffa",
@@ -74,7 +74,25 @@ export const useGame = create<GameState>((set) => ({
     }
     set({ loadout });
   },
-  setHud: (hud) => set({ hud }),
+  setHud: (hud) =>
+    set((s) => {
+      const prev = s.hud;
+      if (
+        prev &&
+        prev.hp === hud.hp &&
+        prev.armor === hud.armor &&
+        prev.heat === hud.heat &&
+        prev.wave === hud.wave &&
+        prev.kills === hud.kills &&
+        prev.alive === hud.alive &&
+        prev.toast === hud.toast &&
+        prev.overheat === hud.overheat &&
+        prev.aliveEnemies === hud.aliveEnemies
+      ) {
+        return s;
+      }
+      return { hud };
+    }),
   setRoom: (roomCode) => set({ roomCode }),
   setMatchMode: (matchMode) => set({ matchMode }),
   setCallsign: (callsign) => set({ callsign }),

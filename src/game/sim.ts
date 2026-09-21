@@ -1,5 +1,5 @@
 import { angleDiff, clamp, mulberry32, uid } from "@/lib/utils";
-import { applyItems, CHASSIS, defaultLoadout, rollLoot, WEAPONS } from "./catalog";
+import { applyItems, CHASSIS, defaultLoadout, fieldPool, fieldToast, hasEnergyField, rollLoot, WEAPONS } from "./catalog";
 import { generateCity, rayHitsBuilding, resolveBuildings, type CityData } from "./city";
 import { audio } from "./audio";
 import type {
@@ -14,6 +14,7 @@ import type {
   Projectile,
   Spark,
   Tracer,
+  WeaponId,
 } from "./types";
 
 const RADIUS = 2.15;
@@ -74,6 +75,11 @@ function makeMech(
     walk: 0,
     sidestep: 0,
     venting: 0,
+    special: c.special ?? null,
+    cdSpecial: 0,
+    specialFlash: 0,
+    shield: hasEnergyField(chassis) ? 1 : 0,
+    shieldUp: false,
     kills: 0,
     deaths: 0,
     aimX: -Math.sin(yaw),
@@ -114,7 +120,7 @@ export class Sim {
   constructor(seed = 0x51a7) {
     this.rng = mulberry32(seed);
     this.city = generateCity(seed);
-    this.loadout = defaultLoadout("vanguard");
+    this.loadout = defaultLoadout("titan");
     this.resetDemo();
   }
 
@@ -136,7 +142,7 @@ export class Sim {
       loadout: this.loadout,
     });
     this.mechs.push(hero);
-    const ids: ChassisId[] = ["reaper", "colossus", "phantom", "vanguard"];
+    const ids: ChassisId[] = ["reaper", "colossus", "phantom", "titan", "valkyrie", "berserker"];
     for (let i = 0; i < 3; i++) {
       const s = this.city.spawns[(i + 2) % this.city.spawns.length];
       this.mechs.push(
@@ -196,8 +202,8 @@ export class Sim {
     this.loadout = { ...this.loadout, chassis: id, primary: CHASSIS[id].primary, secondary: CHASSIS[id].secondary };
     const p = this.local;
     if (!p) return;
-    const fresh = makeMech(p.id, p.name, id, 0, 0, p.yaw, { isLocal: true, loadout: this.loadout });
-    Object.assign(p, fresh, { x: 0, z: 0, y: 0, yaw: p.yaw });
+    const fresh = makeMech(p.id, p.name, id, 0, 0, 0, { isLocal: true, loadout: this.loadout });
+    Object.assign(p, fresh, { x: 0, z: 0, y: 0, yaw: 0 });
   }
 
   applyLoadoutStats(m: Mech) {
@@ -284,6 +290,11 @@ export class Sim {
     if (Math.abs(m.sidestep - wantSide) < 0.35 && a.strafe !== 0) m.sidestep = wantSide;
     if (Math.abs(m.sidestep) < 0.2 && a.strafe === 0) m.sidestep = 0;
     m.sidestep = clamp(m.sidestep, -topLat, topLat);
+    if (a.shield && m.shield > 0.04) {
+      m.shieldUp = true;
+      if (m.chassis === "berserker") m.speed = clamp(m.speed, -top * 0.55, top * 0.92);
+      else if (m.chassis !== "phantom") m.speed = clamp(m.speed, -top * 0.4, top * 0.72);
+    } else m.shieldUp = false;
 
     if (a.vent && m.venting <= 0 && m.heat > 8) {
       m.venting = 1.15;
@@ -294,17 +305,19 @@ export class Sim {
     }
     m.venting = Math.max(0, m.venting - dt);
 
+    const aerial = m.chassis === "valkyrie";
     if (a.boost && m.boost > 0) {
-      m.boost = Math.max(0, m.boost - dt * 0.28);
+      m.boost = Math.max(0, m.boost - dt * (aerial ? 0.34 : 0.28));
       const bx = Math.sin(m.yaw);
       const bz = Math.cos(m.yaw);
-      this.sparks.push({ x: m.x, y: 1.2, z: m.z, vx: bx * 9, vy: 0.5, vz: bz * 9, life: 0.18, maxLife: 0.18, kind: "boost" });
-    } else m.boost = Math.min(1, m.boost + dt * 0.12);
+      this.sparks.push({ x: m.x, y: 1.2 + m.y, z: m.z, vx: bx * 9, vy: aerial ? 2.2 : 0.5, vz: bz * 9, life: 0.18, maxLife: 0.18, kind: "boost" });
+      if (aerial) m.vy += 10 * dt;
+    } else m.boost = Math.min(1, m.boost + dt * (aerial ? 0.16 : 0.12));
 
-    if (a.jump && m.jump > 0.12 && m.y < 8) {
-      m.vy += 18 * dt;
-      m.jump = Math.max(0, m.jump - dt * 0.55);
-    } else m.jump = Math.min(1, m.jump + dt * 0.18);
+    if (a.jump && m.jump > 0.12 && m.y < (aerial ? 20 : 8)) {
+      m.vy += (aerial ? 28 : 18) * dt;
+      m.jump = Math.max(0, m.jump - dt * (aerial ? 0.42 : 0.55));
+    } else m.jump = Math.min(1, m.jump + dt * (aerial ? 0.22 : 0.18));
 
     const look = m.yaw + m.torso;
     m.aimX = -Math.sin(look) * Math.cos(m.pitch);
@@ -314,8 +327,9 @@ export class Sim {
     this.updateLock(m, dt);
     const overheat = m.heat >= m.heatCap || m.venting > 0;
     if (!overheat) {
-      if (a.fire) this.tryFire(m, m.primary, false);
-      if (a.alt) this.tryFire(m, m.secondary, true);
+      if (a.fire) this.tryFire(m, m.primary, "primary");
+      if (a.alt) this.tryFire(m, m.secondary, "secondary");
+      if (a.special && m.special) this.tryFire(m, m.special, "special");
     }
     audio.setEngine(m.speed, a.boost);
   }
@@ -327,7 +341,7 @@ export class Sim {
     const rz = Math.sin(m.yaw);
     m.x += fx * m.speed * dt + rx * m.sidestep * dt;
     m.z += fz * m.speed * dt + rz * m.sidestep * dt;
-    m.vy -= 22 * dt;
+    m.vy -= (m.chassis === "valkyrie" ? 11 : 22) * dt;
     m.y += m.vy * dt;
     if (m.y < 0) {
       m.y = 0;
@@ -339,8 +353,36 @@ export class Sim {
     m.walk += (Math.abs(m.speed) + Math.abs(m.sidestep) * 0.85) * dt * 1.7;
     m.cdPrimary = Math.max(0, m.cdPrimary - dt);
     m.cdSecondary = Math.max(0, m.cdSecondary - dt);
+    m.cdSpecial = Math.max(0, m.cdSpecial - dt);
     m.fireFlash = Math.max(0, m.fireFlash - dt);
     m.altFlash = Math.max(0, m.altFlash - dt);
+    m.specialFlash = Math.max(0, m.specialFlash - dt);
+    if (m.shieldUp && m.shield > 0) {
+      const cloak = m.chassis === "phantom";
+      m.shield = Math.max(0, m.shield - dt * (cloak ? 0.28 : 0.2));
+      if (cloak && this.rng() < dt * 8) {
+        this.sparks.push({
+          x: m.x + (this.rng() - 0.5) * 1.8,
+          y: m.y + 1.2 + this.rng() * 2.2,
+          z: m.z + (this.rng() - 0.5) * 1.8,
+          vx: (this.rng() - 0.5) * 4,
+          vy: 1.4 + this.rng() * 3,
+          vz: (this.rng() - 0.5) * 4,
+          life: 0.22,
+          maxLife: 0.28,
+          kind: "ember",
+        });
+      }
+      if (m.shield <= 0) {
+        m.shieldUp = false;
+        if (m.isLocal) {
+          this.toast = fieldToast(m.chassis);
+          this.toastT = 0.8;
+        }
+      }
+    } else if (hasEnergyField(m.chassis)) {
+      m.shield = Math.min(1, m.shield + dt * (m.chassis === "phantom" ? 0.1 : m.chassis === "valkyrie" ? 0.12 : 0.085));
+    }
     m.heat = Math.max(0, m.heat - dt * 12);
     if (this.time - m.lastHitAt > 4) m.armor = Math.min(m.maxArmor, m.armor + dt * 12);
     if (!m.alive) {
@@ -350,8 +392,8 @@ export class Sim {
   }
 
   private updateLock(m: Mech, dt: number) {
-    const w = WEAPONS[m.secondary];
-    if (!w.lock) {
+    const lockW = [m.special, m.secondary, m.primary].find((id) => id && WEAPONS[id].lock);
+    if (!lockW) {
       m.lock = 0;
       m.lockId = null;
       return;
@@ -360,6 +402,7 @@ export class Sim {
     let bestDot = 0.82;
     for (const o of this.mechs) {
       if (o === m || !o.alive || o.team === m.team) continue;
+      if (o.chassis === "phantom" && o.shieldUp) continue;
       const dx = o.x - m.x;
       const dz = o.z - m.z;
       const dist = Math.hypot(dx, dz);
@@ -384,17 +427,29 @@ export class Sim {
     }
   }
 
-  private tryFire(m: Mech, weaponId: Mech["primary"], alt: boolean) {
-    const cd = alt ? m.cdSecondary : m.cdPrimary;
+  private tryFire(m: Mech, weaponId: Mech["primary"], slot: "primary" | "secondary" | "special") {
+    const cd = slot === "special" ? m.cdSpecial : slot === "secondary" ? m.cdSecondary : m.cdPrimary;
     if (cd > 0) return;
     const w = WEAPONS[weaponId];
     if (w.lock && m.lock < 1) return;
     const interval = 60 / w.rpm;
-    if (alt) m.cdSecondary = interval;
+    if (slot === "special") m.cdSpecial = interval;
+    else if (slot === "secondary") m.cdSecondary = interval;
     else m.cdPrimary = interval;
     m.heat = Math.min(m.heatCap + 5, m.heat + w.heat);
-    if (alt) m.altFlash = weaponId === "rail" || weaponId === "cannon" || weaponId === "blade" ? 0.32 : 0.2;
-    else m.fireFlash = weaponId === "rail" || weaponId === "cannon" || weaponId === "blade" ? 0.32 : 0.2;
+    const punch =
+      weaponId === "rail" ||
+      weaponId === "sniper" ||
+      weaponId === "cannon" ||
+      weaponId === "blade" ||
+      weaponId === "cutters" ||
+      weaponId === "core"
+        ? 0.32
+        : 0.2;
+    if (slot === "special") m.specialFlash = punch;
+    else if (slot === "secondary") m.altFlash = punch;
+    else m.fireFlash = punch;
+    const alt = slot === "secondary";
 
     const originY = 3.15 + m.y;
     const ox = m.x + m.aimX * 2.6;
@@ -408,7 +463,7 @@ export class Sim {
         const dx = m.aimX + sx;
         const dz = m.aimZ + sz;
         const len = Math.hypot(dx, dz) || 1;
-        const hitDist = this.hitscan(m, ox, originY, oz, dx / len, m.aimY, dz / len, w.range, dmg);
+        const hitDist = this.hitscan(m, ox, originY, oz, dx / len, m.aimY, dz / len, w.range, dmg, weaponId);
         this.sparks.push({
           x: ox,
           y: originY,
@@ -449,14 +504,39 @@ export class Sim {
           x1: ox + (dx / len) * hitDist,
           y1: originY + m.aimY * hitDist,
           z1: oz + (dz / len) * hitDist,
-          life: weaponId === "rail" ? 0.34 : weaponId === "blade" ? 0.18 : 0.14,
-          maxLife: weaponId === "rail" ? 0.34 : weaponId === "blade" ? 0.18 : 0.14,
-          kind: weaponId === "rail" ? "rail" : weaponId === "blade" ? "blade" : "bullet",
+          life:
+            weaponId === "rail" || weaponId === "sniper"
+              ? 0.34
+              : weaponId === "blade" || weaponId === "cutters"
+                ? 0.18
+                : 0.14,
+          maxLife:
+            weaponId === "rail" || weaponId === "sniper"
+              ? 0.34
+              : weaponId === "blade" || weaponId === "cutters"
+                ? 0.18
+                : 0.14,
+          kind:
+            weaponId === "rail" || weaponId === "sniper"
+              ? "rail"
+              : weaponId === "blade" || weaponId === "cutters"
+                ? "blade"
+                : weaponId === "pulse" ||
+                    weaponId === "gatling" ||
+                    weaponId === "plasma" ||
+                    weaponId === "emp" ||
+                    weaponId === "flamer"
+                  ? "plasma"
+                  : "bullet",
           owner: m.id,
           alt,
         });
       }
-      audio.fire(weaponId === "rail" || weaponId === "blade" ? "heavy" : "hitscan");
+      audio.fire(
+        weaponId === "rail" || weaponId === "sniper" || weaponId === "blade" || weaponId === "cutters"
+          ? "heavy"
+          : "hitscan",
+      );
     } else {
       for (let p = 0; p < w.pellets; p++) {
         const sx = (this.rng() - 0.5) * w.spread * 4;
@@ -477,7 +557,16 @@ export class Sim {
           life: w.range / w.speed,
           dmg,
           splash: w.splash,
-          kind: weaponId === "missiles" ? "missile" : weaponId === "plasma" ? "plasma" : weaponId === "flak" ? "flak" : "cannon",
+          kind:
+            weaponId === "missiles" || weaponId === "racks" || weaponId === "drones"
+              ? "missile"
+              : weaponId === "core"
+                ? "core"
+                : weaponId === "plasma"
+                  ? "plasma"
+                  : weaponId === "flak" || weaponId === "incendiary"
+                    ? "flak"
+                    : "cannon",
           targetId: w.lock ? m.lockId : null,
           fresh: true,
         });
@@ -493,7 +582,7 @@ export class Sim {
           kind: "muzzle",
         });
       }
-      audio.fire(weaponId === "missiles" ? "missile" : "plasma");
+      audio.fire(weaponId === "missiles" || weaponId === "racks" || weaponId === "drones" ? "missile" : "plasma");
     }
     this.onFire?.(m.id, weaponId);
   }
@@ -508,6 +597,7 @@ export class Sim {
     dz: number,
     range: number,
     dmg: number,
+    weaponId?: WeaponId,
   ) {
     const wall = rayHitsBuilding(ox, oz, dx, dz, range, this.city.buildings);
     let best = wall;
@@ -523,13 +613,16 @@ export class Sim {
       const px = ox + dx * t - o.x;
       const pz = oz + dz * t - o.z;
       const py = oy + dy * t - (o.y + 3);
-      if (px * px + pz * pz + py * py * 0.45 < 6.5) {
+      const cloaked = o.chassis === "phantom" && o.shieldUp;
+      const hitR = cloaked ? 2.2 : 6.5;
+      if (px * px + pz * pz + py * py * 0.45 < hitR) {
         best = t;
         target = o;
       }
     }
     if (target) {
       this.damage(target, dmg, owner);
+      if (weaponId === "emp") this.empStun(target, owner);
       this.sparks.push({
         x: target.x + (this.rng() - 0.5) * 1.4,
         y: target.y + 2.4 + this.rng(),
@@ -552,7 +645,7 @@ export class Sim {
     for (const p of this.projectiles) {
       if (p.targetId) {
         const t = this.mechs.find((m) => m.id === p.targetId && m.alive);
-        if (t) {
+        if (t && !(t.chassis === "phantom" && t.shieldUp)) {
           const dx = t.x - p.x;
           const dy = t.y + 3 - p.y;
           const dz = t.z - p.z;
@@ -609,8 +702,47 @@ export class Sim {
     }
   }
 
+  private empStun(target: Mech, owner: Mech | null) {
+    target.venting = Math.max(target.venting, 1.4);
+    target.heat = Math.min(target.heatCap, target.heat + 28);
+    target.lock = 0;
+    target.lockId = null;
+    target.shieldUp = false;
+    if (owner?.isLocal) {
+      this.toast = "EMP";
+      this.toastT = 0.55;
+    }
+    const r = 7;
+    for (const o of this.mechs) {
+      if (o === target || !o.alive || o === owner) continue;
+      if (this.mode === "tdm" && owner && o.team === owner.team) continue;
+      if (Math.hypot(o.x - target.x, o.z - target.z) < r) {
+        o.venting = Math.max(o.venting, 0.9);
+        o.heat = Math.min(o.heatCap, o.heat + 16);
+        o.lock = 0;
+        o.lockId = null;
+      }
+    }
+  }
+
   damage(m: Mech, amount: number, src: Mech | null) {
     if (!m.alive || amount <= 0) return;
+    if (m.shieldUp && m.shield > 0) {
+      const max = fieldPool(m.chassis);
+      const pool = m.shield * max;
+      const soak = Math.min(pool, amount * (m.chassis === "phantom" ? 0.55 : 0.88));
+      m.shield = Math.max(0, (pool - soak) / max);
+      amount -= soak;
+      if (m.shield <= 0.01) {
+        m.shield = 0;
+        m.shieldUp = false;
+        if (m.isLocal) {
+          this.toast = fieldToast(m.chassis);
+          this.toastT = 0.8;
+        }
+      }
+    }
+    if (amount <= 0) return;
     const absorbed = Math.min(m.armor, amount * 0.58);
     m.armor -= absorbed;
     m.hp -= amount - absorbed;
@@ -659,6 +791,8 @@ export class Sim {
     m.hp = m.maxHp;
     m.armor = m.maxArmor;
     m.heat = 0;
+    m.shield = hasEnergyField(m.chassis) ? 1 : 0;
+    m.shieldUp = false;
     m.x = s.x;
     m.z = s.z;
     m.y = 0;
@@ -739,7 +873,7 @@ export class Sim {
   private spawnWave() {
     this.wave += 1;
     const n = Math.min(2 + this.wave, 8);
-    const types: ChassisId[] = ["vanguard", "reaper", "phantom"];
+    const types: ChassisId[] = ["titan", "reaper", "phantom", "valkyrie", "berserker"];
     if (this.wave >= 3) types.push("colossus");
     for (let i = 0; i < n; i++) {
       const s = this.city.spawns[(i + this.wave) % this.city.spawns.length];
@@ -764,9 +898,9 @@ export class Sim {
     const ai = this.mechs.filter((m) => m.isAi && m.alive);
     if (ai.length < 3) {
       const s = this.city.spawns[Math.floor(this.rng() * this.city.spawns.length)];
-      const ids: ChassisId[] = ["vanguard", "reaper", "colossus", "phantom"];
+      const ids: ChassisId[] = ["titan", "reaper", "colossus", "phantom", "valkyrie", "berserker"];
       this.mechs.push(
-        makeMech(uid("ai"), "Hostile", ids[Math.floor(this.rng() * 4)], s.x, s.z, this.rng() * 6, {
+        makeMech(uid("ai"), "Hostile", ids[Math.floor(this.rng() * ids.length)], s.x, s.z, this.rng() * 6, {
           isAi: true,
           team: 1,
         }),
@@ -795,7 +929,18 @@ export class Sim {
     const wantYaw = Math.atan2(-dx, -dz);
     m.yaw += angleDiff(m.yaw, wantYaw) * dt * 1.6;
     m.torso += angleDiff(m.yaw + m.torso, wantYaw) * dt * 2.2;
-    const ideal = m.chassis === "colossus" ? 28 : 22;
+    const ideal =
+      m.chassis === "titan"
+        ? 16
+        : m.chassis === "colossus"
+          ? 28
+          : m.chassis === "valkyrie"
+            ? 34
+            : m.chassis === "phantom"
+              ? 38
+              : m.chassis === "berserker"
+                ? 12
+                : 22;
     const c = CHASSIS[m.chassis];
     const top = m.topSpeed || c.speed;
     if (dist > ideal + 8) m.speed = Math.min(top * 0.9, m.speed + 20 * dt);
@@ -812,9 +957,12 @@ export class Sim {
       m.sidestep += (this.rng() > 0.5 ? 1 : -1) * 10 * dt;
       m.yaw += (this.rng() - 0.5) * dt * 3;
     } else {
-      if (dist < 90 && this.rng() < skill * dt * 3) this.tryFire(m, m.primary, false);
-      if (dist < 70 && this.rng() < skill * dt) this.tryFire(m, m.secondary, true);
+      if (dist < 90 && this.rng() < skill * dt * 3) this.tryFire(m, m.primary, "primary");
+      if (dist < 70 && this.rng() < skill * dt) this.tryFire(m, m.secondary, "secondary");
+      if (m.special && dist < 80 && this.rng() < skill * dt * 0.45) this.tryFire(m, m.special, "special");
     }
+    if (hasEnergyField(m.chassis) && m.hp < m.maxHp * (m.chassis === "phantom" ? 0.7 : 0.55) && m.shield > 0.12) m.shieldUp = true;
+    if (m.chassis === "valkyrie" && m.y < 7 && m.jump > 0.28) m.vy += 14 * dt;
     if (dist < 18 && this.rng() < dt * 0.4) m.yaw += (this.rng() - 0.5) * 2;
     if (dist > 40 && this.rng() < dt * 0.35) m.boost = Math.max(0.2, m.boost);
     if (m.heat > m.heatCap * 0.85 && this.rng() < dt * 2) {
@@ -895,9 +1043,13 @@ export class Sim {
       jump: m?.jump ?? 0,
       speed: Math.abs(m?.speed ?? 0),
       yaw: m?.yaw ?? 0,
-      chassis: m?.chassis ?? "vanguard",
-      primary: m?.primary ?? "assault",
+      chassis: m?.chassis ?? "titan",
+      primary: m?.primary ?? "rotary",
       secondary: m?.secondary ?? "missiles",
+      shield: m?.shield ?? 0,
+      shieldUp: m?.shieldUp ?? false,
+      special: m?.special ?? null,
+      cdSpecial: m?.cdSpecial ?? 0,
       lock: m?.lock ?? 0,
       lockName: lockMech?.name ?? null,
       wave: this.wave,

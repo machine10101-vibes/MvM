@@ -18,6 +18,8 @@ const GAME_KEYS = new Set([
   "KeyR",
   "KeyC",
   "KeyF",
+  "KeyT",
+  "KeyG",
   "Escape",
   "KeyP",
 ]);
@@ -47,6 +49,8 @@ export class Input {
     alt: false,
     boost: false,
     jump: false,
+    special: false,
+    shield: false,
   };
   locked = false;
   private canvas: HTMLElement | null = null;
@@ -151,6 +155,8 @@ export class Input {
 
     let strafe = (keys.has("KeyQ") ? -1 : 0) + (keys.has("KeyC") ? 1 : 0);
     let vent = keys.has("KeyR");
+    let special = keys.has("KeyT") || this.touch.special;
+    let shield = keys.has("KeyG") || this.touch.shield;
 
     const rawPads = typeof navigator !== "undefined" ? navigator.getGamepads?.() : null;
     const pads = rawPads ? Array.from(rawPads) : [];
@@ -170,6 +176,8 @@ export class Input {
       if (pad.buttons[0]?.pressed) this.touch.jump = true;
       if (pad.buttons[5]?.pressed) this.firing = true;
       if (pad.buttons[4]?.pressed) this.altFiring = true;
+      if (pad.buttons[3]?.pressed) special = true;
+      if (pad.buttons[1]?.pressed) shield = true;
     }
 
     return {
@@ -182,6 +190,8 @@ export class Input {
       boost: keys.has("ShiftLeft") || keys.has("ShiftRight") || this.touch.boost,
       jump: keys.has("Space") || this.touch.jump,
       vent,
+      special,
+      shield,
       strafe: clamp(strafe, -1, 1),
       pause: keys.has("Escape") || keys.has("KeyP"),
     };

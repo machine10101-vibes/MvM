@@ -7,13 +7,30 @@
     <meta name="description" content="MVM — Mech vs Mech. Third-person combat in a ruined future city." />
     <title>MVM — Mech vs Mech</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=Sora:wght@400;600&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
+    <style>
+      html, body, #root { background: #09090b; margin: 0; height: 100%; }
+      #boot {
+        margin: 0;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        color: #6e6e76;
+        font: 600 13px/1 system-ui, sans-serif;
+        letter-spacing: 0.32em;
+        text-transform: uppercase;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><p id="boot">MVM</p></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

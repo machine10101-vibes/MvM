@@ -35,10 +35,16 @@ export class Vfx {
   private projGeo = new THREE.CapsuleGeometry(0.12, 0.7, 4, 8).rotateX(Math.PI / 2);
   private missileGeo = new THREE.CapsuleGeometry(0.14, 1.15, 4, 8).rotateX(Math.PI / 2);
   private lootGeo = new THREE.OctahedronGeometry(0.55);
-  private muzzles = new Map<string, { a: THREE.Vector3; b: THREE.Vector3 }>();
+  private muzzles = new Map<string, { a: THREE.Vector3; b: THREE.Vector3; c: THREE.Vector3 }>();
+  private coreMat: THREE.MeshStandardMaterial;
   trauma = 0;
+  private cheap = false;
 
-  constructor(private scene: THREE.Scene) {
+  constructor(
+    private scene: THREE.Scene,
+    quality?: { cheap?: boolean; software?: boolean },
+  ) {
+    this.cheap = !!(quality?.cheap || quality?.software);
     this.tracerMats = {
       bullet: new THREE.LineBasicMaterial({ color: 0xfff4d8, transparent: true, opacity: 0.95 }),
       rail: new THREE.LineBasicMaterial({ color: 0x9ad8ff, transparent: true, opacity: 1 }),
@@ -88,6 +94,13 @@ export class Vfx {
       emissiveIntensity: 2.2,
       metalness: 0.2,
       roughness: 0.15,
+    });
+    this.coreMat = new THREE.MeshStandardMaterial({
+      color: 0xff6644,
+      emissive: 0xff2a18,
+      emissiveIntensity: 2.8,
+      metalness: 0.15,
+      roughness: 0.12,
     });
     this.cannonMat = new THREE.MeshStandardMaterial({
       color: 0xe8ddd0,
@@ -139,7 +152,7 @@ export class Vfx {
     );
     scene.add(this.sparkPoints);
 
-    const n = 220;
+    const n = this.cheap ? 1 : 80;
     const pos = new Float32Array(n * 3);
     const col = new Float32Array(n * 3);
     for (let i = 0; i < n; i++) {
@@ -165,6 +178,7 @@ export class Vfx {
         map: makeMuzzleSprite(),
       }),
     );
+    this.ash.visible = n > 0;
     scene.add(this.ash);
     this.ashPos = ag.getAttribute("position") as THREE.BufferAttribute;
     for (let i = 0; i < 3; i++) {
@@ -178,12 +192,19 @@ export class Vfx {
     for (const [id, rig] of rigs) {
       let slot = this.muzzles.get(id);
       if (!slot) {
-        slot = { a: new THREE.Vector3(), b: new THREE.Vector3() };
+        slot = { a: new THREE.Vector3(), b: new THREE.Vector3(), c: new THREE.Vector3() };
         this.muzzles.set(id, slot);
       }
       rig.muzzle.getWorldPosition(slot.a);
       rig.muzzle2.getWorldPosition(slot.b);
+      if (rig.muzzleChest) rig.muzzleChest.getWorldPosition(slot.c);
+      else slot.c.copy(slot.a);
     }
+  }
+
+  setCheap(on: boolean) {
+    this.cheap = on;
+    this.ash.visible = !on && this.ashPos.count > 0;
   }
 
   addTrauma(v: number) {
@@ -269,7 +290,7 @@ export class Vfx {
       if (p.fresh) {
         const muz = this.muzzles.get(p.owner);
         if (muz) {
-          const src = p.kind === "missile" ? muz.b : muz.a;
+          const src = p.kind === "core" ? muz.c : p.kind === "missile" ? muz.b : muz.a;
           p.x = src.x;
           p.y = src.y;
           p.z = src.z;
@@ -280,7 +301,15 @@ export class Vfx {
       mesh.position.set(p.x, p.y, p.z);
       mesh.geometry = p.kind === "missile" ? this.missileGeo : this.projGeo;
       mesh.material =
-        p.kind === "missile" ? this.missileMat : p.kind === "plasma" ? this.plasmaMat : p.kind === "flak" ? this.flakMat : this.cannonMat;
+        p.kind === "missile"
+          ? this.missileMat
+          : p.kind === "core"
+            ? this.coreMat
+            : p.kind === "plasma"
+              ? this.plasmaMat
+              : p.kind === "flak"
+                ? this.flakMat
+                : this.cannonMat;
       _dir.set(p.vx, p.vy, p.vz);
       if (_dir.lengthSq() > 0.01) {
         _look.copy(mesh.position).add(_dir);
@@ -382,14 +411,16 @@ export class Vfx {
     });
     if (explodes.some((s) => s.life > s.maxLife * 0.7)) this.addTrauma(0.28);
 
-    const arr = this.ashPos.array as Float32Array;
-    for (let i = 0; i < this.ashPos.count; i++) {
-      arr[i * 3 + 1] -= dt * (1.4 + (i % 5) * 0.3);
-      arr[i * 3] += Math.sin(sim.time + i) * dt * 0.4;
-      if (arr[i * 3 + 1] < 0) arr[i * 3 + 1] = 30;
+    if (!this.cheap && this.ash.visible) {
+      const arr = this.ashPos.array as Float32Array;
+      for (let i = 0; i < this.ashPos.count; i++) {
+        arr[i * 3 + 1] -= dt * (1.4 + (i % 5) * 0.3);
+        arr[i * 3] += Math.sin(sim.time + i) * dt * 0.4;
+        if (arr[i * 3 + 1] < 0) arr[i * 3 + 1] = 30;
+      }
+      this.ashPos.needsUpdate = true;
+      this.ash.rotation.y += dt * 0.015;
     }
-    this.ashPos.needsUpdate = true;
-    this.ash.rotation.y += dt * 0.015;
   }
 
   shakeOffset(out: THREE.Vector3) {
