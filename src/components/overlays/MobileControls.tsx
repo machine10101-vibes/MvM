@@ -6,13 +6,14 @@ export function MobileControls() {
   const chassis = useGame((s) => s.hud?.chassis ?? s.loadout.chassis);
   const aerial = chassis === "valkyrie";
   const stealth = chassis === "phantom";
+  const brute = chassis === "berserker";
   return (
     <div className="pointer-events-none absolute inset-0 z-20 md:hidden">
       <Stick side="left" />
       <Stick side="right" />
       <div className="pointer-events-auto absolute right-4 bottom-[max(1.25rem,env(safe-area-inset-bottom))] flex gap-3">
-        <HoldButton label={aerial ? "Field" : stealth ? "Cloak" : "Dome"} on="shield" />
-        <HoldButton label={aerial ? "Chin" : stealth ? "Drone" : "Core"} on="special" />
+        <HoldButton label={aerial ? "Field" : stealth ? "Cloak" : brute ? "Barrier" : "Dome"} on="shield" />
+        <HoldButton label={aerial ? "Chin" : stealth ? "Drone" : brute ? "Flamer" : "Core"} on="special" />
         <HoldButton label="Jets" on="jump" />
         <HoldButton label="Boost" on="boost" />
         <HoldButton label="Alt" on="alt" />

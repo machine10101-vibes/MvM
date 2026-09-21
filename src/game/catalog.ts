@@ -138,6 +138,27 @@ export const CHASSIS: Record<ChassisId, ChassisDef> = {
     accent: 0x1a2744,
     trim: 0xc4b078,
   },
+  berserker: {
+    id: "berserker",
+    name: "Berserker",
+    role: "Close Combat",
+    blurb:
+      "Brutal melee specialist. Hydraulic fists with plasma cutters and chain blades, shoulder incendiary pods, a spine flamethrower, and gauntlet barriers.",
+    hp: 1680,
+    armor: 620,
+    speed: 16.4,
+    turn: 1.28,
+    boostMul: 1.42,
+    heatCap: 132,
+    mass: 1.62,
+    scale: 1.16,
+    primary: "cutters",
+    secondary: "incendiary",
+    special: "flamer",
+    paint: 0xc45a1e,
+    accent: 0xff6a18,
+    trim: 0x2a2c30,
+  },
 };
 
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
@@ -365,25 +386,81 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     lock: true,
     pellets: 2,
   },
+  cutters: {
+    id: "cutters",
+    name: "Plasma Cutters",
+    dmg: 88,
+    rpm: 105,
+    spread: 0.05,
+    range: 16,
+    heat: 7,
+    speed: 0,
+    splash: 2.4,
+    hitscan: true,
+    lock: false,
+    pellets: 2,
+  },
+  incendiary: {
+    id: "incendiary",
+    name: "Incendiary Pods",
+    dmg: 52,
+    rpm: 48,
+    spread: 0.05,
+    range: 72,
+    heat: 11,
+    speed: 36,
+    splash: 8.5,
+    hitscan: false,
+    lock: false,
+    pellets: 2,
+  },
+  flamer: {
+    id: "flamer",
+    name: "Spine Flamer",
+    dmg: 7,
+    rpm: 860,
+    spread: 0.1,
+    range: 24,
+    heat: 0.2,
+    speed: 0,
+    splash: 1.2,
+    hitscan: true,
+    lock: false,
+    pellets: 3,
+  },
 };
 
 export function hasEnergyField(id: ChassisId) {
-  return id === "titan" || id === "valkyrie" || id === "phantom";
+  return id === "titan" || id === "valkyrie" || id === "phantom" || id === "berserker";
 }
 
 export function fieldPool(id: ChassisId) {
-  return id === "valkyrie" ? 420 : id === "phantom" ? 380 : 760;
+  return id === "valkyrie" ? 420 : id === "phantom" ? 380 : id === "berserker" ? 640 : 760;
 }
 
 export function fieldToast(id: ChassisId) {
-  return id === "phantom" ? "CLOAK DOWN" : id === "valkyrie" ? "FIELD DOWN" : "SHIELD DOWN";
+  return id === "phantom"
+    ? "CLOAK DOWN"
+    : id === "valkyrie"
+      ? "FIELD DOWN"
+      : id === "berserker"
+        ? "BARRIER DOWN"
+        : "SHIELD DOWN";
 }
 
 export const CHASSIS_LIST = Object.values(CHASSIS);
 export const WEAPON_LIST = Object.values(WEAPONS);
 
 export function resolveChassis(id: unknown): ChassisId {
-  if (id === "titan" || id === "reaper" || id === "colossus" || id === "phantom" || id === "valkyrie") return id;
+  if (
+    id === "titan" ||
+    id === "reaper" ||
+    id === "colossus" ||
+    id === "phantom" ||
+    id === "valkyrie" ||
+    id === "berserker"
+  )
+    return id;
   return "titan";
 }
 
@@ -404,6 +481,9 @@ const LOOT_POOL: ItemDef[] = [
   { id: "w-sniper", kind: "weapon", name: "Wraith Rail", rarity: "epic", weaponId: "sniper" },
   { id: "w-emp", kind: "weapon", name: "EMP Pulse", rarity: "rare", weaponId: "emp" },
   { id: "w-drones", kind: "weapon", name: "Shade Drones", rarity: "rare", weaponId: "drones" },
+  { id: "w-cutters", kind: "weapon", name: "Plasma Cutters", rarity: "epic", weaponId: "cutters" },
+  { id: "w-incendiary", kind: "weapon", name: "Incendiary Pods", rarity: "rare", weaponId: "incendiary" },
+  { id: "w-flamer", kind: "weapon", name: "Spine Flamer", rarity: "rare", weaponId: "flamer" },
   { id: "a-plate", kind: "armor", name: "Ablative Plate", rarity: "common", hp: 80, armor: 40 },
   { id: "a-reactive", kind: "armor", name: "Reactive Weave", rarity: "rare", hp: 140, armor: 90 },
   { id: "a-aegis", kind: "armor", name: "Aegis Shell", rarity: "epic", hp: 220, armor: 160 },

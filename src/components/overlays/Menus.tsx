@@ -35,7 +35,7 @@ export function TitleOverlay({ engine, onStart }: { engine: Engine | null; onSta
       </header>
       <div className="max-w-md space-y-4">
         <p className="max-w-sm text-sm leading-relaxed text-muted">
-          Helix is ash. Titan holds the line. Phantom hunts from the dark — a slim rail, EMP pulse, shade drones, and optical cloak. Valkyrie-class interceptors own the sky.
+          Helix is ash. Titan holds the line. Phantom hunts from the dark. Berserker closes and tears — plasma cutters, incendiary pods, a spine flamer, and gauntlet barriers. Valkyrie owns the sky.
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           <Button size="lg" onClick={onStart} disabled={!engine}>
@@ -120,7 +120,7 @@ export function HangarOverlay({ engine }: { engine: Engine | null }) {
         </Button>
       </header>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {CHASSIS_LIST.map((c) => (
             <button
               key={c.id}
@@ -167,7 +167,13 @@ export function HangarOverlay({ engine }: { engine: Engine | null }) {
             {def.hp} hull · {def.armor} plate · {def.speed} m/s
             {def.special
               ? ` · ${WEAPONS[def.special].name}${
-                  def.id === "valkyrie" ? " · deflection field" : def.id === "phantom" ? " · optical cloak" : " · shield dome"
+                  def.id === "valkyrie"
+                    ? " · deflection field"
+                    : def.id === "phantom"
+                      ? " · optical cloak"
+                      : def.id === "berserker"
+                        ? " · gauntlet barriers"
+                        : " · shield dome"
                 }`
               : ""}
           </p>

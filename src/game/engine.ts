@@ -262,20 +262,21 @@ export class Engine {
       const hulking = p.chassis === "titan";
       const aerial = p.chassis === "valkyrie";
       const stealth = p.chassis === "phantom";
+      const brute = p.chassis === "berserker";
       // Stay inside the hangar bay (walls at ~13.4). Featured frames lock a
-      // 3/4 front orbit so wings / crown / cyclops / rail all read.
-      const dist = hulking ? 11.2 : aerial ? 10.8 : stealth ? 10.5 : 12.2;
+      // 3/4 front orbit so wings / crown / cyclops / rail / fists all read.
+      const dist = hulking ? 11.2 : aerial ? 10.8 : stealth ? 10.5 : brute ? 10.9 : 12.2;
       // Phantom needs a right-side 3/4 so the long +Z rail reads in profile.
-      const a = hulking || aerial ? 0.48 : stealth ? 1.08 : t * 0.2;
+      const a = hulking || aerial || brute ? 0.42 : stealth ? 1.08 : t * 0.2;
       this.camera.position.set(
         Math.sin(a) * dist,
-        hulking ? 3.75 : aerial ? 1.85 : stealth ? 2.2 : 3.55,
+        hulking ? 3.75 : aerial ? 1.85 : stealth ? 2.2 : brute ? 3.25 : 3.55,
         Math.cos(a) * dist,
       );
-      this.camera.lookAt(p.x, hulking ? 2.4 : aerial ? 2.55 : stealth ? 1.95 : 1.55, p.z);
+      this.camera.lookAt(p.x, hulking ? 2.4 : aerial ? 2.55 : stealth ? 1.95 : brute ? 2.15 : 1.55, p.z);
       p.x = 0;
       p.z = 0;
-      p.yaw = hulking || aerial ? 0 : stealth ? 0.32 : p.yaw + dt * 0.18;
+      p.yaw = hulking || aerial || brute ? 0 : stealth ? 0.32 : p.yaw + dt * 0.18;
       return;
     }
     if (this.view === "title") {

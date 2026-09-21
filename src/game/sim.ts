@@ -142,7 +142,7 @@ export class Sim {
       loadout: this.loadout,
     });
     this.mechs.push(hero);
-    const ids: ChassisId[] = ["reaper", "colossus", "phantom", "titan", "valkyrie"];
+    const ids: ChassisId[] = ["reaper", "colossus", "phantom", "titan", "valkyrie", "berserker"];
     for (let i = 0; i < 3; i++) {
       const s = this.city.spawns[(i + 2) % this.city.spawns.length];
       this.mechs.push(
@@ -292,7 +292,8 @@ export class Sim {
     m.sidestep = clamp(m.sidestep, -topLat, topLat);
     if (a.shield && m.shield > 0.04) {
       m.shieldUp = true;
-      if (m.chassis !== "phantom") m.speed = clamp(m.speed, -top * 0.4, top * 0.72);
+      if (m.chassis === "berserker") m.speed = clamp(m.speed, -top * 0.55, top * 0.92);
+      else if (m.chassis !== "phantom") m.speed = clamp(m.speed, -top * 0.4, top * 0.72);
     } else m.shieldUp = false;
 
     if (a.vent && m.venting <= 0 && m.heat > 8) {
@@ -436,7 +437,15 @@ export class Sim {
     else if (slot === "secondary") m.cdSecondary = interval;
     else m.cdPrimary = interval;
     m.heat = Math.min(m.heatCap + 5, m.heat + w.heat);
-    const punch = weaponId === "rail" || weaponId === "sniper" || weaponId === "cannon" || weaponId === "blade" || weaponId === "core" ? 0.32 : 0.2;
+    const punch =
+      weaponId === "rail" ||
+      weaponId === "sniper" ||
+      weaponId === "cannon" ||
+      weaponId === "blade" ||
+      weaponId === "cutters" ||
+      weaponId === "core"
+        ? 0.32
+        : 0.2;
     if (slot === "special") m.specialFlash = punch;
     else if (slot === "secondary") m.altFlash = punch;
     else m.fireFlash = punch;
@@ -495,21 +504,39 @@ export class Sim {
           x1: ox + (dx / len) * hitDist,
           y1: originY + m.aimY * hitDist,
           z1: oz + (dz / len) * hitDist,
-          life: weaponId === "rail" || weaponId === "sniper" ? 0.34 : weaponId === "blade" ? 0.18 : 0.14,
-          maxLife: weaponId === "rail" || weaponId === "sniper" ? 0.34 : weaponId === "blade" ? 0.18 : 0.14,
+          life:
+            weaponId === "rail" || weaponId === "sniper"
+              ? 0.34
+              : weaponId === "blade" || weaponId === "cutters"
+                ? 0.18
+                : 0.14,
+          maxLife:
+            weaponId === "rail" || weaponId === "sniper"
+              ? 0.34
+              : weaponId === "blade" || weaponId === "cutters"
+                ? 0.18
+                : 0.14,
           kind:
             weaponId === "rail" || weaponId === "sniper"
               ? "rail"
-              : weaponId === "blade"
+              : weaponId === "blade" || weaponId === "cutters"
                 ? "blade"
-                : weaponId === "pulse" || weaponId === "gatling" || weaponId === "plasma" || weaponId === "emp"
+                : weaponId === "pulse" ||
+                    weaponId === "gatling" ||
+                    weaponId === "plasma" ||
+                    weaponId === "emp" ||
+                    weaponId === "flamer"
                   ? "plasma"
                   : "bullet",
           owner: m.id,
           alt,
         });
       }
-      audio.fire(weaponId === "rail" || weaponId === "sniper" || weaponId === "blade" ? "heavy" : "hitscan");
+      audio.fire(
+        weaponId === "rail" || weaponId === "sniper" || weaponId === "blade" || weaponId === "cutters"
+          ? "heavy"
+          : "hitscan",
+      );
     } else {
       for (let p = 0; p < w.pellets; p++) {
         const sx = (this.rng() - 0.5) * w.spread * 4;
@@ -537,7 +564,7 @@ export class Sim {
                 ? "core"
                 : weaponId === "plasma"
                   ? "plasma"
-                  : weaponId === "flak"
+                  : weaponId === "flak" || weaponId === "incendiary"
                     ? "flak"
                     : "cannon",
           targetId: w.lock ? m.lockId : null,
@@ -846,7 +873,7 @@ export class Sim {
   private spawnWave() {
     this.wave += 1;
     const n = Math.min(2 + this.wave, 8);
-    const types: ChassisId[] = ["titan", "reaper", "phantom", "valkyrie"];
+    const types: ChassisId[] = ["titan", "reaper", "phantom", "valkyrie", "berserker"];
     if (this.wave >= 3) types.push("colossus");
     for (let i = 0; i < n; i++) {
       const s = this.city.spawns[(i + this.wave) % this.city.spawns.length];
@@ -871,7 +898,7 @@ export class Sim {
     const ai = this.mechs.filter((m) => m.isAi && m.alive);
     if (ai.length < 3) {
       const s = this.city.spawns[Math.floor(this.rng() * this.city.spawns.length)];
-      const ids: ChassisId[] = ["titan", "reaper", "colossus", "phantom", "valkyrie"];
+      const ids: ChassisId[] = ["titan", "reaper", "colossus", "phantom", "valkyrie", "berserker"];
       this.mechs.push(
         makeMech(uid("ai"), "Hostile", ids[Math.floor(this.rng() * ids.length)], s.x, s.z, this.rng() * 6, {
           isAi: true,
@@ -902,7 +929,18 @@ export class Sim {
     const wantYaw = Math.atan2(-dx, -dz);
     m.yaw += angleDiff(m.yaw, wantYaw) * dt * 1.6;
     m.torso += angleDiff(m.yaw + m.torso, wantYaw) * dt * 2.2;
-    const ideal = m.chassis === "titan" ? 16 : m.chassis === "colossus" ? 28 : m.chassis === "valkyrie" ? 34 : m.chassis === "phantom" ? 38 : 22;
+    const ideal =
+      m.chassis === "titan"
+        ? 16
+        : m.chassis === "colossus"
+          ? 28
+          : m.chassis === "valkyrie"
+            ? 34
+            : m.chassis === "phantom"
+              ? 38
+              : m.chassis === "berserker"
+                ? 12
+                : 22;
     const c = CHASSIS[m.chassis];
     const top = m.topSpeed || c.speed;
     if (dist > ideal + 8) m.speed = Math.min(top * 0.9, m.speed + 20 * dt);

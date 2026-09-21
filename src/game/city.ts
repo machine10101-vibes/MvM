@@ -66,7 +66,7 @@ export function generateCity(seed: number): CityData {
     x: (rng() - 0.5) * MAP_SIZE * 0.65,
     z: (rng() - 0.5) * MAP_SIZE * 0.65,
     yaw: rng() * Math.PI * 2,
-    chassis: Math.floor(rng() * 4),
+    chassis: Math.floor(rng() * 6),
   }));
 
   const fires = Array.from({ length: 12 }, () => ({

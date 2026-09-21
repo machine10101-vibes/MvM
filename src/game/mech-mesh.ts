@@ -14,6 +14,7 @@ import type { ChassisId, WeaponId } from "./types";
 import { buildTitanMech, poseTitanExtras } from "./titan-mesh";
 import { buildValkyrieMech, poseValkyrieExtras } from "./valkyrie-mesh";
 import { buildPhantomMech, posePhantomExtras } from "./phantom-mesh";
+import { buildBerserkerMech, poseBerserkerExtras } from "./berserker-mesh";
 
 export interface MechRig {
   root: THREE.Group;
@@ -46,6 +47,7 @@ export interface MechRig {
   primary: WeaponId;
   secondary: WeaponId;
   shieldMesh?: THREE.Mesh;
+  gauntlets?: THREE.Mesh[];
   muzzleChest?: THREE.Object3D;
   barrels?: THREE.Object3D[];
   wings?: THREE.Group[];
@@ -89,6 +91,7 @@ const GLOW: Record<ChassisId, number> = {
   colossus: 0xff7a3a,
   phantom: 0x66e7ff,
   valkyrie: 0x3aa8ff,
+  berserker: 0xff6a18,
 };
 
 const MARK: Record<ChassisId, string> = {
@@ -97,6 +100,7 @@ const MARK: Record<ChassisId, string> = {
   colossus: "C",
   phantom: "P",
   valkyrie: "V",
+  berserker: "B",
 };
 
 interface Mats {
@@ -202,6 +206,7 @@ export function buildMech(
   if (chassis === "titan") return buildTitanMech(wrecked, lowDetail, { primary, secondary });
   if (chassis === "valkyrie") return buildValkyrieMech(wrecked, lowDetail, { primary, secondary });
   if (chassis === "phantom") return buildPhantomMech(wrecked, lowDetail, { primary, secondary });
+  if (chassis === "berserker") return buildBerserkerMech(wrecked, lowDetail, { primary, secondary });
   const glow = GLOW[chassis];
   const detail = !wrecked && !lowDetail;
   const paintColor = wrecked ? 0x2a2a2c : def.paint;
@@ -900,6 +905,7 @@ export function poseMech(
   const titan = rig.chassis === "titan";
   const valk = rig.chassis === "valkyrie";
   const phantom = rig.chassis === "phantom";
+  const berserk = rig.chassis === "berserker";
   const moving = Math.abs(speed) > 0.45;
   const stride = moving ? walk : 0;
   const L = Math.sin(stride);
@@ -914,11 +920,11 @@ export function poseMech(
   // +Y up, +Z forward. A limb hanging along -Y: +rotation.x sends the foot
   // toward -Z (BACK). Humanoid knees therefore flex with +X. Reverse-joint
   // (Reaper) knees flex toward +Z with -X. Prior signs were inverted.
-  const stanceHip = reverse ? 0.22 : valk ? -0.16 : titan ? -0.14 : phantom ? -0.15 : -0.12;
-  const stanceKnee = reverse ? -0.7 : valk ? 0.42 : titan ? 0.4 : phantom ? 0.38 : 0.34;
+  const stanceHip = reverse ? 0.22 : valk ? -0.16 : titan || berserk ? -0.14 : phantom ? -0.15 : -0.12;
+  const stanceKnee = reverse ? -0.7 : valk ? 0.42 : titan ? 0.4 : berserk ? 0.42 : phantom ? 0.38 : 0.34;
   const jumpHip = jumping ? -0.32 : boost ? -0.1 : 0;
   const jumpKnee = jumping ? (reverse ? -0.2 : 0.36) : 0;
-  const hipZ = reverse ? 0.06 : valk ? 0.09 : phantom ? 0.08 : 0.04;
+  const hipZ = reverse ? 0.06 : valk ? 0.09 : berserk ? 0.12 : phantom ? 0.08 : 0.04;
 
   rig.leftHip.position.y = 0.02 + passL * (moving ? 0.14 : 0) + (jumping ? 0.08 : 0);
   rig.rightHip.position.y = 0.02 + passR * (moving ? 0.14 : 0) + (jumping ? 0.08 : 0);
@@ -985,6 +991,16 @@ export function poseMech(
     rig.leftFore.rotation.set(0.14 + alt * 0.03, 0, -0.03);
     rig.rightGun.rotation.set(0.05, 0, 0);
     rig.leftGun.rotation.set(0.05, 0, 0);
+  } else if (berserk) {
+    // Planted brawler: arms hang wide, fists down, blades along -Y like the reference.
+    rig.rightShoulder.rotation.set(0.16 + aim * 0.22 - fire * 0.14 + R * swing * 0.28, 0.05, 0.2);
+    rig.leftShoulder.rotation.set(0.16 + aim * 0.22 - fire * 0.14 + L * swing * 0.28, -0.05, -0.2);
+    rig.rightArm.rotation.set(-0.12 + aim * 0.1 - fire * 0.1, 0.03, 0.1);
+    rig.leftArm.rotation.set(-0.12 + aim * 0.1 - fire * 0.1, -0.03, -0.1);
+    rig.rightFore.rotation.set(0.12 + fire * 0.08, 0, 0.04);
+    rig.leftFore.rotation.set(0.12 + fire * 0.08, 0, -0.04);
+    rig.rightGun.rotation.set(0.04, 0, 0);
+    rig.leftGun.rotation.set(0.04, 0, 0);
   } else {
     const raise = -1.22;
     const crook = 0.82;
@@ -1016,7 +1032,23 @@ export function poseMech(
     t.scale.y = thrust ? 1.55 : 1;
   }
   for (let i = 0; i < rig.flashes.length; i++) {
-    const v = titan || valk ? (i < 2 ? fire : special) : phantom ? (i === 0 ? fire : alt) : i < 2 ? fire : alt;
+    const v = titan || valk
+      ? i < 2
+        ? fire
+        : special
+      : berserk
+        ? i < 2
+          ? fire
+          : i === 2
+            ? alt
+            : special
+        : phantom
+          ? i === 0
+            ? fire
+            : alt
+          : i < 2
+            ? fire
+            : alt;
     const f = rig.flashes[i];
     f.visible = v > 0.015;
     if (!f.visible) continue;
@@ -1031,7 +1063,21 @@ export function poseMech(
     (f.material as THREE.SpriteMaterial).opacity = Math.min(1, 0.55 + v * 3);
   }
   for (let i = 0; i < rig.muzzleLights.length; i++) {
-    const v = titan || valk ? fire : phantom ? (i === 0 ? fire : alt) : i === 0 ? fire : alt;
+    const v = titan || valk
+      ? fire
+      : berserk
+        ? i < 2
+          ? fire
+          : i === 2
+            ? alt
+            : special
+        : phantom
+          ? i === 0
+            ? fire
+            : alt
+          : i === 0
+            ? fire
+            : alt;
     const on = v > 0.015;
     rig.muzzleLights[i].visible = on;
     rig.muzzleLights[i].intensity = on ? 8 + v * 28 : 0;
@@ -1039,4 +1085,5 @@ export function poseMech(
   if (titan) poseTitanExtras(rig, fire, special, shieldUp, shield, time);
   if (valk) poseValkyrieExtras(rig, fire, special, alt, boost, jumping, shieldUp, shield, time);
   if (phantom) posePhantomExtras(rig, fire, special, alt, shieldUp, shield, time);
+  if (berserk) poseBerserkerExtras(rig, fire, special, alt, shieldUp, shield, time);
 }
