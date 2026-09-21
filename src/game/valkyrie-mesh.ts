@@ -163,19 +163,19 @@ export function buildValkyrieMech(
   const hips = new THREE.Group();
   hips.position.y = 2.12;
   body.add(hips);
-  add(hips, geo.soft, m.navy, 0.82, 0.32, 0.52, 0, 0.04, 0.02);
-  add(hips, geo.soft, m.armor, 1.22, 0.28, 0.62, 0, 0.26, 0.08);
-  add(hips, geo.soft, m.white, 0.52, 0.24, 0.36, -0.58, 0.18, 0.1, 0, 0.16, 0.16);
-  add(hips, geo.soft, m.white, 0.52, 0.24, 0.36, 0.58, 0.18, 0.1, 0, -0.16, -0.16);
-  add(hips, geo.soft, m.navySoft, 0.36, 0.2, 0.28, -0.62, 0.08, 0.02);
-  add(hips, geo.soft, m.navySoft, 0.36, 0.2, 0.28, 0.62, 0.08, 0.02);
+  add(hips, geo.soft, m.navy, 0.9, 0.32, 0.52, 0, 0.04, 0.02);
+  add(hips, geo.soft, m.armor, 1.32, 0.28, 0.64, 0, 0.26, 0.08);
+  add(hips, geo.soft, m.white, 0.56, 0.26, 0.38, -0.64, 0.18, 0.1, 0, 0.16, 0.16);
+  add(hips, geo.soft, m.white, 0.56, 0.26, 0.38, 0.64, 0.18, 0.1, 0, -0.16, -0.16);
+  add(hips, geo.soft, m.navySoft, 0.38, 0.2, 0.3, -0.7, 0.08, 0.02);
+  add(hips, geo.soft, m.navySoft, 0.38, 0.2, 0.3, 0.7, 0.08, 0.02);
   add(hips, geo.box, m.gold, 0.18, 0.035, 0.36, 0, 0.38, 0.28);
 
   const leftHip = new THREE.Group();
-  leftHip.position.set(-0.42, 0.02, 0.02);
+  leftHip.position.set(-0.5, 0.02, 0.04);
   hips.add(leftHip);
   const rightHip = new THREE.Group();
-  rightHip.position.set(0.42, 0.02, 0.02);
+  rightHip.position.set(0.5, 0.02, 0.04);
   hips.add(rightHip);
   const L = buildLeg(leftHip, -1, m, detail);
   const R = buildLeg(rightHip, 1, m, detail);
@@ -330,21 +330,23 @@ function buildChest(torso: THREE.Group, m: ValkMats, detail: boolean) {
   add(torso, geo.soft, m.armor, 1.22, 0.32, 0.68, 0, 1.68, 0.12);
   add(torso, geo.soft, m.white, 0.86, 0.16, 0.42, 0, 1.8, 0.2, 0.22, 0, 0);
   // Layered V pecs — this is the chest from the reference.
-  add(torso, geo.soft, m.armor, 0.74, 0.76, 0.5, -0.42, 1.32, 0.3, 0.2, 0.42, 0.24);
-  add(torso, geo.soft, m.armor, 0.74, 0.76, 0.5, 0.42, 1.32, 0.3, 0.2, -0.42, -0.24);
-  add(torso, geo.soft, m.white, 0.54, 0.46, 0.32, -0.38, 1.38, 0.5, 0.26, 0.32, 0.16);
-  add(torso, geo.soft, m.white, 0.54, 0.46, 0.32, 0.38, 1.38, 0.5, 0.26, -0.32, -0.16);
-  add(torso, geo.soft, m.plate, 0.4, 0.28, 0.2, -0.4, 1.16, 0.42, 0.12, 0.22, 0.1);
-  add(torso, geo.soft, m.plate, 0.4, 0.28, 0.2, 0.4, 1.16, 0.42, 0.12, -0.22, -0.1);
-  add(torso, geo.soft, m.armor, 0.42, 0.5, 0.26, -0.62, 1.42, 0.1, 0.08, 0.2, 0.18);
-  add(torso, geo.soft, m.armor, 0.42, 0.5, 0.26, 0.62, 1.42, 0.1, 0.08, -0.2, -0.18);
+  add(torso, geo.soft, m.armor, 0.78, 0.8, 0.52, -0.46, 1.34, 0.32, 0.22, 0.46, 0.26);
+  add(torso, geo.soft, m.armor, 0.78, 0.8, 0.52, 0.46, 1.34, 0.32, 0.22, -0.46, -0.26);
+  add(torso, geo.soft, m.white, 0.56, 0.48, 0.34, -0.4, 1.4, 0.52, 0.28, 0.34, 0.16);
+  add(torso, geo.soft, m.white, 0.56, 0.48, 0.34, 0.4, 1.4, 0.52, 0.28, -0.34, -0.16);
+  add(torso, geo.soft, m.plate, 0.42, 0.3, 0.22, -0.42, 1.16, 0.44, 0.14, 0.24, 0.1);
+  add(torso, geo.soft, m.plate, 0.42, 0.3, 0.22, 0.42, 1.16, 0.44, 0.14, -0.24, -0.1);
+  add(torso, geo.soft, m.armor, 0.44, 0.52, 0.28, -0.66, 1.44, 0.1, 0.08, 0.22, 0.2);
+  add(torso, geo.soft, m.armor, 0.44, 0.52, 0.28, 0.66, 1.44, 0.1, 0.08, -0.22, -0.2);
+  add(torso, geo.soft, m.navy, 0.2, 0.7, 0.3, -0.72, 1.2, 0.08);
+  add(torso, geo.soft, m.navy, 0.2, 0.7, 0.3, 0.72, 1.2, 0.08);
   // Center keel + gold V — wide navy gap so pecs read as a split.
-  add(torso, geo.soft, m.navy, 0.38, 1.02, 0.24, 0, 1.16, 0.46);
-  add(torso, geo.box, m.gold, 0.05, 0.92, 0.04, -0.12, 1.14, 0.58, 0, 0, 0.38);
-  add(torso, geo.box, m.gold, 0.05, 0.92, 0.04, 0.12, 1.14, 0.58, 0, 0, -0.38);
-  add(torso, geo.soft, m.visor, 0.22, 0.12, 0.1, 0, 1.04, 0.54);
-  add(torso, geo.box, m.emit, 0.16, 0.04, 0.06, 0, 1.04, 0.6);
-  add(torso, geo.oct, m.emit, 0.1, 0.1, 0.08, 0, 1.28, 0.54);
+  add(torso, geo.soft, m.navy, 0.4, 1.08, 0.26, 0, 1.16, 0.48);
+  add(torso, geo.box, m.gold, 0.055, 0.98, 0.045, -0.14, 1.14, 0.62, 0, 0, 0.4);
+  add(torso, geo.box, m.gold, 0.055, 0.98, 0.045, 0.14, 1.14, 0.62, 0, 0, -0.4);
+  add(torso, geo.soft, m.visor, 0.24, 0.13, 0.1, 0, 1.04, 0.56);
+  add(torso, geo.box, m.emit, 0.18, 0.045, 0.06, 0, 1.04, 0.62);
+  add(torso, geo.oct, m.emit, 0.11, 0.11, 0.09, 0, 1.3, 0.56);
   // Abs + waist.
   add(torso, geo.soft, m.armor, 0.82, 0.48, 0.54, 0, 0.66, 0.14);
   add(torso, geo.soft, m.navy, 0.4, 0.3, 0.24, 0, 0.62, 0.34);
@@ -366,19 +368,21 @@ function buildChest(torso: THREE.Group, m: ValkMats, detail: boolean) {
 }
 
 function buildHead(head: THREE.Group, m: ValkMats, detail: boolean) {
-  add(head, geo.helm, m.armor, 1.4, 1.28, 1.9, 0, 0.14, 0.1);
-  add(head, geo.soft, m.white, 0.44, 0.22, 0.44, 0, 0.28, 0.12, 0.3, 0, 0);
-  add(head, geo.cone, m.armor, 0.42, 0.56, 0.46, 0, 0.04, 0.48, Math.PI / 2, 0, 0);
-  add(head, geo.soft, m.navy, 0.42, 0.22, 0.34, 0, -0.02, 0.16);
-  add(head, geo.cone, m.navy, 0.22, 0.26, 0.2, 0, -0.02, 0.4, Math.PI / 2, 0, 0);
-  add(head, geo.soft, m.visor, 0.38, 0.075, 0.24, 0, 0.1, 0.44);
-  add(head, geo.hard, m.dark, 0.28, 0.024, 0.16, 0, 0.1, 0.54);
-  add(head, geo.box, m.emit, 0.2, 0.02, 0.055, 0, 0.1, 0.56);
-  add(head, geo.box, m.gold, 0.32, 0.016, 0.05, 0, 0.15, 0.46);
-  add(head, geo.box, m.gold, 0.32, 0.016, 0.05, 0, 0.04, 0.46);
-  const fin = add(head, geo.fin, m.armor, 1.25, 1.25, 1.25, 0, 0.5, -0.02, 0.58, 0, 0);
-  add(head, geo.fin, m.navy, 0.8, 0.92, 0.75, 0, 0.46, -0.04, 0.58, 0, 0);
-  add(head, geo.box, m.gold, 0.018, 0.34, 0.035, 0, 0.42, 0.1, 0.58, 0, 0);
+  add(head, geo.helm, m.armor, 1.45, 1.32, 2.05, 0, 0.14, 0.12);
+  add(head, geo.soft, m.white, 0.46, 0.24, 0.46, 0, 0.3, 0.14, 0.32, 0, 0);
+  add(head, geo.cone, m.armor, 0.46, 0.62, 0.5, 0, 0.04, 0.54, Math.PI / 2, 0, 0);
+  add(head, geo.soft, m.navy, 0.44, 0.24, 0.36, 0, -0.02, 0.18);
+  add(head, geo.cone, m.navy, 0.24, 0.3, 0.22, 0, -0.04, 0.46, Math.PI / 2, 0, 0);
+  add(head, geo.soft, m.visor, 0.4, 0.08, 0.26, 0, 0.1, 0.5);
+  add(head, geo.hard, m.dark, 0.3, 0.026, 0.18, 0, 0.1, 0.6);
+  add(head, geo.box, m.emit, 0.22, 0.022, 0.06, 0, 0.1, 0.62);
+  add(head, geo.box, m.gold, 0.34, 0.016, 0.05, 0, 0.16, 0.5);
+  add(head, geo.box, m.gold, 0.34, 0.016, 0.05, 0, 0.04, 0.5);
+  add(head, geo.box, m.gold, 0.02, 0.12, 0.08, -0.12, 0.1, 0.52, 0, 0, 0.35);
+  add(head, geo.box, m.gold, 0.02, 0.12, 0.08, 0.12, 0.1, 0.52, 0, 0, -0.35);
+  const fin = add(head, geo.fin, m.armor, 1.35, 1.35, 1.35, 0, 0.54, -0.02, 0.6, 0, 0);
+  add(head, geo.fin, m.navy, 0.85, 0.98, 0.8, 0, 0.5, -0.04, 0.6, 0, 0);
+  add(head, geo.box, m.gold, 0.018, 0.38, 0.035, 0, 0.46, 0.12, 0.6, 0, 0);
   if (detail) {
     add(head, geo.box, m.gold, 0.024, 0.12, 0.08, -0.16, 0.18, 0.18);
     add(head, geo.box, m.gold, 0.024, 0.12, 0.08, 0.16, 0.18, 0.18);
@@ -454,10 +458,11 @@ function buildBackpack(pack: THREE.Group, m: ValkMats, detail: boolean) {
 }
 
 function buildPauldron(sh: THREE.Group, side: number, m: ValkMats, detail: boolean) {
-  add(sh, geo.soft, m.armor, 0.7, 0.32, 0.58, side * 0.18, 0.16, 0);
-  add(sh, geo.soft, m.white, 0.52, 0.18, 0.42, side * 0.22, 0.3, -0.02, 0.2, 0, side * 0.16);
-  add(sh, geo.soft, m.navy, 0.34, 0.2, 0.34, side * 0.24, 0.06, -0.06);
-  add(sh, geo.soft, m.navySoft, 0.22, 0.14, 0.26, side * 0.32, 0.02, 0.1);
+  add(sh, geo.soft, m.armor, 0.74, 0.34, 0.62, side * 0.2, 0.16, 0);
+  add(sh, geo.soft, m.white, 0.56, 0.2, 0.44, side * 0.24, 0.32, -0.02, 0.22, 0, side * 0.2);
+  add(sh, geo.soft, m.navy, 0.38, 0.22, 0.36, side * 0.26, 0.04, -0.08);
+  add(sh, geo.soft, m.navySoft, 0.24, 0.16, 0.28, side * 0.34, 0.0, 0.1);
+  add(sh, geo.soft, m.armor, 0.28, 0.18, 0.2, side * 0.38, 0.22, 0.16, 0.1, 0, side * 0.25);
   const pd = new THREE.Group();
   pd.position.set(side * 0.24, 0.34, 0.16);
   sh.add(pd);
@@ -487,34 +492,43 @@ function buildArm(arm: THREE.Group, side: number, m: ValkMats, detail: boolean) 
 }
 
 function buildLeg(hip: THREE.Group, side: number, m: ValkMats, detail: boolean) {
-  add(hip, geo.soft, m.armor, 0.46, 0.88, 0.42, 0, -0.42, 0.04);
-  add(hip, geo.soft, m.white, 0.34, 0.4, 0.26, side * 0.08, -0.28, 0.14);
-  add(hip, geo.soft, m.navy, 0.2, 0.5, 0.24, side * 0.18, -0.4, 0.0);
-  add(hip, geo.soft, m.navy, 0.26, 0.16, 0.26, 0, -0.84, 0.02);
-  add(hip, geo.box, m.gold, 0.03, 0.34, 0.06, side * 0.18, -0.36, 0.16);
-  add(hip, geo.box, m.emit, 0.07, 0.03, 0.04, 0, -0.24, 0.24);
+  // Athletic Gundam thigh: white front, navy outer panel, gold seam.
+  add(hip, geo.soft, m.armor, 0.5, 0.96, 0.48, 0, -0.46, 0.06);
+  add(hip, geo.soft, m.white, 0.38, 0.46, 0.3, 0, -0.3, 0.22);
+  add(hip, geo.soft, m.navy, 0.2, 0.7, 0.36, side * 0.24, -0.44, 0.0);
+  add(hip, geo.soft, m.navySoft, 0.14, 0.42, 0.22, side * -0.18, -0.4, 0.02);
+  add(hip, geo.soft, m.navy, 0.28, 0.16, 0.28, 0, -0.9, 0.02);
+  add(hip, geo.box, m.gold, 0.03, 0.42, 0.07, side * 0.2, -0.38, 0.2);
+  add(hip, geo.box, m.emit, 0.08, 0.03, 0.045, 0, -0.22, 0.3);
+  if (detail) add(hip, geo.soft, m.plate, 0.22, 0.2, 0.14, side * 0.1, -0.58, 0.24);
+
   const knee = new THREE.Group();
-  knee.position.set(0, -0.92, 0.02);
+  knee.position.set(0, -0.98, 0.04);
   hip.add(knee);
-  add(knee, geo.soft, m.armor, 0.4, 0.26, 0.4, 0, 0.02, 0.08);
-  add(knee, geo.soft, m.white, 0.3, 0.16, 0.24, 0, 0.04, 0.22);
-  add(knee, geo.cone, m.armor, 0.24, 0.2, 0.16, 0, 0.02, 0.28, Math.PI / 2, 0, 0);
-  add(knee, geo.soft, m.navy, 0.34, 1.0, 0.34, 0, -0.56, 0.02);
-  add(knee, geo.soft, m.armor, 0.28, 0.64, 0.24, 0, -0.58, 0.14);
-  add(knee, geo.soft, m.white, 0.2, 0.38, 0.18, 0, -0.68, 0.22);
-  add(knee, geo.soft, m.navySoft, 0.16, 0.56, 0.2, side * 0.15, -0.54, 0.0);
-  add(knee, geo.box, m.emit, 0.08, 0.03, 0.04, 0, -0.38, 0.26);
-  if (detail) add(knee, geo.box, m.gold, 0.035, 0.48, 0.07, side * 0.15, -0.48, 0.12);
+  // Forward kneecap — the cap lives on +Z so a +X flex reads as a humanoid knee.
+  add(knee, geo.soft, m.armor, 0.44, 0.3, 0.4, 0, 0.02, 0.1);
+  add(knee, geo.soft, m.white, 0.34, 0.2, 0.24, 0, 0.04, 0.28);
+  add(knee, geo.cone, m.armor, 0.28, 0.24, 0.2, 0, 0.0, 0.36, Math.PI / 2, 0, 0);
+  add(knee, geo.box, m.gold, 0.2, 0.03, 0.04, 0, 0.08, 0.4);
+  // Shin sits slightly aft of the cap so the planted bend is calf-back.
+  add(knee, geo.soft, m.navy, 0.36, 1.08, 0.36, 0, -0.6, -0.04);
+  add(knee, geo.soft, m.armor, 0.3, 0.74, 0.28, 0, -0.62, 0.12);
+  add(knee, geo.soft, m.white, 0.22, 0.46, 0.2, 0, -0.72, 0.22);
+  add(knee, geo.soft, m.navySoft, 0.18, 0.78, 0.26, side * 0.18, -0.58, -0.04);
+  add(knee, geo.box, m.emit, 0.08, 0.03, 0.04, 0, -0.36, 0.28);
+  if (detail) add(knee, geo.box, m.gold, 0.035, 0.52, 0.07, side * 0.16, -0.5, 0.14);
+
   const foot = new THREE.Group();
-  foot.position.set(0, -1.1, 0.04);
+  foot.position.set(0, -1.16, 0.02);
   knee.add(foot);
-  add(foot, geo.soft, m.navy, 0.34, 0.14, 0.5, 0, 0.06, 0.08);
-  add(foot, geo.soft, m.armor, 0.4, 0.12, 0.58, 0, 0.13, 0.14);
-  add(foot, geo.soft, m.armor, 0.15, 0.1, 0.34, -0.11, 0.12, 0.48);
-  add(foot, geo.soft, m.armor, 0.15, 0.1, 0.34, 0.11, 0.12, 0.48);
-  add(foot, geo.soft, m.white, 0.12, 0.08, 0.18, -0.11, 0.14, 0.58);
-  add(foot, geo.soft, m.white, 0.12, 0.08, 0.18, 0.11, 0.14, 0.58);
-  add(foot, geo.box, m.emit, 0.08, 0.03, 0.035, 0, 0.18, 0.26);
+  add(foot, geo.soft, m.navy, 0.36, 0.14, 0.52, 0, 0.06, 0.04);
+  add(foot, geo.soft, m.armor, 0.44, 0.12, 0.64, 0, 0.14, 0.12);
+  add(foot, geo.soft, m.armor, 0.17, 0.11, 0.38, -0.12, 0.13, 0.5);
+  add(foot, geo.soft, m.armor, 0.17, 0.11, 0.38, 0.12, 0.13, 0.5);
+  add(foot, geo.soft, m.white, 0.13, 0.08, 0.2, -0.12, 0.16, 0.62);
+  add(foot, geo.soft, m.white, 0.13, 0.08, 0.2, 0.12, 0.16, 0.62);
+  add(foot, geo.soft, m.navySoft, 0.12, 0.08, 0.2, 0, 0.1, -0.18);
+  add(foot, geo.box, m.emit, 0.08, 0.03, 0.035, 0, 0.2, 0.24);
   return { knee, foot };
 }
 

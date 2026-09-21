@@ -904,6 +904,8 @@ export function poseMech(
   shield = 0,
 ) {
   const reverse = rig.chassis === "reaper";
+  const titan = rig.chassis === "titan";
+  const valk = rig.chassis === "valkyrie";
   const moving = Math.abs(speed) > 0.45;
   const stride = moving ? walk : 0;
   const L = Math.sin(stride);
@@ -915,28 +917,29 @@ export function poseMech(
   const breath = Math.sin(time * 1.35) * 0.016;
   const aim = -pitch * 0.38;
 
-  // +Y up, +Z forward. Hip/knee rotation.x: +X swings a downward limb FORWARD.
-  // Humanoid knees must flex BACKWARD (negative X). Reverse-joint (Reaper)
-  // knees flex FORWARD (positive X).
-  const stanceHip = reverse ? -0.26 : 0.16;
-  const stanceKnee = reverse ? 0.82 : -0.52;
-  const jumpHip = jumping ? 0.38 : boost ? 0.16 : 0;
-  const jumpKnee = jumping ? (reverse ? 0.22 : -0.42) : 0;
+  // +Y up, +Z forward. A limb hanging along -Y: +rotation.x sends the foot
+  // toward -Z (BACK). Humanoid knees therefore flex with +X. Reverse-joint
+  // (Reaper) knees flex toward +Z with -X. Prior signs were inverted.
+  const stanceHip = reverse ? 0.22 : valk ? -0.08 : titan ? -0.14 : -0.12;
+  const stanceKnee = reverse ? -0.7 : valk ? 0.2 : titan ? 0.4 : 0.34;
+  const jumpHip = jumping ? -0.32 : boost ? -0.1 : 0;
+  const jumpKnee = jumping ? (reverse ? -0.2 : 0.36) : 0;
+  const hipZ = reverse ? 0.06 : valk ? 0.09 : 0.04;
 
   rig.leftHip.position.y = 0.02 + passL * (moving ? 0.14 : 0) + (jumping ? 0.08 : 0);
   rig.rightHip.position.y = 0.02 + passR * (moving ? 0.14 : 0) + (jumping ? 0.08 : 0);
   rig.leftHip.rotation.set(
     stanceHip + L * amp + jumpHip + idle * 0.035,
     L * amp * 0.1,
-    reverse ? 0.06 : 0.04,
+    hipZ,
   );
   rig.rightHip.rotation.set(
     stanceHip + R * amp + jumpHip - idle * 0.035,
     R * amp * 0.1,
-    reverse ? -0.06 : -0.04,
+    -hipZ,
   );
 
-  const kneeFlex = reverse ? 1.05 : -1.45;
+  const kneeFlex = reverse ? -1.05 : 1.35;
   rig.leftKnee.rotation.x = stanceKnee + passL * amp * kneeFlex + jumpKnee;
   rig.rightKnee.rotation.x = stanceKnee + passR * amp * kneeFlex + jumpKnee;
   rig.leftFoot.rotation.x =
@@ -957,8 +960,6 @@ export function poseMech(
   rig.head.rotation.z = 0;
 
   const swing = moving ? 0.08 : 0;
-  const titan = rig.chassis === "titan";
-  const valk = rig.chassis === "valkyrie";
   if (titan) {
     // Hang rotaries beside the spherical torso — matches the planted reference stance.
     // Arms hang along -Y; rotaries sit on +Z so they aim forward, not up.
