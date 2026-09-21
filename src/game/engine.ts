@@ -263,10 +263,10 @@ export class Engine {
       const aerial = p.chassis === "valkyrie";
       // Stay inside the hangar bay (walls at ~13.4). Featured frames lock a
       // 3/4 front orbit so wings / crown / cyclops all read.
-      const dist = hulking ? 11.2 : aerial ? 11.9 : 12.2;
+      const dist = hulking ? 11.2 : aerial ? 10.8 : 12.2;
       const a = hulking || aerial ? 0.48 : t * 0.2;
-      this.camera.position.set(Math.sin(a) * dist, hulking ? 3.75 : aerial ? 3.35 : 3.55, Math.cos(a) * dist);
-      this.camera.lookAt(p.x, hulking ? 2.4 : aerial ? 2.2 : 1.55, p.z);
+      this.camera.position.set(Math.sin(a) * dist, hulking ? 3.75 : aerial ? 1.85 : 3.55, Math.cos(a) * dist);
+      this.camera.lookAt(p.x, hulking ? 2.4 : aerial ? 2.55 : 1.55, p.z);
       p.x = 0;
       p.z = 0;
       p.yaw = hulking || aerial ? 0 : p.yaw + dt * 0.18;

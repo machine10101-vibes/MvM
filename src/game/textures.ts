@@ -660,39 +660,28 @@ export function makeTitanHullMap() {
   };
 }
 
-/** White interceptor plates with navy seams so Valkyrie reads without IBL. */
+/** Subtle white plates — dark seams greyed the last hangar shot into a waffle. */
 export function makeValkyrieHullMap() {
   const size = 256;
   const { c, ctx } = canvas(size);
-  ctx.fillStyle = "#0a1018";
+  ctx.fillStyle = "#e8eef4";
   ctx.fillRect(0, 0, size, size);
-  const pw = 52;
-  const ph = 38;
+  const pw = 64;
+  const ph = 48;
   for (let y = 0; y < size; y += ph) {
     const stagger = (Math.floor(y / ph) % 2) * (pw / 2);
     for (let x = -pw; x < size + pw; x += pw) {
       const px = x + stagger;
       const n = ((x / pw + y / ph) % 3 + 3) % 3;
-      const shade = 208 + n * 14;
-      ctx.fillStyle = `rgb(${shade + 10},${shade + 6},${shade - 2})`;
-      ctx.fillRect(px + 6, y + 6, pw - 12, ph - 12);
-      ctx.strokeStyle = "#0c1828";
-      ctx.lineWidth = 7;
-      ctx.strokeRect(px + 2, y + 2, pw - 4, ph - 4);
-      ctx.strokeStyle = "rgba(196,176,110,0.55)";
-      ctx.lineWidth = 1.8;
-      ctx.strokeRect(px + 11, y + 10, pw - 22, ph - 20);
-      ctx.fillStyle = "#1a2a44";
-      for (const [rx, ry] of [
-        [14, 13],
-        [pw - 14, 13],
-        [14, ph - 13],
-        [pw - 14, ph - 13],
-      ]) {
-        ctx.beginPath();
-        ctx.arc(px + rx, y + ry, 2.4, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      const shade = 232 + n * 6;
+      ctx.fillStyle = `rgb(${shade},${shade - 2},${shade - 4})`;
+      ctx.fillRect(px + 4, y + 4, pw - 8, ph - 8);
+      ctx.strokeStyle = "rgba(20,36,56,0.22)";
+      ctx.lineWidth = 2.2;
+      ctx.strokeRect(px + 5, y + 5, pw - 10, ph - 10);
+      ctx.strokeStyle = "rgba(196,176,110,0.28)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px + 12, y + 11, pw - 24, ph - 22);
     }
   }
   return tex(c, { repeat: 2, color: true, aniso: 4 });
